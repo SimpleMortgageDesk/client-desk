@@ -411,10 +411,15 @@
     if (t.tenancyFields) { t.tByKey = {}; t.tenancyFields.forEach(function (f) { t.tByKey[f.k] = f; }); }
   });
 
+  /* TRIAL LOCK: the app is fixed to this one trade. The picker and "Your trade" in Settings are hidden.
+     Set ONLY to '' to bring back every trade. Nothing is deleted either way. */
+  var ONLY = 'landlord';
+  if (!T[ONLY]) ONLY = '';
   var cur = null;
   try { cur = localStorage.getItem('cd.trade'); } catch (e) {}
-  window.CD_TRADES = { order: ORDER, all: T };
-  window.CD_tradeSet = function (id) { if (!T[id]) return; cur = id; try { localStorage.setItem('cd.trade', id); } catch (e) {} };
+  if (ONLY) { cur = ONLY; ORDER = [ONLY]; try { localStorage.setItem('cd.trade', ONLY); } catch (e) {} }
+  window.CD_TRADES = { order: ORDER, all: T, only: ONLY };
+  window.CD_tradeSet = function (id) { if (!T[id] || (ONLY && id !== ONLY)) return; cur = id; try { localStorage.setItem('cd.trade', id); } catch (e) {} };
   window.CD_tradeChosen = function () { return !!(cur && T[cur]); };
   window.CD_T = function () { return T[cur] || T.general; };
 })();

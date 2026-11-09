@@ -1661,7 +1661,7 @@ function saveTrade(id){
   render();renderSide();
 }
 function openTradePicker(first){
-  if($('#tpOv'))return;var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';
+  if($('#tpOv')||window.CD_TRADES.only)return;var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';
   o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trade"><h2>'+(first?'Welcome. What kind of work do you do?':'Change your trade')+'</h2><p class="muted" style="margin:4px 0 12px">This sets the fields, stages and reminders on your records. You can change it later in Settings.'+(first?'':' Your saved records keep all their details. Fields that do not belong to the new trade are hidden, not deleted.')+'</p><div class="tpgrid">'+
     A.order.map(function(id){var x=A.all[id];return '<button type="button" class="tpb'+(!first&&id===T.id?' on':'')+'" data-trade="'+id+'"><b>'+esc(x.label)+'</b><span>'+esc(x.noun[1])+' · '+esc(x.stages.map(function(s){return s.label.replace(/^\d /,'')}).slice(0,4).join(', '))+'…</span></button>'}).join('')+
     '</div>'+(first?'':'<div class="mkact"><button type="button" class="btn ghost" data-tpclose="1">Cancel</button></div>')+'</div>';
@@ -2566,7 +2566,7 @@ claude.use('db').then(function(d){
   apCol=db.collection('appointments');
   mkCol=db.collection('marketing');
   setCol=db.collection('settings');var tradeSeen=false;setCol.onSnapshot(bizSnap,function(){});
-  setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],tid=d0&&d0.data().trade;if(!tid||!window.CD_TRADES.all[tid])return;tradeSeen=true;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();if(tid!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(tid);if(openId!==undefined)closeDrawer();applyTrade();render();renderSide()}});
+  setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],tid=d0&&d0.data().trade;if(!tid||!window.CD_TRADES.all[tid])return;tradeSeen=true;if(window.CD_TRADES.only)return;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();if(tid!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(tid);if(openId!==undefined)closeDrawer();applyTrade();render();renderSide()}});
   (window.CD_firstPull||Promise.resolve()).then(function(){if(tradeSeen)return;if(window.CD_tradeChosen())write('set-trade',function(){return setCol.doc('trade').set({trade:T.id,updatedAt:Date.now()})});else openTradePicker(true)});
   mkCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='contacts'})[0];mkItems=(d&&d.data().items)||[];var dm=s.docs.filter(function(x){return x.id==='messages'})[0];mkMsgsDoc=(dm&&dm.data().items)||null;if(view==='marketing'&&!$('#mkOv')&&!mkMsgEdit)mkList()});
   apCol.onSnapshot(function(s){appts=s.docs.map(function(x){return Object.assign({id:x.id},x.data())});if(view==='appointments'&&!$('#apOv'))render();if(view==='tasks'&&!$('#apOv')){var hc2=$('#homeCal');if(hc2)hc2.innerHTML=apHome()}var na=$('#nextAppt');if(na&&openId)na.innerHTML=apNextHtml(openId);renderNav()},function(){});
