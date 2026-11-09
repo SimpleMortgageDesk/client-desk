@@ -7,7 +7,7 @@
    ownerName / ownerEmail: who provides the app, shown on the privacy policy page (privacy.html). Use a business contact address. */
 window.MD_CONFIG = {
   appName: 'Client Desk',
-  clientId: 'PASTE-NEW-CLIENT-ID-HERE',
+  clientId: 'e47f8292-11f2-469c-ad6b-0af918c885e1',
   googleClientId: 'PASTE-GOOGLE-CLIENT-ID-HERE',
   tenant: 'consumers',
   ownerName: 'PASTE-YOUR-BUSINESS-NAME',
