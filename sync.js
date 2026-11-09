@@ -1402,8 +1402,19 @@
       var r = await gfetch('/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: gRootName(name), mimeType: GFOLDER, appProperties: { cdRoot: '1', cdName: name } }) });
       if (!r.ok) throw httpErr(r); return { name: name, id: (await r.json()).id };
     }
-    var m = await gfetch(APP + '/children', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }) });
-    if (!m.ok && m.status !== 409) throw httpErr(m); return { name: name };
+    /* Personal OneDrive does not accept creating a folder through the special-folder alias, so use the app folder's own id.
+       If that is refused too, the folder is simply created by the first save (OneDrive makes missing folders on upload). */
+    var a = await gfetch(APP + '?$select=id');
+    if (!a.ok) throw httpErr(a);
+    var aid = (await a.json()).id;
+    if (aid) {
+      var m = await gfetch('/me/drive/items/' + encodeURIComponent(aid) + '/children', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }) });
+      if (!m.ok && m.status !== 409 && m.status !== 400 && m.status !== 403 && m.status !== 501) throw httpErr(m);
+      if (m.ok || m.status === 409) return { name: name };
+    }
+    var p = await gfetch(APP + ':/' + enc(name + '/settings/folder.json') + ':/content', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, createdAt: Date.now() }) });
+    if (!p.ok) throw httpErr(p);
+    return { name: name };
   }
   function useFolder(f) {
     lset('cd.folder', f.name); if (PROV === 'google') { lset('cd.gfid', f.id); gcols = {}; lset('cd.gcols', null); }
