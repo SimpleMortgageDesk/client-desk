@@ -1,5 +1,6 @@
-/* Client Desk (web): Microsoft sign-in, OneDrive storage, offline cache.
-   Stores one JSON file per record in the app's own OneDrive folder (Apps / <registration name>). No other server is used. */
+/* Client Desk (web): Microsoft or Google sign-in, OneDrive or Google Drive storage, offline cache.
+   Stores one JSON file per record in a folder named after the business, in the user's own OneDrive (Apps / <app> / <business>)
+   or Google Drive (My Drive / <app> - <business>). No other server is used. */
 (function () {
   'use strict';
   var CFG = window.MD_CONFIG || {};
@@ -11,8 +12,25 @@
   function scopes() { return BASE_SCOPES + ((ls('cd.cal') === '1' || ls('cd.calwant') === '1') ? ' Calendars.ReadWrite' : '') + ((ls('cd.mail') === '1' || ls('cd.mailwant') === '1') ? ' Mail.Send' : ''); }
   var AUTH = 'https://login.microsoftonline.com/' + (CFG.tenant || 'common') + '/oauth2/v2.0/';
   var GRAPH = 'https://graph.microsoft.com/v1.0';
-  var ROOT = 'Apps / ' + APPN;
   var APP = '/me/drive/special/approot';
+  /* storage provider: 'ms' (OneDrive) or 'google' (Google Drive). Chosen on the sign-in screen. */
+  var PROV = (ls('cd.prov') === 'google') ? 'google' : 'ms';
+  var GAUTH = 'https://accounts.google.com/o/oauth2/v2/auth', GAPI = 'https://www.googleapis.com';
+  var GSCOPE = 'openid email profile https://www.googleapis.com/auth/drive.file';
+  var GFOLDER = 'application/vnd.google-apps.folder';
+  function SNAME() { return PROV === 'google' ? 'Google Drive' : 'OneDrive'; }
+  function FOLDER() { var f = ls('cd.folder'); return f == null ? null : f; }
+  function rootLabel() {
+    var f = FOLDER() || '';
+    return PROV === 'google' ? 'Google Drive \u203a My Drive \u203a ' + gRootName(f) : 'OneDrive \u203a Apps \u203a ' + APPN + (f ? ' \u203a ' + f : '');
+  }
+  function gRootName(f) { return APPN + ' \u2013 ' + f; }
+  /* Google sign-in pop-up: hand the result back to the main window and close. */
+  if (window.opener && window.name === 'cdg' && /access_token=|error=/.test(location.hash)) {
+    try { window.opener.postMessage({ cdg: location.hash.slice(1) }, location.origin); } catch (e) {}
+    window.CD_POPUP = true; document.documentElement.style.display = 'none'; setTimeout(function () { window.close(); }, 50);
+    return;
+  }
   var COLS = ['cases', 'notebook', 'appointments', 'marketing', 'settings'];
   var REDIRECT = CFG.redirectUri || (location.origin + location.pathname.replace(/[^\/]*$/, ''));
   var $ = function (i) { return document.getElementById(i); };
@@ -42,6 +60,7 @@
   function form(o) { return Object.keys(o).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(o[k]); }).join('&'); }
 
   async function startLogin(reauth) {
+    if (window.CD_DEMO_LOGIN) return window.CD_DEMO_LOGIN('ms');
     var v = rand(48), st = rand(16);
     var h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
     try { localStorage.setItem('cd.pkce', JSON.stringify({ v: v, st: st })); } catch (e) {}
@@ -55,10 +74,55 @@
     setTok({ access: j.access_token, refresh: j.refresh_token || old.refresh, exp: Date.now() + (j.expires_in || 3600) * 1000, account: old.account });
     return j;
   }
+  /* ---------- Google sign-in (OAuth 2.0 for browser apps, no Google script loaded) ---------- */
+  function gUrl(mode, hint) {
+    var s = rand(16); lset('cd.gstate', s);
+    return GAUTH + '?' + form(Object.assign({ client_id: CFG.googleClientId || '', redirect_uri: REDIRECT, response_type: 'token', scope: GSCOPE, state: s, include_granted_scopes: 'true' },
+      mode === 'login' ? { prompt: 'select_account' } : {}, hint ? { login_hint: hint } : {}));
+  }
+  function gStart() {
+    if (window.CD_DEMO_LOGIN) return window.CD_DEMO_LOGIN('google');
+    lset('cd.prov', 'google'); location.href = gUrl('login');
+  }
+  function gParse(h) { var p = new URLSearchParams(h); return { at: p.get('access_token'), exp: +p.get('expires_in') || 3600, st: p.get('state'), err: p.get('error'), scope: p.get('scope') || '' }; }
+  var gWaiting = null;
+  function gRenew() {
+    var acc = (tok() || {}).account || {};
+    var w = null; try { w = window.open(gUrl('renew', acc.mail || ''), 'cdg', 'width=520,height=640'); } catch (e) {}
+    if (!w) { lset('cd.prov', 'google'); location.href = gUrl('renew', acc.mail || ''); return; }
+    gWaiting = w;
+  }
+  window.addEventListener('message', function (e) {
+    if (e.origin !== location.origin || !e.data || typeof e.data.cdg !== 'string') return;
+    var r = gParse(e.data.cdg); gWaiting = null;
+    if (r.err || !r.at) { gBanner('Google did not reconnect (' + (r.err || 'no access') + '). Try again.'); return; }
+    if (r.st !== ls('cd.gstate')) { gBanner('That reconnection could not be verified. Try again.'); return; }
+    if (!/drive\.file/.test(r.scope)) { gBanner('Google did not give access to Drive. Tick the Drive box when you reconnect.'); return; }
+    lset('cd.gstate', null);
+    var t = tok() || {}, old = String((t.account || {}).mail || '').toLowerCase();
+    fetch(GAPI + '/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + r.at } }).then(function (x) { return x.ok ? x.json() : {}; }, function () { return {}; }).then(function (u) {
+      var now = String(u.email || '').toLowerCase();
+      if (old && now && old !== now) { gBanner('That was a different Google account (' + now + '). Reconnect with ' + old + '.'); return; }
+      setTok({ access: r.at, exp: Date.now() + r.exp * 1000, prov: 'google', account: t.account });
+      gBannerOff(); st.err = ''; setState(); flush(); pull();
+      if (window.CD_gAfter) { var f = window.CD_gAfter; window.CD_gAfter = null; f(); }
+    });
+  });
+  function gBanner(msg) {
+    var b = $('cdGBar');
+    if (!b) { b = document.createElement('div'); b.id = 'cdGBar'; b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:72px;z-index:240;background:#FFF6DD;border:1px solid #E8D9A8;color:#4a3b00;border-radius:10px;padding:10px 12px;font:14px system-ui,sans-serif;display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:94vw;box-shadow:0 4px 16px rgba(0,0,0,.15)'; document.body.appendChild(b); }
+    b.innerHTML = '<span>' + esc(msg || 'Google asks you to confirm access to your Drive every hour. Your changes are kept safely on this device until you do.') + '</span><button type="button" class="btn sm" id="cdGGo">Reconnect Google Drive</button>';
+    b.querySelector('#cdGGo').onclick = gRenew;
+  }
+  function gBannerOff() { var b = $('cdGBar'); if (b) b.remove(); }
   var refreshing = null;
   function getToken() {
     var t = tok();
     if (!t) { var e = new Error('Not signed in'); e.auth = true; return Promise.reject(e); }
+    if (PROV === 'google') {
+      if (t.exp - Date.now() > 60000) return Promise.resolve(t.access);
+      var ge = new Error('Google needs you to reconnect'); ge.auth = true; ge.renew = true; gBanner(); return Promise.reject(ge);
+    }
     if (t.exp - Date.now() > 120000) return Promise.resolve(t.access);
     if (refreshing) return refreshing;
     refreshing = tokenRequest({ grant_type: 'refresh_token', refresh_token: t.refresh }).then(function () { return tok().access; }, function (e) {
@@ -70,13 +134,14 @@
   async function gfetch(path, opt, retried) {
     opt = opt || {};
     var at = await getToken();
-    var url = path.indexOf('http') === 0 ? path : GRAPH + path;
+    var url = path.indexOf('http') === 0 ? path : (PROV === 'google' ? GAPI : GRAPH) + path;
     var r = await fetch(url, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + at }, opt.headers || {}) }));
+    if (r.status === 401 && PROV === 'google') { var tg = tok(); if (tg) { tg.exp = 0; setTok(tg); } return gfetch(path, opt, true); }
     if (r.status === 401 && !retried) { var t = tok(); if (t) { t.exp = 0; } return gfetch(path, opt, true); }
     if ((r.status === 429 || r.status === 503) && !retried) { await sleep(Math.min(10, +r.headers.get('Retry-After') || 2) * 1000); return gfetch(path, opt, true); }
     return r;
   }
-  function httpErr(r) { var e = new Error('OneDrive said ' + r.status); e.status = r.status; return e; }
+  function httpErr(r) { var e = new Error(SNAME() + ' said ' + r.status); e.status = r.status; return e; }
 
   /* ---------- local cache (IndexedDB) ---------- */
   var idb = null;
@@ -99,7 +164,114 @@
   function persistDoc(col, id) { var d = mem[col][id]; if (d) idbPut('docs', { k: col + '/' + id, col: col, id: id, data: d.data, etag: d.etag, itemId: d.itemId }); }
   function snap(col) { return { docs: Object.keys(mem[col]).map(function (id) { var d = mem[col][id].data; return { id: id, data: function () { return clone(d); } }; }) }; }
   function notify(col) { subs[col].forEach(function (cb) { try { cb(snap(col)); } catch (e) { console.error(e); } }); }
-  var docPath = function (col, id) { return APP + ':/' + enc(col + '/' + id + '.json'); };
+  var base = function () { var f = FOLDER(); return f ? f + '/' : ''; };
+  var docPath = function (col, id) { return APP + ':/' + enc(base() + col + '/' + id + '.json'); };
+
+  /* ---------- storage: the same small set of operations for OneDrive and Google Drive ---------- */
+  var gcols = (function () { try { return JSON.parse(ls('cd.gcols') || '{}') || {}; } catch (e) { return {}; } })();
+  function gq(q, fields) {
+    return (async function () {
+      var out = [], tokn = '';
+      do {
+        var r = await gfetch('/drive/v3/files?' + form({ q: q, spaces: 'drive', pageSize: 1000, fields: 'nextPageToken,files(' + fields + ')' }) + (tokn ? '&pageToken=' + encodeURIComponent(tokn) : ''));
+        if (!r.ok) throw httpErr(r);
+        var j = await r.json(); out = out.concat(j.files || []); tokn = j.nextPageToken || '';
+      } while (tokn);
+      return out;
+    })();
+  }
+  async function gColId(col, create) {
+    var root = ls('cd.gfid'); if (!root) { var e = new Error('No Google Drive folder chosen'); e.status = 0; throw e; }
+    if (gcols[col]) return gcols[col];
+    (await gq("'" + root + "' in parents and mimeType='" + GFOLDER + "' and trashed=false", 'id,name')).forEach(function (f) { if (!gcols[f.name]) gcols[f.name] = f.id; });
+    if (!gcols[col] && create) {
+      var r = await gfetch('/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: col, mimeType: GFOLDER, parents: [root] }) });
+      if (!r.ok) throw httpErr(r); gcols[col] = (await r.json()).id;
+    }
+    lset('cd.gcols', JSON.stringify(gcols));
+    return gcols[col] || null;
+  }
+  async function gFind(col, id, itemId) {
+    if (itemId) return itemId;
+    var cid = await gColId(col, false); if (!cid) return null;
+    var f = await gq("name='" + id + ".json' and '" + cid + "' in parents and trashed=false", 'id');
+    return f.length ? f[0].id : null;
+  }
+  var ST = {
+    list: async function (col) {
+      if (PROV === 'google') {
+        var cid = await gColId(col, false); if (!cid) return [];
+        return (await gq("'" + cid + "' in parents and trashed=false", 'id,name,version')).filter(function (f) { return /\.json$/.test(f.name || ''); })
+          .map(function (f) { return { id: f.name.slice(0, -5), itemId: f.id, etag: 'v' + f.version }; });
+      }
+      var out = [], url = APP + ':/' + enc(base() + col) + ':/children?$select=id,name,eTag&$top=200';
+      while (url) {
+        var r = await gfetch(url);
+        if (r.status === 404) return out;
+        if (!r.ok) throw httpErr(r);
+        var j = await r.json();
+        (j.value || []).forEach(function (it) { if (it.name && /\.json$/.test(it.name)) out.push({ id: it.name.slice(0, -5), itemId: it.id, etag: it.eTag }); });
+        url = j['@odata.nextLink'] || null;
+      }
+      return out;
+    },
+    read: async function (col, id, itemId) {
+      var r = PROV === 'google' ? await gfetch('/drive/v3/files/' + encodeURIComponent(itemId) + '?alt=media')
+        : await gfetch(itemId ? '/me/drive/items/' + encodeURIComponent(itemId) + '/content' : docPath(col, id) + ':/content');
+      if (!r.ok) throw httpErr(r);
+      return r.json();
+    },
+    meta: async function (col, id) {
+      if (PROV === 'google') {
+        var fid = await gFind(col, id, null); if (!fid) return null;
+        var g = await gfetch('/drive/v3/files/' + encodeURIComponent(fid) + '?fields=id,version,trashed');
+        if (g.status === 404) return null; if (!g.ok) throw httpErr(g);
+        var gj = await g.json(); return gj.trashed ? null : { id: gj.id, eTag: 'v' + gj.version };
+      }
+      var m = await gfetch(docPath(col, id));
+      if (m.status === 404) return null; if (!m.ok) throw httpErr(m);
+      var mj = await m.json(); return { id: mj.id, eTag: mj.eTag };
+    },
+    /* returns {status:200, eTag, id}, or {status:412} when someone else changed it first */
+    put: async function (col, id, data, etag, itemId) {
+      if (PROV === 'google') {
+        var cid = await gColId(col, true), fid = await gFind(col, id, itemId);
+        if (fid && etag) {
+          var g = await gfetch('/drive/v3/files/' + encodeURIComponent(fid) + '?fields=version,trashed');
+          if (g.status === 404) fid = null;
+          else { if (!g.ok) throw httpErr(g); var gv = await g.json(); if (gv.trashed) fid = null; else if ('v' + gv.version !== etag) return { status: 412 }; }
+        }
+        var r;
+        if (fid) r = await gfetch(GAPI + '/upload/drive/v3/files/' + encodeURIComponent(fid) + '?uploadType=media&fields=id,version', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        else {
+          var bnd = 'cd' + rand(12), body = '--' + bnd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: id + '.json', parents: [cid], mimeType: 'application/json' }) +
+            '\r\n--' + bnd + '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify(data) + '\r\n--' + bnd + '--';
+          r = await gfetch(GAPI + '/upload/drive/v3/files?uploadType=multipart&fields=id,version', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bnd }, body: body });
+        }
+        if (r.status === 404 && fid) return ST.put(col, id, data, null, null);
+        if (!r.ok) throw httpErr(r);
+        var rj = await r.json(); return { status: 200, eTag: 'v' + rj.version, id: rj.id };
+      }
+      var h = { 'Content-Type': 'application/json' }; if (etag) h['If-Match'] = etag;
+      var m = await gfetch(docPath(col, id) + ':/content', { method: 'PUT', headers: h, body: JSON.stringify(data) });
+      if (m.status === 412 || m.status === 400) return { status: m.status };
+      if (!m.ok) throw httpErr(m);
+      var mj = await m.json(); return { status: 200, eTag: mj.eTag, id: mj.id };
+    },
+    del: async function (col, id, itemId) {
+      if (PROV === 'google') {
+        var fid = await gFind(col, id, itemId); if (!fid) return;
+        var r = await gfetch('/drive/v3/files/' + encodeURIComponent(fid), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) });
+        if (!r.ok && r.status !== 404) throw httpErr(r); return;
+      }
+      var rd = await gfetch(docPath(col, id), { method: 'DELETE' });
+      if (!rd.ok && rd.status !== 404) throw httpErr(rd);
+    },
+    folderUrl: async function () {
+      if (PROV === 'google') return ls('cd.gfid') ? 'https://drive.google.com/drive/folders/' + encodeURIComponent(ls('cd.gfid')) : '';
+      var r = await gfetch(FOLDER() ? APP + ':/' + enc(FOLDER()) : APP); if (!r.ok) return ''; return (await r.json()).webUrl || '';
+    }
+  };
 
   /* ---------- status text ---------- */
   var st = { offline: false, busy: '', last: 0, err: '' };
@@ -112,7 +284,7 @@
     else if (st.err) { txt = st.err + (pending() ? ' · ' + pending() + ' waiting' : ''); col = '#A3261F'; }
     else if (st.offline) { txt = 'Offline' + (pending() ? ' · ' + pending() + ' change' + (pending() > 1 ? 's' : '') + ' waiting' : ''); col = '#8A5A00'; }
     else if (pending()) txt = 'Saving…';
-    else { txt = st.last ? 'Saved to OneDrive ' + new Date(st.last).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Connected'; col = '#0A6B50'; }
+    else { txt = st.last ? 'Saved to ' + SNAME() + ' ' + new Date(st.last).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'Connected'; col = '#0A6B50'; }
     el.textContent = txt; el.style.color = col;
   }
 
@@ -127,43 +299,32 @@
   }
   function localDelete(col, id) {
     if (col === 'appointments' && mem[col][id] && mem[col][id].data && mem[col][id].data.calId) { var cd = calDelList(); cd.push(mem[col][id].data.calId); setCalDel(cd); calSchedule(2000); }
+    var oldItem = mem[col][id] ? mem[col][id].itemId : null;
     delete mem[col][id]; idbDel('docs', col + '/' + id);
-    var k = col + '/' + id, nd = { k: k, col: col, id: id, kind: 'del', patch: {}, v: ++vctr };
+    var k = col + '/' + id, nd = { k: k, col: col, id: id, kind: 'del', patch: {}, v: ++vctr, itemId: oldItem };
     dirty[k] = nd; idbPut('dirty', nd); notify(col); scheduleFlush(); setState();
   }
   function clearDirty(d) { delete dirty[d.k]; idbDel('dirty', d.k); }
   var flushing = false, flushTimer = null;
   function scheduleFlush(ms) { clearTimeout(flushTimer); flushTimer = setTimeout(flush, ms == null ? 800 : ms); }
-  function putDoc(col, id, data, etag) {
-    var h = { 'Content-Type': 'application/json' }; if (etag) h['If-Match'] = etag;
-    return gfetch(docPath(col, id) + ':/content', { method: 'PUT', headers: h, body: JSON.stringify(data) });
-  }
   async function resolveConflict(d) {
-    var m = await gfetch(docPath(d.col, d.id));
-    if (m.status === 404) { var r0 = await putDoc(d.col, d.id, mem[d.col][d.id].data, null); if (!r0.ok) throw httpErr(r0); var j0 = await r0.json(); mem[d.col][d.id].etag = j0.eTag; persistDoc(d.col, d.id); clearDirty(d); return; }
-    if (!m.ok) throw httpErr(m);
-    var meta = await m.json();
-    var c = await gfetch(docPath(d.col, d.id) + ':/content'); if (!c.ok) throw httpErr(c);
-    var remote = await c.json();
+    var meta = await ST.meta(d.col, d.id);
+    if (!meta) { var r0 = await ST.put(d.col, d.id, mem[d.col][d.id].data, null, null); if (r0.status !== 200) throw httpErr(r0); mem[d.col][d.id].etag = r0.eTag; mem[d.col][d.id].itemId = r0.id; persistDoc(d.col, d.id); clearDirty(d); return; }
+    var remote = await ST.read(d.col, d.id, meta.id);
     var merged = d.kind === 'set' ? mem[d.col][d.id].data : Object.assign({}, remote, d.patch);
-    var r = await putDoc(d.col, d.id, merged, meta.eTag);
-    if (!r.ok) throw httpErr(r);
-    var j = await r.json();
-    mem[d.col][d.id] = { data: merged, etag: j.eTag, itemId: j.id }; persistDoc(d.col, d.id); clearDirty(d); notify(d.col);
+    var r = await ST.put(d.col, d.id, merged, meta.eTag, meta.id);
+    if (r.status !== 200) throw httpErr(r);
+    mem[d.col][d.id] = { data: merged, etag: r.eTag, itemId: r.id }; persistDoc(d.col, d.id); clearDirty(d); notify(d.col);
     toast('Combined changes made on another device');
   }
   async function pushOne(d) {
-    if (d.kind === 'del') {
-      var rd = await gfetch(docPath(d.col, d.id), { method: 'DELETE' });
-      if (rd.ok || rd.status === 404) clearDirty(d); else throw httpErr(rd);
-      return;
-    }
+    if (d.kind === 'del') { await ST.del(d.col, d.id, d.itemId || null); clearDirty(d); return; }
     var doc = mem[d.col][d.id]; if (!doc) { clearDirty(d); return; }
-    var v = d.v, r = await putDoc(d.col, d.id, doc.data, doc.etag);
+    var v = d.v, r = await ST.put(d.col, d.id, doc.data, doc.etag, doc.itemId);
     if (r.status === 412) return resolveConflict(d);
-    if (r.status === 400 && doc.etag) { r = await putDoc(d.col, d.id, doc.data, null); }
-    if (!r.ok) throw httpErr(r);
-    var j = await r.json(); doc.etag = j.eTag; doc.itemId = j.id; persistDoc(d.col, d.id);
+    if (r.status === 400 && doc.etag) { r = await ST.put(d.col, d.id, doc.data, null, doc.itemId); }
+    if (r.status !== 200) throw httpErr(r);
+    doc.etag = r.eTag; doc.itemId = r.id; persistDoc(d.col, d.id);
     if (dirty[d.k] && dirty[d.k].v === v) clearDirty(d);
   }
   async function flush() {
@@ -181,25 +342,14 @@
     }
   }
   function handleErr(e) {
-    if (e && e.auth) { st.err = 'Sign-in needed'; setState(); return; }
+    if (e && e.auth) { st.err = e.renew ? 'Reconnect Google Drive to sync' : 'Sign-in needed'; setState(); return; }
     if (e instanceof TypeError || (e && /Failed to fetch|NetworkError|Load failed/i.test(e.message))) { st.offline = true; st.err = ''; }
     else { st.err = 'Sync problem (' + (e && e.message || 'unknown') + ')'; st.offline = false; }
     setState();
   }
 
   /* ---------- reading (delta by eTag) ---------- */
-  async function listRemote(col) {
-    var out = [], url = APP + ':/' + enc(col) + ':/children?$select=id,name,eTag&$top=200';
-    while (url) {
-      var r = await gfetch(url);
-      if (r.status === 404) return out;
-      if (!r.ok) throw httpErr(r);
-      var j = await r.json();
-      (j.value || []).forEach(function (it) { if (it.name && /\.json$/.test(it.name)) out.push({ id: it.name.slice(0, -5), itemId: it.id, etag: it.eTag }); });
-      url = j['@odata.nextLink'] || null;
-    }
-    return out;
-  }
+  function listRemote(col) { return ST.list(col); }
   var pulling = false, firstPullDone = false;
   var fpRes; window.CD_firstPull = new Promise(function (r) { fpRes = r; });
   async function pull() {
@@ -218,16 +368,14 @@
         Object.keys(mem[col]).forEach(function (id) { if (!seen[id] && !dirty[col + '/' + id] && mem[col][id].etag) { delete mem[col][id]; idbDel('docs', col + '/' + id); removed[col] = 1; } });
       }
       var total = todo.length, done = 0, touched = {}, big = total > 20;
-      if (big) showLoading('Loading your records from OneDrive… 0 of ' + total);
+      if (big) showLoading('Loading your records from ' + SNAME() + '… 0 of ' + total);
       var idx = 0;
       async function worker() {
         while (idx < todo.length) {
           var w = todo[idx++];
-          var r = await gfetch('/me/drive/items/' + encodeURIComponent(w.it.itemId) + '/content');
-          if (!r.ok) throw httpErr(r);
-          var data = await r.json();
+          var data = await ST.read(w.col, w.it.id, w.it.itemId);
           if (!dirty[w.col + '/' + w.it.id]) { mem[w.col][w.it.id] = { data: data, etag: w.it.etag, itemId: w.it.itemId }; persistDoc(w.col, w.it.id); touched[w.col] = 1; }
-          done++; if (big && done % 5 === 0) showLoading('Loading your records from OneDrive… ' + done + ' of ' + total);
+          done++; if (big && done % 5 === 0) showLoading('Loading your records from ' + SNAME() + '… ' + done + ' of ' + total);
         }
       }
       await Promise.all([worker(), worker(), worker(), worker(), worker(), worker()]);
@@ -250,7 +398,7 @@
 
   /* ---------- Outlook calendar reminders (opt-in, 15 minutes before) ---------- */
   var CAL_MIN = 15, calBusy = false, calTimer = null, calAgain = false;
-  function calOn() { return ls('cd.cal') === '1'; }
+  function calOn() { return PROV === 'ms' && ls('cd.cal') === '1'; }
   function calDelList() { try { return JSON.parse(ls('cd.caldel') || '[]'); } catch (e) { return []; } }
   function setCalDel(a) { lset('cd.caldel', JSON.stringify(a)); }
   function calHash(a) { return JSON.stringify([a.who, a.type, a.date, a.time, a.dur, a.mode, a.where]); }
@@ -710,6 +858,7 @@
   window.CD_reGate = function (n) { return reGate(n); };
   function reGate(next) {
     if (reFresh()) return true;
+    if (PROV === 'google') { pwGate(next); return false; }
     if (confirm('To change this, Microsoft will ask for your account password again to confirm it is you. Continue?')) { lset('cd.reauth', '1'); lset('cd.reauthNext', next); startLogin(true); }
     return false;
   }
@@ -879,13 +1028,18 @@
   }
   function showSignIn(msg) {
     if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); msg = 'You were signed out after ' + idleLabel() + ' of inactivity. Sign in again to continue.'; } } catch (e) {} }
-    var bad = !CFG.clientId || /PASTE/i.test(CFG.clientId);
-    var o = overlay('<div style="width:min(420px,100%);background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)">' +
+    var msOk = !!CFG.clientId && !/PASTE/i.test(CFG.clientId), gOk = !!CFG.googleClientId && !/PASTE/i.test(CFG.googleClientId);
+    var bs = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:12px 14px;border-radius:10px;font:600 15px system-ui;cursor:pointer;text-align:left;margin-top:10px;';
+    var o = overlay('<div style="width:min(440px,100%);background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)">' +
       '<div style="font-weight:700;font-size:20px;margin-bottom:6px">&#9670; ' + APPN + '</div>' +
-      '<p style="color:#58697A;margin:0 0 18px;font-size:14px;line-height:1.45">Sign in with your Microsoft account. Your records are stored in your own OneDrive and nowhere else.</p>' +
-      (bad ? '<p style="color:#A3261F;font-size:14px">This copy has not been set up yet (no Microsoft app ID).</p>' : '<button id="mdGo" style="width:100%;padding:12px;border:0;border-radius:8px;background:#0A6B50;color:#fff;font:600 15px system-ui;cursor:pointer">Sign in with Microsoft</button>') +
+      '<p style="color:#58697A;margin:0 0 8px;font-size:14px;line-height:1.45">Choose where your records are kept. They are saved in your own account, in a folder named after your business, and nowhere else.</p>' +
+      (msOk ? '<button id="mdGo" style="' + bs + 'border:0;background:#0A6B50;color:#fff">Microsoft account<span style="font:400 13px system-ui;opacity:.9">Outlook, Hotmail or Microsoft 365. Saved in OneDrive.</span></button>' : '') +
+      (gOk ? '<button id="mdGoG" style="' + bs + 'border:1px solid #2f4a40;background:#fff;color:#101C26">Google account<span style="font:400 13px system-ui;color:#58697A">Gmail or Google Workspace. Saved in Google Drive.</span></button>' : '') +
+      (!msOk && !gOk ? '<p style="color:#A3261F;font-size:14px">This copy has not been set up yet (no Microsoft or Google app ID).</p>' : '') +
+      '<p style="color:#58697A;font-size:12px;margin:12px 0 0">You can only use one account per device at a time. Logging out removes the records from this device; they stay in your account. <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>' +
       '<div id="mdErr" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div></div>');
-    var b = o.querySelector('#mdGo'); if (b) b.onclick = function () { b.disabled = true; startLogin(); };
+    var b = o.querySelector('#mdGo'); if (b) b.onclick = function () { b.disabled = true; lset('cd.prov', 'ms'); startLogin(); };
+    var bg = o.querySelector('#mdGoG'); if (bg) bg.onclick = function () { bg.disabled = true; gStart(); };
   }
   function sessionExpired() { showSignIn('Your sign-in has expired. Please sign in again. Your unsaved changes are kept on this device.'); }
 
@@ -899,10 +1053,10 @@
       var acc = t.account || {};
       ov.innerHTML = '<div style="background:#fff;color:#101C26;width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
         '<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">Settings</h2><button class="btn ghost" data-a="close">Close</button></div>' +
-        '<p style="margin:14px 0 4px"><b>Signed in as</b><br>' + esc(acc.name || '') + ' ' + esc(acc.mail || '') + '</p>' +
+        '<p style="margin:14px 0 4px"><b>Signed in with your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account</b><br>' + esc(acc.name || '') + ' ' + esc(acc.mail || '') + '</p>' +
         '<p style="margin:6px 0 0;color:#1b5e20;font-size:13px">' + esc((($('syncState') || {}).textContent || '').trim()) + '</p>' +
-        '<p style="margin:10px 0 0;color:#58697A;font-size:12px">App version: ' + esc(window.MD_BUILD || 'unknown') + ' &middot; <a href="#" data-a="guide">Quick guide</a></p><p style="margin:10px 0;color:#58697A">Records are saved in your OneDrive, in the folder <b>' + esc(ROOT) + '</b>. ' + esc(pending() ? pending() + ' change(s) are waiting to upload.' : 'Everything is uploaded.') + '</p>' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Emailing invoices</h3><p style="margin:0 0 8px;color:#58697A">' + (ls('cd.mail') === '1' ? 'On. Invoices are emailed from your own Outlook with the PDF attached, and a copy goes to your Sent folder.' : 'Off. Turn it on to email invoices from your own Outlook with the PDF attached. Microsoft will ask you to allow it once.') + '</p><button class="btn ghost" data-a="' + (ls('cd.mail') === '1' ? 'mailoff' : 'mailon') + '">' + (ls('cd.mail') === '1' ? 'Turn off' : 'Turn on emailing') + '</button>' +
+        '<p style="margin:10px 0 0;color:#58697A;font-size:12px">App version: ' + esc(window.MD_BUILD || 'unknown') + ' &middot; <a href="#" data-a="guide">Quick guide</a> &middot; <a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p><p style="margin:10px 0;color:#58697A">Records are saved in your ' + SNAME() + ', in the folder <b>' + esc(rootLabel()) + '</b> (<a href="#" data-a="folder">open it</a>). ' + esc(pending() ? pending() + ' change(s) are waiting to upload.' : 'Everything is uploaded.') + '</p>' + (PROV === 'google' ? '<p style="margin:0 0 10px;color:#58697A;font-size:12.5px">Google asks you to confirm access about once an hour; a yellow bar appears when it does. Changes wait safely on this device until you reconnect.</p>' : '') +
+        '<h3 style="margin:18px 0 6px;font-size:15px">Emailing invoices</h3>' + (PROV === 'google' ? '<p style="margin:0 0 8px;color:#58697A">With a Google account, invoices and reports open in your email app (or use Share PDF on a phone) so you attach the PDF yourself. Sending straight from the app with the PDF attached works with Microsoft accounts.</p>' : '<p style="margin:0 0 8px;color:#58697A">' + (ls('cd.mail') === '1' ? 'On. Invoices are emailed from your own Outlook with the PDF attached, and a copy goes to your Sent folder.' : 'Off. Turn it on to email invoices from your own Outlook with the PDF attached. Microsoft will ask you to allow it once.') + '</p><button class="btn ghost" data-a="' + (ls('cd.mail') === '1' ? 'mailoff' : 'mailon') + '">' + (ls('cd.mail') === '1' ? 'Turn off' : 'Turn on emailing') + '</button>') +
         '<h3 style="margin:18px 0 6px;font-size:15px">Business details</h3><p style="margin:0 0 8px;color:#58697A">Logo, address, VAT and payment details for your quotes and invoices.</p><button class="btn ghost" data-a="biz">Business details and logo</button>' + (TR().tenancyMode ? '<h3 style="margin:18px 0 6px;font-size:15px">Your accountant</h3><p style="margin:0 0 8px;color:#58697A">Name, phone, email and address, used for the rent and expenses report.</p><button class="btn ghost" data-a="acc">Your accountant</button>' : '') +
         '<h3 style="margin:18px 0 6px;font-size:15px">Your trade</h3><p style="margin:0 0 8px;color:#58697A">' + esc(TR().label || '') + '. This sets the fields, stages and reminders on your records.</p><button class="btn ghost" data-a="trade">Change trade</button>' +
         '<h3 style="margin:18px 0 6px;font-size:15px">My profile</h3><p style="margin:0 0 8px;color:#58697A">' + (profGet().name ? esc(profGet().name) + (profGet().biz ? ' &middot; ' + esc(profGet().biz) : '') : 'Add your name, business, mobile number and email.') + '</p><button class="btn" data-a="profile">' + (profGet().name || profGet().phone ? 'Edit profile' : 'Set up profile') + '</button>' +
@@ -912,11 +1066,11 @@
         '<h3 style="margin:18px 0 6px;font-size:15px">Import a backup file</h3><p style="margin:0 0 8px;color:#58697A">Loads records from a ' + APPN + ' backup (.json). Records that already exist are not overwritten.</p>' +
         '<input type="file" id="mdImp" accept=".json,application/json" style="max-width:100%">' +
         '<h3 style="margin:18px 0 6px;font-size:15px">Restore from backup</h3><p style="margin:0 0 8px;color:#58697A">Use this if something was changed or deleted by mistake. Records in the backup file replace the matching records here.</p><input type="file" id="mdRes" accept=".json,application/json" style="max-width:100%">' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Calendar reminders</h3>' + (calOn()
+        '<h3 style="margin:18px 0 6px;font-size:15px">Calendar reminders</h3>' + (PROV === 'google' ? '<p style="margin:0 0 8px;color:#58697A">Adding appointments to your calendar is available with Microsoft (Outlook) accounts. Your appointments are still kept and reminded in the app.</p>' : (calOn()
           ? '<p style="margin:0 0 8px;color:#1b5e20">On. Booked appointments are added to your Outlook calendar with a ' + CAL_MIN + '-minute reminder.</p><button class="btn ghost" data-a="caloff">Turn off</button>'
           : '<p style="margin:0 0 8px;color:#58697A">Adds each booked appointment to your Outlook calendar with a ' + CAL_MIN + '-minute reminder, so your phone alerts you even when this app is closed. You will be asked to approve calendar access once.</p><button class="btn" data-a="calon">Turn on</button>') +
-        '<p style="margin:8px 0 0;color:#58697A;font-size:12px">Only the name, time, type, method and place go to the calendar, never your notes. On your phone, use the Outlook app or add this Microsoft account to your phone calendar, and allow notifications.</p>' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Log out</h3><p style="margin:0 0 8px;color:#58697A">Removes the records from this device. They stay safe in OneDrive.</p><button class="btn" data-a="out">Log out</button>' +
+        '<p style="margin:8px 0 0;color:#58697A;font-size:12px">Only the name, time, type, method and place go to the calendar, never your notes. On your phone, use the Outlook app or add this Microsoft account to your phone calendar, and allow notifications.</p>') +
+        '<h3 style="margin:18px 0 6px;font-size:15px">Log out</h3><p style="margin:0 0 8px;color:#58697A">Removes the records from this device. They stay safe in your ' + SNAME() + '.</p><button class="btn" data-a="out">Log out</button>' +
         '<p style="margin-top:14px;min-height:18px" id="mdAccMsg">' + esc(msg || '') + '</p></div>';
     }
     render('');
@@ -934,7 +1088,7 @@
             var d = clone(row); delete d.id; localWrite(col, id, d, 'set'); n++;
           });
         });
-        say((isRes ? 'Restored ' : 'Imported ') + n + ' item(s)' + (skipped ? ', skipped ' + skipped + ' that already exist' : '') + '. Uploading to OneDrive…');
+        say((isRes ? 'Restored ' : 'Imported ') + n + ' item(s)' + (skipped ? ', skipped ' + skipped + ' that already exist' : '') + '. Uploading to ' + SNAME() + '…');
         flush();
       } catch (x) { say('That file could not be read as a backup.'); }
     });
@@ -943,7 +1097,7 @@
       if (a === 'close') ov.remove();
       else if (a === 'backup') { var bb = $('backupBtn'); if (bb) bb.click(); }
       else if (a === 'sync') { say('Syncing…'); await flush(); await pull(); say(st.err || (st.offline ? 'Offline. Will retry.' : 'Up to date.')); }
-      else if (a === 'folder') { try { var r = await gfetch(APP); var j = await r.json(); if (j.webUrl) window.open(j.webUrl, '_blank'); else say('Folder not created yet.'); } catch (x) { say('Could not reach OneDrive.'); } }
+      else if (a === 'folder') { e.preventDefault(); try { var u = await ST.folderUrl(); if (u) window.open(u, '_blank', 'noopener'); else say('Folder not created yet.'); } catch (x) { say('Could not reach ' + SNAME() + '.'); } }
       else if (a === 'calon') { lset('cd.calwant', '1'); startLogin(); }
       else if (a === 'caloff') { lset('cd.cal', null); render('Calendar reminders turned off. Events already in Outlook stay there.'); }
       else if (a === 'pdfbk') { ov.remove(); openBackup(); }
@@ -961,7 +1115,7 @@
   async function signOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
     var msg = pending()
-      ? pending() + ' change(s) have not reached OneDrive yet and will be lost. Log out anyway?'
+      ? pending() + ' change(s) have not reached ' + SNAME() + ' yet and will be lost. Log out anyway?'
       : 'Log out? Records are removed from this device and load again when you sign in. Signing in again also loads the latest version of the app.';
     if (!confirm(msg)) return;
     await wipeAndReload(false);
@@ -970,7 +1124,7 @@
     try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
     try { if (navigator.serviceWorker) { var rg = await navigator.serviceWorker.getRegistrations(); await Promise.all(rg.map(function (r) { return r.unregister(); })); } } catch (e) {}
     await idbClearAll(); setTok(null);
-    try { localStorage.removeItem('cd.pkce'); localStorage.removeItem('cd.reauthOk'); } catch (e) {}
+    ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.owner', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel'].forEach(function (k) { lset(k, null); });
     if (auto) { try { localStorage.setItem('cd.idleMsg', '1'); } catch (e) {} }
     location.replace(location.pathname + '?fresh=' + Date.now());
   }
@@ -984,7 +1138,7 @@
     if (pending()) { try { await flush(); } catch (e) {} }
     if (pending()) {
       setTok(null);
-      showSignIn('You were signed out after ' + idleLabel() + ' of inactivity. Changes not yet saved to OneDrive are kept on this device and upload when you sign in.');
+      showSignIn('You were signed out after ' + idleLabel() + ' of inactivity. Changes not yet saved to ' + SNAME() + ' are kept on this device and upload when you sign in.');
       return;
     }
     await wipeAndReload(true);
@@ -1086,7 +1240,7 @@
         '<label>Repeat new password<input id="pnNew2" type="password" autocomplete="new-password" maxlength="128" style="' + inS + '"></label>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"><button class="btn" data-p="save">' + (has ? 'Change password' : 'Set password') + '</button>' + (has ? '<button class="btn ghost" data-p="lock">Lock now</button>' : '') + '</div>' +
         '<p id="pnMsg" style="min-height:18px;margin:12px 0 0;color:' + (good ? '#1b5e20' : '#b3261e') + '">' + esc(msg || '') + '</p>' +
-        '<p style="margin:8px 0 0;color:#58697A;font-size:12px">This password locks the app on this device. It is stored here only as a scrambled code, never in OneDrive. If you forget it, log out and sign in again with Microsoft, then set a new one.</p></div>';
+        '<p style="margin:8px 0 0;color:#58697A;font-size:12px">This password locks the app on this device. It is stored here only as a scrambled code, never in your online storage. If you forget it, log out and sign in again with Microsoft, then set a new one.</p></div>';
     }
     draw('');
     ov.addEventListener('input', function (e) { if (e.target.id === 'pnNew') { var c = $('pnChk'); if (c) c.innerHTML = pwList(e.target.value, profGet()); } });
@@ -1135,8 +1289,9 @@
   }
   function u8b64(u) { var s = '', i, C = 0x8000; for (i = 0; i < u.length; i += C) s += String.fromCharCode.apply(null, u.subarray(i, i + C)); return btoa(s); }
   window.CD_mail = {
-    on: function () { return ls('cd.mail') === '1'; },
-    enable: function () { lset('cd.mailwant', '1'); startLogin(); },
+    on: function () { return PROV === 'ms' && ls('cd.mail') === '1'; },
+    can: function () { return PROV === 'ms'; },
+    enable: function () { if (PROV !== 'ms') { toast('Sending with the PDF attached works with Microsoft accounts. With Google, use Email app or Share PDF.'); return; } lset('cd.mailwant', '1'); startLogin(); },
     off: function () { lset('cd.mail', null); },
     send: async function (o) {
       var msg = { subject: o.subject, body: { contentType: 'Text', content: o.text }, toRecipients: o.to.map(function (a) { return { emailAddress: { address: a } }; }) };
@@ -1163,7 +1318,35 @@
     (await idbAll('docs')).forEach(function (r) { if (mem[r.col]) mem[r.col][r.id] = { data: r.data, etag: r.etag, itemId: r.itemId }; });
     (await idbAll('dirty')).forEach(function (d) { dirty[d.k] = d; vctr = Math.max(vctr, d.v || 0); });
   }
+  /* Keep each account's records apart: if a different account signs in on this device, clear what the last one left here. */
+  async function ownerCheck(prov, mail) {
+    var cur = prov + ':' + String(mail || '').toLowerCase(), prev = ls('cd.owner');
+    if (prev && prev !== cur) {
+      if (pending() && !confirm('This device still has ' + pending() + ' unsaved change(s) from ' + prev.split(':').slice(1).join(':') + '. Signing in as ' + (mail || 'a different account') + ' removes them from this device so the two accounts are kept apart. Continue?')) {
+        setTok(null); throw new Error('Sign in with ' + prev.split(':').slice(1).join(':') + ' to upload those changes first.');
+      }
+      await idbClearAll(); COLS.forEach(function (c) { mem[c] = {}; }); dirty = {};
+      ['cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel'].forEach(function (k) { lset(k, null); }); gcols = {};
+    }
+    lset('cd.owner', cur);
+  }
   async function handleRedirect() {
+    var hs = location.hash.slice(1);
+    if (/(^|&)(access_token|error)=/.test(hs) && ls('cd.gstate')) {
+      var gr = gParse(hs); history.replaceState(null, '', location.pathname);
+      if (gr.err) { lset('cd.gstate', null); throw new Error(gr.err === 'access_denied' ? 'Google sign-in was cancelled.' : 'Google sign-in failed (' + gr.err + ').'); }
+      if (gr.st !== ls('cd.gstate')) throw new Error('Sign-in could not be verified. Please try again.');
+      lset('cd.gstate', null);
+      if (!/drive\.file/.test(gr.scope)) throw new Error('Google did not give access to Drive. Sign in again and tick the box that lets ' + APPN + ' see and manage the files it creates.');
+      var prevG = (tok() || {}).account || {}, wasG = (tok() || {}).prov === 'google';
+      lset('cd.prov', 'google'); PROV = 'google';
+      setTok({ access: gr.at, exp: Date.now() + gr.exp * 1000, prov: 'google', account: prevG });
+      var gu = {}; try { var ur = await gfetch(GAPI + '/oauth2/v3/userinfo'); if (ur.ok) gu = await ur.json(); } catch (e) {}
+      var t0 = tok(); t0.account = { name: gu.name || '', mail: gu.email || '' }; setTok(t0);
+      await ownerCheck('google', t0.account.mail); markAct();
+      if (wasG && prevG.mail && t0.account.mail && prevG.mail.toLowerCase() !== t0.account.mail.toLowerCase()) lset('cd.reauthOk', null);
+      return;
+    }
     var p = new URLSearchParams(location.search);
     if (p.get('fresh') && !p.get('code') && !p.get('error')) { history.replaceState(null, '', location.pathname); return; }
     if (!p.get('code') && !p.get('error')) { lset('cd.calwant', null); lset('cd.mailwant', null); lset('cd.reauth', null); return; }
@@ -1189,14 +1372,87 @@
     var meMail = '';
     try {
       var me = await (await gfetch('/me?$select=displayName,mail,userPrincipalName')).json();
-      var t = tok(); t.account = { name: me.displayName || '', mail: me.mail || me.userPrincipalName || '' }; setTok(t); meMail = t.account.mail;
+      var t = tok(); t.account = { name: me.displayName || '', mail: me.mail || me.userPrincipalName || '' }; t.prov = 'ms'; setTok(t); meMail = t.account.mail;
     } catch (e) {}
+    lset('cd.prov', 'ms'); PROV = 'ms';
+    if (ls('cd.reauth') !== '1') await ownerCheck('ms', meMail);
     if (ls('cd.reauth') === '1') {
       lset('cd.reauth', null);
       var pm = String(prevAcc.mail || '').toLowerCase(), nm = String(meMail || '').toLowerCase();
       if (pm && nm && pm !== nm) { setTok(null); lset('cd.reauthNext', null); throw new Error('That was a different Microsoft account from the one signed in here, so nothing was changed. Please sign in again.'); }
       lset('cd.reauthOk', String(Date.now())); lset('cd.reopen', ls('cd.reauthNext')); lset('cd.reauthNext', null);
     }
+  }
+  /* ---------- the folder named after the business (created on first sign-in, found again on other devices) ---------- */
+  function cleanName(s) { return String(s || '').replace(/[\\\/:*?"<>|#%\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60); }
+  async function findFolders() {
+    if (PROV === 'google') {
+      var g = await gq("mimeType='" + GFOLDER + "' and appProperties has { key='cdRoot' and value='1' } and trashed=false", 'id,name,appProperties');
+      return { legacy: false, list: g.map(function (f) { return { name: (f.appProperties || {}).cdName || f.name, id: f.id }; }) };
+    }
+    var r = await gfetch(APP + '/children?$select=name,folder&$top=200');
+    if (r.status === 404) return { legacy: false, list: [] };
+    if (!r.ok) throw httpErr(r);
+    var v = ((await r.json()).value || []).filter(function (x) { return x.folder && x.name; });
+    if (v.some(function (x) { return COLS.indexOf(x.name) > -1; })) return { legacy: true, list: [] };
+    return { legacy: false, list: v.map(function (x) { return { name: x.name }; }) };
+  }
+  async function makeFolder(name) {
+    if (PROV === 'google') {
+      var r = await gfetch('/drive/v3/files?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: gRootName(name), mimeType: GFOLDER, appProperties: { cdRoot: '1', cdName: name } }) });
+      if (!r.ok) throw httpErr(r); return { name: name, id: (await r.json()).id };
+    }
+    var m = await gfetch(APP + '/children', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }) });
+    if (!m.ok && m.status !== 409) throw httpErr(m); return { name: name };
+  }
+  function useFolder(f) {
+    lset('cd.folder', f.name); if (PROV === 'google') { lset('cd.gfid', f.id); gcols = {}; lset('cd.gcols', null); }
+    var p = profGet(); if (!p.biz && f.name) { p.biz = f.name; lset('cd.profile', JSON.stringify(p)); }
+  }
+  function askFolder(list) {
+    return new Promise(function (res) {
+      var acc = (tok() || {}).account || {}, def = cleanName(profGet().biz || profGet().name || acc.name || '');
+      var o = overlay('<form id="cdFold" style="width:min(460px,100%);background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:26px;box-shadow:0 8px 30px rgba(16,28,38,.12)">' +
+        '<div style="font-weight:700;font-size:19px;margin-bottom:6px">Your records folder</div>' +
+        '<p style="color:#58697A;margin:0 0 12px;font-size:14px;line-height:1.45">Signed in as <b>' + esc(acc.mail || acc.name || '') + '</b>. Your records will be kept in a folder in your ' + SNAME() + '.</p>' +
+        (list.length ? '<p style="margin:0 0 6px;font-weight:600">Use a folder you already have</p>' + list.map(function (f, i) { return '<label style="display:flex;gap:8px;align-items:center;margin:4px 0"><input type="radio" name="cdf" value="' + i + '"' + (i === 0 ? ' checked' : '') + '> ' + esc(f.name) + '</label>'; }).join('') +
+          '<label style="display:flex;gap:8px;align-items:center;margin:8px 0 4px"><input type="radio" name="cdf" value="new"> Create a new folder</label>' : '') +
+        '<label style="display:block;margin-top:8px;font-size:13px;color:#58697A">Your business name, or your own name if you work under it<input id="cdFoldName" value="' + esc(def) + '" maxlength="60" style="display:block;width:100%;margin-top:4px;padding:10px;border:1px solid #D4DBDF;border-radius:8px;font:15px system-ui;box-sizing:border-box"></label>' +
+        '<p id="cdFoldWhere" style="font-size:12.5px;color:#58697A;margin:8px 0 0"></p>' +
+        '<button type="submit" style="width:100%;margin-top:14px;padding:12px;border:0;border-radius:8px;background:#0A6B50;color:#fff;font:600 15px system-ui;cursor:pointer">Continue</button>' +
+        '<div id="cdFoldMsg" style="color:#A3261F;font-size:13px;margin-top:10px;min-height:16px"></div></form>');
+      var nm = o.querySelector('#cdFoldName'), wh = o.querySelector('#cdFoldWhere');
+      function sel() { var c = o.querySelector('input[name=cdf]:checked'); return c ? c.value : 'new'; }
+      function upd() { var n = cleanName(nm.value), useNew = sel() === 'new'; nm.parentNode.style.display = useNew ? '' : 'none'; wh.textContent = useNew ? 'Folder: ' + (PROV === 'google' ? 'Google Drive \u203a My Drive \u203a ' + gRootName(n || '\u2026') : 'OneDrive \u203a Apps \u203a ' + APPN + ' \u203a ' + (n || '\u2026')) : ''; }
+      o.addEventListener('input', upd); o.addEventListener('change', upd); upd();
+      o.querySelector('form').addEventListener('submit', async function (e) {
+        e.preventDefault(); var msg = o.querySelector('#cdFoldMsg'), btn = o.querySelector('button[type=submit]'), v = sel();
+        if (v !== 'new') { useFolder(list[+v]); res(); return; }
+        var n = cleanName(nm.value); if (n.length < 2) { msg.textContent = 'Type a name of at least 2 letters.'; return; }
+        if (list.some(function (f) { return f.name.toLowerCase() === n.toLowerCase(); })) { msg.textContent = 'You already have a folder with that name. Choose it above, or type a different name.'; return; }
+        btn.disabled = true; msg.textContent = '';
+        try { useFolder(await makeFolder(n)); res(); } catch (x) { btn.disabled = false; msg.textContent = 'Could not create the folder (' + (x.message || 'error') + '). Check your connection and try again.'; }
+      });
+    });
+  }
+  async function ensureWorkspace() {
+    if (FOLDER() !== null && (PROV !== 'google' || ls('cd.gfid'))) return;
+    var f = await findFolders();
+    if (f.legacy) { lset('cd.folder', ''); return; }
+    if (f.list.length === 1) { useFolder(f.list[0]); return; }
+    await askFolder(f.list);
+  }
+  function reopenTarget(ro) { if (ro === 'profile') openProfile(); else if (ro === 'backup') openBackup(); else if (ro === 'pin') openPin(); else if (ro === 'biz' && window.CD_openBiz) window.CD_openBiz(); }
+  /* Google accounts confirm sensitive changes with the app password (Google cannot be asked to re-check the account password). */
+  function pwGate(next) {
+    if (!pinData()) { lset('cd.reauthOk', String(Date.now())); reopenTarget(next); return; }
+    var ov = document.createElement('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:260;background:rgba(8,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML = '<form style="background:#fff;width:min(380px,100%);border-radius:12px;padding:22px;font:14px system-ui,sans-serif;color:#101C26"><h3 style="margin:0 0 8px">Confirm it is you</h3><p style="margin:0 0 10px;color:#58697A">Type your app password to change this.</p><input id="cdPg" type="password" autocomplete="current-password" style="width:100%;padding:10px;border:1px solid #D4DBDF;border-radius:8px;box-sizing:border-box"><div id="cdPgMsg" style="color:#A3261F;min-height:16px;margin:8px 0"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn ghost" id="cdPgX">Cancel</button><button class="btn" type="submit">Confirm</button></div></form>';
+    document.body.appendChild(ov); setTimeout(function () { var i = $('cdPg'); if (i) i.focus(); }, 30);
+    $('cdPgX').onclick = function () { ov.remove(); };
+    ov.querySelector('form').addEventListener('submit', async function (e) {
+      e.preventDefault(); if (await pinCheck($('cdPg').value)) { ov.remove(); lset('cd.reauthOk', String(Date.now())); reopenTarget(next); } else $('cdPgMsg').textContent = 'That password is not right.';
+    });
   }
   /* One-time move: cases kept on this device are uploaded to the app's own OneDrive folder. */
   function migrateToAppFolder() {
@@ -1216,13 +1472,20 @@
     try { await handleRedirect(); } catch (e) { showSignIn(e.message); return; }
     if (!tok()) { showSignIn(''); return; }
     if (isIdle()) { await autoSignOut(); return; }
+    if (FOLDER() === null || (PROV === 'google' && !ls('cd.gfid'))) {
+      try { await ensureWorkspace(); }
+      catch (e) {
+        if (e && e.renew) { await new Promise(function (r) { window.CD_gAfter = r; gBanner('Google needs you to confirm access before your folder can be opened.'); }); await ensureWorkspace(); }
+        else { showSignIn('Could not open your ' + SNAME() + ' folder (' + (e && e.message || 'error') + '). Check your connection and sign in again.'); setTok(null); return; }
+      }
+    }
     startIdleWatch(); startLockWatch(); setTimeout(pinWarnMaybe, 2500);
     var o = $('mdSign'); if (o) o.remove();
     readyRes({ collection: collection });
     setState();
     flush(); pull();
     subs.appointments.push(function () { calSchedule(2000); }); calSchedule(5000); bkStart();
-    var ro = ls('cd.reopen'); if (ro) { lset('cd.reopen', null); setTimeout(function () { toast('Confirmed. You can now make your changes.'); if (ro === 'profile') openProfile(); else if (ro === 'backup') openBackup(); else if (ro === 'pin') openPin(); else if (ro === 'biz' && window.CD_openBiz) window.CD_openBiz(); }, 1800); }
+    var ro = ls('cd.reopen'); if (ro) { lset('cd.reopen', null); setTimeout(function () { toast('Confirmed. You can now make your changes.'); reopenTarget(ro); }, 1800); }
     var cn = ls('cd.calnote'); if (cn) { lset('cd.calnote', null); setTimeout(function () { toast(cn); }, 1500); }
     setInterval(function () { if (document.visibilityState === 'visible') { flush(); pull(); calSchedule(3000); } }, 60000);
     window.addEventListener('online', function () { st.offline = false; flush(); pull(); });
