@@ -871,10 +871,13 @@
     document.body.appendChild(ov);
     var inp = 'width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #D4DBDF;border-radius:8px;font:inherit;margin:4px 0 10px';
     function draw(msg) {
-      var p = profGet(), ph = p.phone || ls('cd.bkwa') || '', acc = (tok() || {}).account || {}, lk = !setup && !!(p.name || p.phone || p.biz || p.email) && !reFresh(), dis = lk ? ' disabled' : '', needPw = !pinData();
+      var p = profGet();
+      if (setup && !p.name && mem.settings.profile && mem.settings.profile.data) { var sp = mem.settings.profile.data; p = { name: sp.name || '', role: sp.role || '', biz: sp.biz || '', reg: sp.reg || '', phone: '', email: sp.email || '' }; p._ph = sp.phone || ''; }
+      var ph = p.phone || p._ph || ls('cd.bkwa') || '', acc = (tok() || {}).account || {}, lk = !setup && !!(p.name || p.phone || p.biz || p.email) && !reFresh(), dis = lk ? ' disabled' : '', needPw = !pinData();
       ov.innerHTML = '<div style="background:#fff;color:#101C26;width:min(520px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
         '<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">' + (setup ? 'Create your profile' : 'My profile') + '</h2>' + (setup ? '' : '<button class="btn ghost" data-p="close">Close</button>') + '</div>' +
-        (setup ? '<p style="margin:12px 0 0;padding:8px 10px;background:#EAF4EF;border-radius:8px;font-size:13px">Welcome. Add your name, mobile number and email, and choose a strong password. The password locks the app when you are away from it.</p>' : '') +
+        (setup ? '<p style="margin:12px 0 0;padding:8px 10px;background:#EAF4EF;border-radius:8px;font-size:13px">' + (p._ph ? 'Welcome back. Your details were copied from your other device. Choose an app password for <b>this</b> device (it can be the same as your other one).' : 'Welcome. Add your name, mobile number and email, and choose a strong password. The password locks the app when you are away from it.') + '</p>' : '') +
+        '<p id="prTop" role="alert" style="display:none;margin:12px 0 0;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
         '<p style="margin:12px 0;color:#58697A;font-size:13px">Your own details. They stay on this device. They sign your marketing and birthday messages, and your mobile number is used to send you your backup password on WhatsApp.</p>' +
         (lk ? '<p style="margin:0 0 10px;padding:8px 10px;background:#FFF6DD;border-radius:8px;font-size:13px">Your profile is locked. To change anything, confirm with your Microsoft account password.</p><button class="btn" data-p="unlock" style="margin-bottom:12px">Unlock to edit</button>' : '') + '<label>Your name <span style="color:#b3261e">*</span></label><input id="prName"' + dis + ' type="text" maxlength="80" value="' + esc(p.name || '') + '" style="' + inp + '">' +
         '<label>Job title or role (for example Gas Safe registered engineer)</label><input id="prRole"' + dis + ' type="text" maxlength="80" value="' + esc(p.role || '') + '" placeholder="' + esc(TR().label || '') + '" style="' + inp + '">' +
@@ -890,7 +893,15 @@
         (setup ? '' : '<p style="margin:4px 0 10px;font-size:13px"></p>') + '<button class="btn" data-p="save"' + dis + '>' + (setup ? 'Create profile' : 'Save profile') + '</button><p id="prMsg" style="min-height:18px;margin:10px 0 0;color:#b3261e">' + esc(msg || '') + '</p></div>';
     }
     draw();
-    var say = function (m) { var e = $('prMsg'); if (e) e.textContent = m; };
+    /* show problems at the top and at the button, and jump to the field, so they are visible above a phone keyboard */
+    var say = function (m, fid) {
+      var e = $('prMsg'); if (e) e.textContent = m;
+      var t = $('prTop'); if (t) { t.textContent = m; t.style.display = m ? 'block' : 'none'; }
+      ov.querySelectorAll('input').forEach(function (i) { i.style.borderColor = ''; });
+      var f = fid && $(fid), fe = $('prFieldErr'); if (fe) fe.remove();
+      if (f && m) { f.style.borderColor = '#b3261e'; fe = document.createElement('div'); fe.id = 'prFieldErr'; fe.setAttribute('role', 'alert'); fe.style.cssText = 'margin:-6px 0 10px;color:#b3261e;font-size:13px;font-weight:600'; fe.textContent = m; f.parentNode.insertBefore(fe, f.nextSibling); try { f.focus({ preventScroll: true }); } catch (x) {} f.scrollIntoView({ block: 'center' }); }
+      else if (t && m) t.scrollIntoView({ block: 'start' });
+    };
     ov.addEventListener('mousedown', function (e) { if (e.target === ov && !setup) ov.remove(); });
     ov.addEventListener('input', function (e) { if (e.target.id === 'prPw' || e.target.id === 'prName' || e.target.id === 'prMail') { var c = $('prPwChk'), pw = $('prPw'); if (c && pw) c.innerHTML = pwList(pw.value, { name: ($('prName') || {}).value, email: ($('prMail') || {}).value }); } });
     ov.addEventListener('click', async function (e) {
@@ -903,18 +914,20 @@
       else if (b === 'save') {
         if (!setup && (p.name || p.phone || p.biz || p.email) && !reGate('profile')) return;
         var nm = (($('prName') || {}).value || '').trim(), mail = (($('prMail') || {}).value || '').trim();
-        if (!nm) { say('Add your name.'); return; }
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { say(mail ? 'That email address does not look right.' : 'Add your email address.'); return; }
+        if (!nm) { say('Add your name.', 'prName'); return; }
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { say(mail ? 'That email address does not look right.' : 'Add your email address.', 'prMail'); return; }
         var ph = p.phone || '';
-        if (!ph) { var raw = (($('prPhone') || {}).value || '').trim(); if (!raw) { say('Add your mobile number.'); return; } ph = waNorm(raw); if (!ph) { say('That does not look like a phone number.'); return; } }
+        if (!ph) { var raw = (($('prPhone') || {}).value || '').trim(); if (!raw) { say('Add your mobile number.', 'prPhone'); return; } ph = waNorm(raw); if (!ph) { say('That does not look like a phone number. Use the full number, for example 07700 900123.', 'prPhone'); return; } }
         if (!pinData()) {
           var pw1 = (($('prPw') || {}).value || ''), pw2 = (($('prPw2') || {}).value || '');
-          if (!pwOk(pw1, { name: nm, email: mail })) { say('Choose a stronger password. See the checklist.'); return; }
-          if (pw1 !== pw2) { say('The two passwords do not match.'); return; }
+          if (!pwOk(pw1, { name: nm, email: mail })) { var miss = pwRules(pw1, { name: nm, email: mail }).filter(function (r) { return !r[0]; }).map(function (r) { return r[1].toLowerCase(); }); say('The password still needs: ' + miss.join('; ') + '.', 'prPw'); return; }
+          if (pw1 !== pw2) { say('The two passwords do not match. Type the same password in both boxes.', 'prPw2'); return; }
           try { await pinSet(pw1); } catch (x) { say('This browser cannot store a password here.'); return; }
           markAct();
         }
-        lset('cd.profile', JSON.stringify({ name: nm, role: (($('prRole') || {}).value || '').trim(), biz: (($('prBiz') || {}).value || '').trim(), reg: (($('prReg') || {}).value || '').trim(), phone: ph, email: mail }));
+        var prof = { name: nm, role: (($('prRole') || {}).value || '').trim(), biz: (($('prBiz') || {}).value || '').trim(), reg: (($('prReg') || {}).value || '').trim(), phone: ph, email: mail };
+        lset('cd.profile', JSON.stringify(prof));
+        try { localWrite('settings', 'profile', Object.assign({}, prof, { updatedAt: Date.now() }), 'set'); } catch (x) {}
         if (setup) { ov.remove(); toast('Profile created. The app now locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.'); return; }
         draw('Profile saved.' + (ph ? ' Your number is now locked and is used in the backup section.' : ''));
       } else if (b === 'chg') {
@@ -1220,8 +1233,10 @@
     ov.addEventListener('click', function (e) { if ((e.target.closest && e.target.closest('[data-g]')) || e.target === ov) ov.remove(); });
   }
   function guideMaybe() { if (!tok() || ls('cd.guide')) return false; lset('cd.guide', '1'); openGuide(); return true; }
+  var pwWait = 0;
   function pinWarnMaybe() {
     if (!tok()) return;
+    if (!firstPullDone && pwWait++ < 10) { setTimeout(pinWarnMaybe, 1000); return; }
     if (ls('cd.guide') && !$('mdProf') && (!pinData() || !profGet().name)) { openProfile(true); return; }
     if (!ls('cd.guide')) { guideMaybe(); setTimeout(pinWarnMaybe, 1500); }
   }
