@@ -1303,6 +1303,75 @@
       setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000); res();
     });
   }
+  /* ---------- property folders and uploaded documents ----------
+     Files go into <business folder> > Properties > <first line of the address>, in the user's own OneDrive or Google Drive.
+     The app keeps only the file's name and its link on the property record. */
+  var PDIR = 'Properties', UPMAX = 50 * 1024 * 1024;
+  async function odDir(path, create) {
+    var r = await gfetch((path ? APP + ':/' + enc(path) : APP) + '?$select=id,name,webUrl');
+    if (r.ok) return r.json();
+    if (r.status !== 404 || !create || !path) throw httpErr(r);
+    var i = path.lastIndexOf('/'), parent = await odDir(i < 0 ? '' : path.slice(0, i), true);
+    var m = await gfetch('/me/drive/items/' + encodeURIComponent(parent.id) + '/children', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: path.slice(i + 1), folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }) });
+    if (m.ok) return m.json();
+    if (m.status === 409) { var again = await gfetch(APP + ':/' + enc(path) + '?$select=id,name,webUrl'); if (again.ok) return again.json(); }
+    throw httpErr(m);
+  }
+  async function gDir(parentId, name, create) {
+    var f = await gq("name='" + String(name).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "' and '" + parentId + "' in parents and mimeType='" + GFOLDER + "' and trashed=false", 'id,name,webViewLink');
+    if (!f.length && create) {
+      var r = await gfetch('/drive/v3/files?fields=id,name,webViewLink', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name, mimeType: GFOLDER, parents: [parentId] }) });
+      if (!r.ok) throw httpErr(r); f = [await r.json()];
+    }
+    return f.length ? { id: f[0].id, name: name, webUrl: f[0].webViewLink || 'https://drive.google.com/drive/folders/' + encodeURIComponent(f[0].id) } : null;
+  }
+  async function propDir(name, create) {
+    var d = PROV === 'google' ? await gDir(await gColId(PDIR, true), name, create) : await odDir(base() + PDIR + '/' + name, create);
+    return d ? { name: name, id: d.id || '', url: d.webUrl || '' } : null;
+  }
+  window.CD_files = {
+    where: function () { return SNAME(); },
+    max: UPMAX,
+    can: function () { return !!tok() && navigator.onLine !== false && (PROV !== 'google' || !!ls('cd.gfid')) && FOLDER() !== null; },
+    /* makes the property folder if it is not there yet; returns {name, id, url} */
+    folder: async function (name) {
+      if (window.CD_DEMO) return { name: name, id: 'demo', url: '' };
+      return propDir(name, true);
+    },
+    /* uploads one file into the property folder; returns {id, name, url, folder} */
+    upload: async function (folder, fname, file) {
+      if (window.CD_DEMO) return { id: 'demo' + Date.now(), name: fname, url: URL.createObjectURL(file), folder: { name: folder, id: 'demo', url: '' } };
+      var dir = null, r, type = file.type || 'application/octet-stream';
+      if (PROV === 'google') {
+        dir = await propDir(folder, true);
+        if (file.size <= 5 * 1024 * 1024) {
+          var bnd = 'cd' + rand(12);
+          var body = new Blob(['--' + bnd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: fname, parents: [dir.id] }) + '\r\n--' + bnd + '\r\nContent-Type: ' + type + '\r\n\r\n', file, '\r\n--' + bnd + '--']);
+          r = await gfetch(GAPI + '/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bnd }, body: body });
+        } else {
+          var s = await gfetch(GAPI + '/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': type }, body: JSON.stringify({ name: fname, parents: [dir.id] }) });
+          if (!s.ok) throw httpErr(s);
+          var loc = s.headers.get('Location'); if (!loc) throw new Error('Google Drive did not accept a large file');
+          r = await gfetch(loc, { method: 'PUT', headers: { 'Content-Type': type }, body: file });
+        }
+        if (!r.ok) throw httpErr(r);
+        var gj = await r.json();
+        return { id: gj.id, name: gj.name || fname, url: gj.webViewLink || 'https://drive.google.com/file/d/' + encodeURIComponent(gj.id) + '/view', folder: dir };
+      }
+      try { dir = await propDir(folder, true); } catch (x) { dir = null; }   /* if refused, OneDrive makes the folders on upload */
+      var p = APP + ':/' + enc(base() + PDIR + '/' + folder + '/' + fname);
+      if (file.size <= 4 * 1024 * 1024) r = await gfetch(p + ':/content?@microsoft.graph.conflictBehavior=rename', { method: 'PUT', headers: { 'Content-Type': type }, body: file });
+      else {
+        var us = await gfetch(p + ':/createUploadSession', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'rename' } }) });
+        if (!us.ok) throw httpErr(us);
+        r = await fetch((await us.json()).uploadUrl, { method: 'PUT', headers: { 'Content-Range': 'bytes 0-' + (file.size - 1) + '/' + file.size }, body: file });
+      }
+      if (!r.ok) throw httpErr(r);
+      var mj = await r.json();
+      if (!dir) { try { dir = await propDir(folder, false); } catch (x2) { dir = { name: folder, id: '', url: '' }; } }
+      return { id: mj.id, name: mj.name || fname, url: mj.webUrl || '', folder: dir };
+    }
+  };
   function u8b64(u) { var s = '', i, C = 0x8000; for (i = 0; i < u.length; i += C) s += String.fromCharCode.apply(null, u.subarray(i, i + C)); return btoa(s); }
   window.CD_mail = {
     on: function () { return PROV === 'ms' && ls('cd.mail') === '1'; },

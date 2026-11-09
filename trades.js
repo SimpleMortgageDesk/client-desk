@@ -324,7 +324,8 @@
     types: ['House', 'Flat', 'HMO', 'Room', 'Holiday let', 'Commercial', 'Other'],
     sections: [
       { id: 'property', title: 'Property', fields: [
-        { k: 'propertyAddress', l: 'Property address', t: 'text', w: 1 },
+        { k: 'propertyAddress', l: 'Address line one (required)', t: 'text', w: 1 },
+        { k: 'postcode', l: 'Postcode', t: 'text' },
         { k: 'bedrooms', l: 'Bedrooms', t: 'num' },
         { k: 'agent', l: 'Letting agent (if any)', t: 'text' },
         { k: 'btlLender', l: 'Buy-to-let mortgage lender', t: 'text' },
@@ -334,18 +335,18 @@
         { k: 'mortPayment', l: 'Monthly mortgage payment', t: 'money' },
         { k: 'mortMethod', l: 'Payment method', t: 'sel', o: [['', 'Choose…'], ['repayment', 'Repayment'], ['interest-only', 'Interest only']] },
         { k: 'mortDay', l: 'Mortgage payment day (1 to 31)', t: 'num' },
-        { k: 'insuranceRenewal', l: 'Landlord insurance renewal', t: 'date' }] },
+        { k: 'insuranceRenewal', l: 'Landlord insurance renewal', t: 'date', doc: 'insurance certificate' }] },
       { id: 'safety', title: 'Certificates and safety', side: 1, fields: [
-        { k: 'gsrDate', l: 'Gas safety record done', t: 'date' },
+        { k: 'gsrDate', l: 'Gas safety record done', t: 'date', doc: 'gas safety certificate' },
         { k: 'gsrDue', l: 'Next gas safety due (12 months)', t: 'date', auto: { from: 'gsrDate', m: 12 } },
-        { k: 'eicrDate', l: 'Electrical report (EICR) done', t: 'date' },
+        { k: 'eicrDate', l: 'Electrical report (EICR) done', t: 'date', doc: 'EICR report' },
         { k: 'eicrDue', l: 'Next EICR due (5 years, or sooner if the report says so)', t: 'date', auto: { from: 'eicrDate', m: 60 } },
         { k: 'epcRating', l: 'EPC rating', t: 'sel', o: ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G'] },
-        { k: 'epcDate', l: 'EPC issued', t: 'date' },
+        { k: 'epcDate', l: 'EPC issued', t: 'date', doc: 'EPC certificate' },
         { k: 'epcExpiry', l: 'EPC expires (10 years)', t: 'date', auto: { from: 'epcDate', m: 120 } },
         { k: 'alarmsChecked', l: 'Smoke and CO alarms tested', t: 'date' },
         { k: 'licence', l: 'Council licence', t: 'sel', o: ['', 'Not needed', 'HMO licence', 'Selective licence', 'Applied'] },
-        { k: 'licenceExpiry', l: 'Licence expires', t: 'date' },
+        { k: 'licenceExpiry', l: 'Licence expires', t: 'date', doc: 'licence' },
         { k: 'lastInspection', l: 'Last property inspection', t: 'date' }] }],
     tenancyFields: [
       { k: 'status', l: 'Tenancy status', t: 'sel', o: [['current', 'Current'], ['ended', 'Ended']] },

@@ -51,7 +51,10 @@ function protFs(c){
 function latestNoteCell(c,key){var n=(c[key||'notes']||[]).slice().sort(function(a,b){return b.ts-a.ts})[0];if(!n)return '<span class="muted">—</span>';var t=String(n.text||'');if(!t&&n.table)t='[Table]';if(t.length>140)t=t.slice(0,140)+'…';t=t.replace(/\s+/g,' ');return '<div class="nl1" title="'+esc(stampOf(n.ts)+' '+t)+'"><span class="muted" style="font-family:var(--mono);font-size:11px">'+stampOf(n.ts)+'</span> '+esc(t)+'</div>'}
 function cno(c){return c.clientNo?' <span class="cno">'+esc(c.clientNo)+'</span>':''}
 function nextClientNo(){var m=0;cases.forEach(function(c){var r=/^C(\d+)$/i.exec(c.clientNo||'');if(r)m=Math.max(m,+r[1])});return 'C'+String(m+1).padStart(3,'0')}
-function names(c){if(T&&T.tenancyMode){var pa=short(c.propertyAddress||'');return pa||'Unnamed property'}return pnames(c)}
+/* full property address: line one plus the postcode (not repeated if the postcode is already typed in line one) */
+function pcFmt(raw){var v=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,''),m=/^([A-Z]{1,2}\d[A-Z\d]?)(\d[A-Z]{2})$/.exec(v);return m?m[1]+' '+m[2]:String(raw||'').toUpperCase().replace(/\s+/g,' ').trim()}
+function paddr(c){var a=String((c&&c.propertyAddress)||'').trim(),p=String((c&&c.postcode)||'').trim();if(!p)return a;var n=function(x){return x.toUpperCase().replace(/[^A-Z0-9]/g,'')};return n(a).indexOf(n(p))>-1?a:(a?a+', '+p:p)}
+function names(c){if(T&&T.tenancyMode){var pa=short(paddr(c));return pa||'Unnamed property'}return pnames(c)}
 function pnames(c){var a=(c.applicants||[]).map(function(x){return x.name}).filter(Boolean);return a.length?a.join(' & '):'Unnamed client'}
 function remDone(c,r,d){return !!(c.remDone&&c.remDone[r.k]===d)}
 function reviewItems(c,useStage){
@@ -410,6 +413,7 @@ function fieldHtml(f,c){
   if(f.t==='date'&&f.auto)return '<label class="f'+wc+'">'+esc(f.l)+'<input id="f-'+f.k+'" data-f="'+f.k+'" type="date" data-auto="'+(v?'0':'1')+'" data-from="'+f.auto.from+'" value="'+esc(fv(c,f.k))+'"></label>';
   var h=fld(f.k,esc(f.l),v,(f.t==='money'||f.t==='num'||f.t==='pct')?'number':f.t==='date'?'date':'text',{gbp:f.t==='money',wide:f.w});
   if(f.t==='text')h=h.replace(/<\/label>$/,'<span class="pl cl">'+contactLinks(v)+'</span></label>');
+  if(f.doc&&T.tenancyMode)h=h.replace(/<\/label>$/,dzSpan(c,f)+'</label>');
   return h;
 }
 function sectionsHtml(c){
@@ -519,10 +523,10 @@ function openDrawer(id,draft){
    sectionsHtml(c))+
    '<div id="liveNotes"></div>'+
    '<div id="live"></div>'+
-   '<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="'+esc(c.oneDriveLink)+'"><span class="pl" id="odl">'+odLink(c.oneDriveLink)+'</span></label></fieldset>'+
+   (T.tenancyMode?'':'<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="'+esc(c.oneDriveLink)+'"><span class="pl" id="odl">'+odLink(c.oneDriveLink)+'</span></label></fieldset>')+
   '</form>'+
   '<div class="df"><div>'+(id?'<button type="button" class="btn danger" id="delBtn">Delete '+esc(N1())+'</button><span class="muted" id="autoMsg" style="font-size:12px;margin-left:10px">Auto-save on (every 5 seconds)</span>':'')+'</div><div style="display:flex;gap:8px"><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn" id="saveBtn">Save '+esc(N1())+'</button></div></div></div>';
-  colOpen={};if(T.tenancyMode){colOpen['property']=1;colOpen['tenants']=1;colOpen['certificates and safety']=1}else if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=true;lkOpen=false;curLinks=((c&&c.links)||[]).map(function(l){return {id:l.id,cid:l.cid,rel:l.rel}});renderLive();renderLinks();
+  colOpen={};if(T.tenancyMode){colOpen['property']=1;colOpen['tenants']=1;colOpen['certificates and safety']=1;colOpen['property documents']=1}else if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=true;lkOpen=false;curLinks=((c&&c.links)||[]).map(function(l){return {id:l.id,cid:l.cid,rel:l.rel}});renderLive();renderLinks();
   var first=$('#drawer [data-a="name"]');if(first&&!id)first.focus();
   ntDraft=(id&&c.noteDraft)||'';prDraft=(id&&c.protDraft)||'';lastND=ntDraft;lastPD=prDraft;renderLive();
   if(T.tenancyMode&&id)rhRender();
@@ -1125,6 +1129,7 @@ function collectForm(){
     var k=el.getAttribute('data-f'),v=el.value;
     if(el.type==='number')o[k]=num(v);else o[k]=v.trim();
   });
+  if(o.postcode!=null)o.postcode=pcFmt(o.postcode);
   o.applicants=[];
   document.querySelectorAll('#apps .app').forEach(function(row){
     var a={};row.querySelectorAll('[data-a]').forEach(function(i){a[i.getAttribute('data-a')]=i.value.trim()});
@@ -1146,7 +1151,7 @@ function collectForm(){
 function hasIdent(o){return T.tenancyMode?!!String(o.propertyAddress||'').trim():o.applicants.length>0}
 function saveCase(){
   var data=collectForm();
-  if(!hasIdent(data)){toast(T.tenancyMode?'Add the property address':'Add at least one name');return}
+  if(!hasIdent(data)){toast(T.tenancyMode?'Add address line one of the property':'Add at least one name');if(T.tenancyMode)paNeed();return}
   var btn=$('#saveBtn');btn.disabled=true;
   var p;
   if(openId){p=patch(openId,data)}
@@ -1870,7 +1875,7 @@ function dcOpen(caseId,docId,kind,from){
   if(d)dcDoc=JSON.parse(JSON.stringify(d));
   else{
     var ap=(c.applicants||[]).filter(function(a){return a.name}),addr=(ap[0]&&ap[0].address)||'',job=fv(c,T.addr)||'',today=iso(TODAY);
-    dcDoc={id:'d'+uid(),kind:kind,number:dcNewNumber(kind),date:today,due:kind==='quote'?addDays(today,BIZ.quoteValid!=null?BIZ.quoteValid:30):addDays(today,BIZ.payTerms!=null?BIZ.payTerms:14),status:'draft',toName:T.tenancyMode?tnCurrent(c).map(tnNames).filter(Boolean).join(' & '):(pnames(c)==='Unnamed client'?'':pnames(c)),toAddr:T.tenancyMode?String(c.propertyAddress||''):addr,job:job&&job!==addr&&T.byKey[T.addr]&&T.byKey[T.addr].t==='text'?job:'',lines:[{d:c.type||'',q:1,p:'',v:vatOn()?(BIZ.vatRate!=null?BIZ.vatRate:20):0}],notes:'',isNew:true};
+    dcDoc={id:'d'+uid(),kind:kind,number:dcNewNumber(kind),date:today,due:kind==='quote'?addDays(today,BIZ.quoteValid!=null?BIZ.quoteValid:30):addDays(today,BIZ.payTerms!=null?BIZ.payTerms:14),status:'draft',toName:T.tenancyMode?tnCurrent(c).map(tnNames).filter(Boolean).join(' & '):(pnames(c)==='Unnamed client'?'':pnames(c)),toAddr:T.tenancyMode?paddr(c):addr,job:job&&job!==addr&&T.byKey[T.addr]&&T.byKey[T.addr].t==='text'?job:'',lines:[{d:c.type||'',q:1,p:'',v:vatOn()?(BIZ.vatRate!=null?BIZ.vatRate:20):0}],notes:'',isNew:true};
     if(from){dcDoc.lines=JSON.parse(JSON.stringify(from.lines||[]));dcDoc.fromQuote=from.number;dcDoc.notes=from.notes||'';dcDoc.toName=from.toName;dcDoc.toAddr=from.toAddr;dcDoc.job=from.job}
   }
   dcRender();
@@ -1980,15 +1985,154 @@ function tenancyFs(c){
   var td=c.tenancyDoc;
   return '<fieldset style="margin-top:14px"><legend>Tenancy agreement</legend><p class="muted" style="font-size:12px;margin:0 0 8px">Creates an assured periodic tenancy agreement that includes the written statement of terms landlords in England must give new tenants from 1 May 2026.</p><div class="add" style="margin:0"><button type="button" class="btn ghost sm" data-taopen="'+esc(c.id)+'">'+(td?'Open tenancy agreement':'Create tenancy agreement')+'</button>'+(td&&td.savedAt?'<span class="muted" style="align-self:center;font-size:12px">Last saved '+shortStamp(td.savedAt)+'</span>':'')+'</div></fieldset>';
 }
+/* ---------- company let agreement (corporate tenant): a common-law tenancy, outside the Housing Act 1988 ---------- */
+var CL_TERMS=[
+ ['Break clause (either side)','Either the landlord or the tenant may end this tenancy early by giving the other at least 2 months’ notice in writing. The notice must not end before the last day of the first 6 months of the term. A notice from the tenant only takes effect if the rent has been paid up to the day the notice ends. Ending the tenancy in this way does not affect any claim either side has for an earlier breach of this agreement.'],
+ ['Break clause (tenant only)','The tenant may end this tenancy early by giving the landlord at least 2 months’ notice in writing. The notice must not end before the last day of the first 6 months of the term, and only takes effect if the rent has been paid up to the day the notice ends.'],
+ ['Rent review (fixed yearly increase)','On each anniversary of the start date the rent will increase by 3%. The landlord will confirm the new rent to the tenant in writing at least 1 month before each anniversary.'],
+ ['Rent review (linked to inflation)','On each anniversary of the start date the rent will increase by the same percentage as the rise in the Consumer Prices Index over the 12 months for which figures were last published before that anniversary. The rent will not go down. The landlord will tell the tenant the new rent in writing, with the calculation, at least 1 month before each anniversary.'],
+ ['Interest on late payment','If any rent or other sum due under this agreement is more than 14 days late, the tenant will pay interest on it at 4% a year above the Bank of England base rate, from the date it was due until the date it is paid.'],
+ ['Inventory and check-out','The landlord will give the tenant an inventory and schedule of condition at the start of the tenancy. The tenant has 7 days from receiving it to tell the landlord in writing about anything it disagrees with. After that it is treated as correct. A check-out inspection will be carried out when the tenancy ends, and the tenant may attend.'],
+ ['Furnished property','The property is let furnished. The tenant will keep the items listed in the inventory at the property and in the same condition as at the start (fair wear and tear excepted), and will pay the reasonable cost of repairing or replacing any item that is damaged or missing at the end.'],
+ ['Professional cleaning at the end','At the end of the tenancy the tenant will have the property, including the carpets, curtains, windows and oven, professionally cleaned to the standard recorded in the inventory at the start, or will pay the landlord’s reasonable cost of having this done.'],
+ ['Changing the occupiers','The tenant may change the occupiers by giving the landlord at least 7 days’ notice in writing with the full name of each new adult occupier and the information needed for any right to rent check. The tenant may not change the occupiers more than once in any 3 months without the landlord’s written consent.'],
+ ['No short lets or serviced accommodation','The tenant must not use or advertise the property for holiday lets, short stays or serviced accommodation (for example through Airbnb, Booking.com or similar websites), and must not allow anyone other than the occupiers to stay for payment.'],
+ ['Pets','No animal may be kept at the property without the landlord’s written consent. If consent is given, the tenant will pay for any damage the animal causes and for any extra cleaning needed at the end of the tenancy.'],
+ ['No smoking','No one may smoke or vape inside the property or in any shared indoor areas of the building.'],
+ ['Garden','The tenant will keep the garden tidy and free of rubbish, cut the grass regularly in the growing season, and will not remove or cut down any trees or shrubs without the landlord’s written consent.'],
+ ['Parking','The tenant and the occupiers may park one private car or motorcycle in the parking space that belongs to the property. No commercial vehicle, caravan, boat or trailer may be kept there, and no vehicle may be repaired there.'],
+ ['Tenant’s insurance','The tenant will keep in place insurance for its own and the occupiers’ belongings at the property, and for its liability to other people for injury or damage at the property, and will show the landlord evidence of this if asked.'],
+ ['Keys and security','The landlord will give the tenant 2 sets of keys. The tenant will not change or add locks without written consent, will return every key at the end, and will pay the reasonable cost of replacing lost keys and, where security is affected, the locks. The tenant will make sure the property is locked whenever it is empty, and will tell the landlord if it will be empty for more than 28 days.'],
+ ['Building rules and head lease','The property is part of a larger building. The tenant and the occupiers will keep to the rules of the building and to the terms of the landlord’s own lease that affect how the property is used, copies of which the landlord has given to the tenant.'],
+ ['Renewal','If the tenant asks in writing at least 2 months before the end of the term, and has paid the rent and kept to this agreement, the landlord will consider granting a new tenancy on terms to be agreed. Neither side is obliged to agree a new tenancy.'],
+ ['My own term','']];
+var CL_PER={'Monthly':'month','Weekly':'week','Every 4 weeks':'4 weeks','Quarterly':'quarter'};
+function clEnd(start,months){if(!/^\d{4}-\d{2}-\d{2}$/.test(start||'')||!(+months>0))return '';var d=pd(start);d.setMonth(d.getMonth()+Math.round(+months));d.setDate(d.getDate()-1);return iso(d)}
+function clDefaults(c,tn){
+  var b=taDefaults(c,tn),dirs=((tn&&tn.directors)||[]).filter(Boolean),ll=BIZ.companyNo?((BIZ.name||b.landlords)+' (company number '+BIZ.companyNo+')'):b.landlords;
+  return {kind:'company',landlords:ll,noticeAddr:BIZ.regOffice||b.noticeAddr,llPhone:b.llPhone,llEmail:b.llEmail,agent:b.agent,
+    coName:(tn&&tn.company)||'',coNo:(tn&&tn.companyNo)||'',coAddr:'',coSign:dirs.length?dirs[0]+', Director':'',guarantor:'',
+    property:b.property,included:'',occupiers:'',maxOcc:'',start:b.start,termType:'fixed',termMonths:'12',notice:'2',
+    rent:b.rent,freq:b.freq,rentDay:b.rentDay,rentHow:'',bills:'tenant',billsNote:'',deposit:b.deposit,depHold:'landlord',scheme:b.scheme,
+    gas:b.gas,epc:b.epc,gsr:b.gsr,eicr:b.eicr,terms:[]};
+}
+function clTermRow(t){return '<div class="clterm" style="border:1px solid #D4DBDF;border-radius:8px;padding:8px 10px;margin:0 0 8px"><div style="display:flex;gap:8px;align-items:center;margin:0 0 6px"><input data-clt="t" maxlength="80" aria-label="Title of this term" value="'+esc(t.t||'')+'" placeholder="Title" style="flex:1;font-weight:600"><button type="button" class="btn ghost sm" data-clrm="1">Remove</button></div><textarea data-clt="x" rows="4" aria-label="Wording of this term" placeholder="Type the wording of this term" style="width:100%;box-sizing:border-box">'+esc(t.x||'')+'</textarea></div>'}
+function clRender(d){
+  var i=function(k,l,ph,type){return '<label class="f">'+l+'<input id="ta-'+k+'" type="'+(type||'text')+'" value="'+esc(d[k]==null?'':d[k])+'" placeholder="'+esc(ph||'')+'"></label>'};
+  var a=function(k,l,ph,rows){return '<label class="f wide">'+l+'<textarea id="ta-'+k+'" rows="'+(rows||2)+'" placeholder="'+esc(ph||'')+'">'+esc(d[k]||'')+'</textarea></label>'};
+  var s=function(k,l,opts){return '<label class="f">'+l+'<select id="ta-'+k+'">'+opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(d[k])===o[0]?' selected':'')+'>'+esc(o[1])+'</option>'}).join('')+'</select></label>'};
+  overlay('taOv','<div class="dhd"><h2>Company let agreement</h2><button type="button" class="btn ghost" data-taclose="1">Close</button></div>'+
+   '<p class="dnote">This is a template to help you, not legal advice. It is for letting a home in England to a company for up to 3 years. A letting to a company is not an assured tenancy, so the Renters’ Rights Act rules do not apply to it. Do not use it where the person who will live there is really the one renting: a court can treat that as an ordinary tenancy. Have a solicitor check it before you rely on it, above all the guarantee and any term you change.</p>'+
+   '<input type="hidden" id="ta-kind" value="company">'+
+   '<div class="dcgrid"><div class="dcform">'+
+   '<h3 class="tah">1. Landlord</h3><div class="grid">'+a('landlords','Landlord name(s), one per line. For a company, add its company number')+a('noticeAddr','Address in England or Wales where the tenant can serve notices on you')+i('llPhone','Landlord phone (optional)')+i('llEmail','Landlord email (optional)','','email')+i('agent','Letting agent (if any)')+'</div>'+
+   '<h3 class="tah">2. Tenant company</h3><div class="grid">'+i('coName','Company name')+i('coNo','Company registration number')+a('coAddr','Registered office address')+i('coSign','Who signs for the company (name and position)','For example: MR A SMITH, Director')+a('guarantor','Guarantor name(s) and address, one per line (optional, for example a director giving a personal guarantee)')+'</div>'+
+   '<h3 class="tah">3. Property and who lives there</h3><div class="grid">'+a('property','Property address')+a('included','What is included (furniture, parking, garden, shared areas)','For example: furnished as per the inventory; parking space 3')+a('occupiers','Permitted occupiers, one per line','Full names of the employees or officers who will live there')+i('maxOcc','Most people allowed to live there','','number')+'</div>'+
+   '<h3 class="tah">4. Term</h3><div class="grid">'+i('start','Start date','','date')+s('termType','Type of term',[['fixed','Fixed term'],['periodic','No fixed term (runs until notice is given)']])+i('termMonths','Fixed term (months, 1 to 36)','','number')+s('notice','Notice to end a tenancy that has no fixed term, or that carries on after it',[['1','1 month'],['2','2 months'],['3','3 months']])+'</div><div id="clWarn"></div>'+
+   '<h3 class="tah">5. Rent and bills</h3><div class="grid">'+i('rent','Rent (£)','','number')+s('freq','Rent period',[['Monthly','Monthly'],['Weekly','Weekly'],['Every 4 weeks','Every 4 weeks'],['Quarterly','Quarterly']])+i('rentDay','Rent due on (day of the month, or the day of the week)','1')+a('rentHow','How the tenant pays rent','For example: bank transfer to the account the landlord gives in writing')+s('bills','Council tax and utility bills',[['tenant','The tenant pays them'],['included','Included in the rent']])+a('billsNote','Anything else about bills (optional)')+'</div>'+
+   '<h3 class="tah">6. Deposit</h3><div class="grid">'+i('deposit','Deposit (£). Leave blank if none','','number')+s('depHold','How the deposit is held',[['landlord','Held by the landlord'],['scheme','Protected in a deposit scheme (your choice, not required)']])+s('scheme','Deposit scheme, if you use one',[['','None'],['DPS','Deposit Protection Service (DPS)'],['mydeposits','mydeposits'],['TDS','Tenancy Deposit Scheme (TDS)']])+'</div>'+
+   '<h3 class="tah">7. Safety documents</h3><div class="grid">'+s('gas','Is there a gas supply or gas appliance?',[['yes','Yes'],['','No']])+i('epc','EPC rating and date given')+i('gsr','Gas safety record date given')+i('eicr','Electrical report (EICR) date given')+'</div>'+
+   '<h3 class="tah">8. Extra terms</h3><p class="muted" style="font-size:12px;margin:0 0 6px">Choose a ready-made term and press Add. You can then change its title and wording. Each one is added to the agreement as its own numbered term.</p>'+
+   '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px"><select id="clPick" aria-label="Ready-made terms" style="flex:1;min-width:200px">'+CL_TERMS.map(function(t,n){return '<option value="'+n+'">'+esc(t[0])+'</option>'}).join('')+'</select><button type="button" class="btn" data-cladd="1">Add term</button></div>'+
+   '<div id="clTerms">'+(d.terms||[]).map(clTermRow).join('')+'</div>'+
+   '</div><div class="dcprev"><div class="muted" style="font-size:12px;margin-bottom:6px">Preview</div><div id="taPrev"></div></div></div>'+
+   '<div class="mkact dcact"><button type="button" class="btn" data-tasave="1">Save details</button><button type="button" class="btn ghost" data-tapdf="dl">Download PDF</button><button type="button" class="btn ghost" data-tapdf="share">Share</button><button type="button" class="btn ghost" data-taprint="1">Print</button></div>',true);
+  taPreview();
+}
+function clBlocks(d){
+  var L=lines(d.landlords),Gs=lines(d.guarantor),Oc=lines(d.occupiers),B=[],n=0,m=0,one=function(x){return String(x||'').replace(/\s*\n\s*/g,', ')};
+  var h=function(t){n++;m=0;B.push({h:n+'. '+t})},c=function(t){m++;B.push({p:n+'.'+m+'  '+t})},kv=function(r){B.push({kv:r.filter(function(x){return x[1]})})};
+  var co=String(d.coName||'').trim()||'The tenant company',per=CL_PER[d.freq]||'month',fixed=d.termType!=='periodic',mo=Math.round(+d.termMonths)||0,end=fixed?clEnd(d.start,mo):'',nt=(+d.notice||2),ntx=nt+' month'+(nt>1?'s':'')+'’';
+  B.push({title:'Company Let Tenancy Agreement'});B.push({sub:'A tenancy of a home let to a company. Because the tenant is a company and not an individual, this is not an assured tenancy under the Housing Act 1988. For a property in England.'});
+  h('The landlord, the tenant and the guarantor');
+  kv([['Landlord'+(L.length>1?'s':''),L.join(', ')],['Address for serving notices on the landlord',one(d.noticeAddr)],['Landlord phone',d.llPhone],['Landlord email',d.llEmail],['Letting agent',d.agent],['Tenant',co],['Company registration number',d.coNo],['Registered office',one(d.coAddr)],['Signing for the tenant',d.coSign],['Guarantor'+(Gs.length>1?'s':''),Gs.join('; ')]]);
+  c('In this agreement “the landlord” includes whoever owns the landlord’s interest in the property in future, and “the tenant” means the company named above.');
+  if(L.length>1)c('Where there is more than one landlord, they act together, and a notice given to any one of them is given to all.');
+  h('The property');kv([['Property address',one(d.property)],['Included',d.included]]);
+  c('The landlord lets the property to the tenant for the term and at the rent set out in this agreement.');
+  h('Who may live at the property');
+  kv([['Permitted occupiers',Oc.join(', ')||'The employees or officers of the tenant whose names the tenant gives the landlord in writing'],['Most people allowed to live there',d.maxOcc]]);
+  c('The property is let only as a private home for the permitted occupiers, who are employees, officers or guests of the tenant. The tenant will not use it, or let it be used, for any other purpose.');
+  c('The permitted occupiers live at the property with the tenant’s permission only. They are not tenants, they do not pay rent to the landlord, and they have no right to stay once this tenancy has ended.');
+  c('Before any adult moves in, the tenant will give the landlord that person’s full name in writing and whatever the landlord needs to carry out any right to rent check the law requires.');
+  c('The tenant is responsible for everything the occupiers and their visitors do or fail to do at the property, as if the tenant had done it itself.');
+  c('The tenant will not sublet the property or any part of it, transfer this tenancy, take in lodgers or paying guests, or charge an occupier rent in a way that would create a tenancy, without the landlord’s written consent.');
+  h('The term');
+  if(fixed){
+    c('The tenancy starts on '+(d.start?fd(d.start):'____________')+' and runs for a fixed term of '+(mo||'____')+' month'+(mo===1?'':'s')+', ending on '+(end?fd(end):'____________')+'.');
+    c('If the tenant stays at the property after the fixed term with the landlord’s agreement, and no new agreement has been signed, the tenancy carries on from '+per+' to '+per+' on the same terms. Either side may then end it by giving the other at least '+ntx+' notice in writing, ending on the last day of a rent period.');
+  }else{
+    c('The tenancy starts on '+(d.start?fd(d.start):'____________')+' and runs from '+per+' to '+per+' until it is ended by notice.');
+    c('Either side may end the tenancy by giving the other at least '+ntx+' notice in writing, ending on the last day of a rent period.');
+  }
+  h('Rent');
+  kv([['Rent',(+d.rent?gbp(+d.rent):'£________')+' a '+per],['Due',d.rentDay?(/^\d+$/.test(String(d.rentDay).trim())?'On day '+String(d.rentDay).trim()+' of each '+per:'Each '+String(d.rentDay).trim()):'In advance on the first day of each '+per],['How to pay',d.rentHow||'By bank transfer to the account the landlord gives the tenant in writing']]);
+  c('The tenant will pay the rent in advance on the due date, in full and without any deduction or set-off, whether or not the landlord has asked for it. The first payment is due on the start date.');
+  c(fixed?'The rent stays the same during the fixed term unless an extra term of this agreement says otherwise. If the tenancy carries on after the fixed term, the landlord may change the rent by giving the tenant at least 2 months’ notice in writing, not more than once in any 12 months.':'The landlord may change the rent by giving the tenant at least 2 months’ notice in writing, not more than once in any 12 months. If the tenant does not accept the new rent it may end the tenancy by notice.');
+  h('Bills');
+  if(d.bills==='included')c('The rent includes council tax and the charges for gas, electricity, water and sewerage used at the property in a normal way for a home. The tenant pays for telephone, broadband and the TV licence unless the landlord has agreed otherwise in writing.');
+  else c('From the start date until the tenancy ends, the tenant will pay the council tax and all charges for gas, electricity, water and sewerage, telephone, broadband and the TV licence for the property, directly to the council or supplier, and will put the accounts in its own name or the name of an occupier.');
+  if(String(d.billsNote||'').trim())c(String(d.billsNote).trim());
+  h('Deposit');
+  if(+d.deposit>0){
+    kv([['Deposit',gbp(+d.deposit)],['Held by',d.depHold==='scheme'?'The landlord, protected with '+(d.scheme||'a government-approved deposit scheme'):'The landlord']]);
+    c('The tenant will pay the deposit on or before the start date. The landlord holds it as security for the rent and for the tenant keeping to this agreement. No interest is paid on it.');
+    c(d.depHold==='scheme'?'The law does not require this deposit to be protected in a government-approved scheme, because this is not an assured tenancy. The landlord has chosen to protect it in the scheme named above, and the rules of that scheme will apply to it.':'The law does not require this deposit to be protected in a government-approved scheme, because this is not an assured tenancy. The landlord will keep it safe and account for it to the tenant.');
+    c('Within 28 days after the tenancy ends and the property and all keys have been given back, the landlord will return the deposit to the tenant, less any unpaid rent or bills, the reasonable cost of repairing damage beyond fair wear and tear, of cleaning the property to its standard at the start, of replacing missing items, and any other sum the tenant owes under this agreement. The landlord will give the tenant a written list of anything deducted.');
+    c('The tenant may not treat the deposit as payment of rent. If the landlord properly takes money from the deposit during the tenancy, the tenant will top it up within 14 days of being asked.');
+  }else c('No deposit is taken for this tenancy.');
+  h('What the tenant agrees to do');
+  ['Pay the rent, and the bills it is responsible for, on time.',
+   'Keep the inside of the property, and the landlord’s fixtures, fittings and contents, clean and in the condition they were in at the start, apart from fair wear and tear and damage the landlord must repair.',
+   'Tell the landlord promptly in writing about any damage, disrepair, leak, damp, pest or safety problem at the property.',
+   'Not make any alteration or addition to the property, redecorate it, or change the locks, without the landlord’s written consent.',
+   'Not use the property, or allow it to be used, for any business (other than ordinary home working by an occupier), for anything illegal, or in a way that causes a nuisance or annoyance to neighbours.',
+   'Not do anything that makes the landlord’s insurance invalid or more expensive, once the landlord has told the tenant what the policy requires.',
+   'Test the smoke and carbon monoxide alarms regularly, replace their batteries when needed, and tell the landlord at once if an alarm does not work.',
+   'Let the landlord, and anyone acting for the landlord, into the property at reasonable times of day to inspect it, carry out repairs or safety checks, or (in the last 2 months of the tenancy) show it to new tenants or buyers. The landlord will give at least 24 hours’ notice in writing, except in an emergency.',
+   'When the tenancy ends, make sure every occupier has left, and give the property back empty of people and belongings, clean, and with all keys.',
+   'Pay the reasonable costs the landlord properly incurs because the tenant has broken this agreement, including the cost of recovering rent and of any notice or court proceedings.'].forEach(c);
+  h('What the landlord agrees to do');
+  ['Let the tenant and the permitted occupiers have the property without interruption from the landlord, as long as the tenant pays the rent and keeps to this agreement.',
+   'Keep in repair the structure and outside of the property, and keep in repair and working order the installations for water, gas, electricity, sanitation, room heating and hot water, as section 11 of the Landlord and Tenant Act 1985 requires. The landlord need not repair damage caused by the tenant or the occupiers, other than through fair wear and tear.',
+   'Keep the property fit for people to live in during the tenancy, so far as section 9A of the Landlord and Tenant Act 1985 applies.',
+   'Carry out the gas safety checks, electrical safety inspections and smoke and carbon monoxide alarm duties that the law puts on a landlord of a home, and give the tenant copies of the records.',
+   'Insure the building (unless a superior landlord does so). The landlord does not insure the belongings of the tenant or the occupiers.'].forEach(c);
+  h('Ending the tenancy');
+  c('The landlord may end this tenancy early, by going back into the property under a court order (forfeiture), if any of these happens: (a) any rent is unpaid 14 days after it was due, whether or not it has been formally demanded; (b) the tenant has seriously or repeatedly broken this agreement; (c) the tenant goes into liquidation or administration, has a receiver appointed, makes an arrangement with its creditors, is struck off the register of companies or stops carrying on business. This does not affect any other claim the landlord has against the tenant.');
+  c('While anyone is living at the property the landlord will not take the property back without a court order. A notice to quit given by the landlord will be in writing, will give at least 4 weeks, and will contain the information the law requires.');
+  c('If the tenant or any occupier stays at the property after the tenancy has ended, the tenant will pay the landlord a sum equal to the rent for each day until the property is given back, as well as any loss this causes the landlord.');
+  c('Anything left at the property when the tenancy ends may be removed by the landlord. The landlord will tell the tenant in writing and keep the items for 14 days, after which it may dispose of them, and the tenant will pay the reasonable cost of removal and storage.');
+  if(Gs.length){
+    h('Guarantee');
+    c('In return for the landlord granting this tenancy, the guarantor guarantees that the tenant will pay the rent and keep to this agreement. If the tenant does not pay any rent or other sum when it is due, the guarantor will pay it to the landlord on written demand, and will make good any loss the landlord suffers because the tenant has broken this agreement.');
+    c('The guarantee lasts for the whole of the tenancy, including any time it carries on after the fixed term and any time the tenant or an occupier stays after it ends. The guarantor is not released because the landlord gives the tenant extra time, does not enforce a term straight away, or agrees a change to this agreement that does not make the guarantor’s position materially worse.');
+    c('If the tenant is wound up or dissolved, or a liquidator disclaims this agreement, the guarantor remains liable for all sums due up to the date the landlord gets the property back.');
+    if(Gs.length>1)c('Where there is more than one guarantor, each is liable for the whole amount, individually and together.');
+    c('The guarantor has been advised to take independent legal advice before signing.');
+  }
+  var X=(d.terms||[]).filter(function(t){return String(t.x||'').trim()});
+  if(X.length){h('Extra terms');X.forEach(function(t){c((String(t.t||'').trim()?String(t.t).trim()+'. ':'')+String(t.x).trim().replace(/\s*\n\s*/g,' '))});c('If an extra term conflicts with another part of this agreement, the extra term applies.')}
+  h('Notices and general terms');
+  c('Notices under this agreement must be in writing. The tenant may serve notices (including notices in proceedings) on the landlord at the address given in section 1. The landlord may serve notices on the tenant at its registered office or at the property. Notices may also be sent by email where both sides have agreed to this in writing.');
+  c('This agreement is the whole agreement between the landlord and the tenant about the property. It can only be changed in writing signed by both of them.');
+  c('Only the landlord, the tenant and any guarantor may enforce this agreement. The occupiers and other third parties have no right to enforce it under the Contracts (Rights of Third Parties) Act 1999.');
+  c('The tenant is responsible for any stamp duty land tax due on this tenancy.');
+  c('This agreement is governed by the law of England and Wales, and the courts of England and Wales will deal with any dispute about it.');
+  B.push({h:'Documents given to the tenant'});
+  kv([['Energy Performance Certificate',d.epc||'To be given'],['Gas safety record',d.gas?(d.gsr?'Dated '+d.gsr:'To be given'):'Not applicable'],['Electrical installation condition report',d.eicr?'Dated '+d.eicr:'To be given']]);
+  B.push({sig:{landlords:L.length?L:['Landlord'],tenants:[co+(String(d.coSign||'').trim()?' (by '+String(d.coSign).trim()+')':' (by a director or authorised signatory)')],guarantors:Gs.map(function(g){return g.split(',')[0]})}});
+  return B;
+}
 function taDefaults(c,tn){
   var p=profA(),ap=tn?(tn.people||[]).filter(function(a){return a.name}):(c.applicants||[]).filter(function(a){return a.name}),G=function(k){return tn&&tfv(tn,k)!==''?tfv(tn,k):fv(c,k)};
-  return {landlords:BIZ.owner||p.name||bizName(),noticeAddr:BIZ.address||'',llPhone:BIZ.phone||'',llEmail:BIZ.email||'',agent:fv(c,'agent')||'',tenants:ap.map(function(a){return a.name}).join('\n'),
-    property:fv(c,'propertyAddress')||'',included:'',start:G('tenancyStart')||'',rent:G('rent')||'',freq:G('rentFreq')||'Monthly',rentDay:G('rentDay')||'',rentHow:'',
+  return {landlords:BIZ.owner||p.name||bizName(),noticeAddr:BIZ.address||'',llPhone:BIZ.phone||'',llEmail:BIZ.email||'',agent:fv(c,'agent')||'',tenants:(tn&&tnCorp(tn)&&String(tn.company||'').trim())?String(tn.company).trim()+(tn.companyNo?' (company number '+tn.companyNo+')':''):ap.map(function(a){return a.name}).join('\n'),
+    property:paddr(c)||'',included:'',start:G('tenancyStart')||'',rent:G('rent')||'',freq:G('rentFreq')||'Monthly',rentDay:G('rentDay')||'',rentHow:'',
     billsIn:{},billsOut:{councilTax:1,gas:1,electricity:1,water:1,broadband:1,tv:1},billsNote:'The tenant arranges and pays these bills directly to the supplier when they are due.',
     deposit:G('deposit')||'',scheme:G('depositScheme')||'',tenantNotice:'2 months',grounds:{},otherGrounds:'',gas:fv(c,'gsrDate')?'yes':'',improve:'yes',supported:'',supportedWhy:'',extra:'',
     epc:[fv(c,'epcRating'),fv(c,'epcDate')?fd(fv(c,'epcDate')):''].filter(Boolean).join(', issued '),gsr:fv(c,'gsrDate')?fd(fv(c,'gsrDate')):'',eicr:fv(c,'eicrDate')?fd(fv(c,'eicrDate')):''};
 }
-function taOpen(caseId,tnId){var c=cases.filter(function(x){return x.id===caseId})[0];if(!c)return;taCase=caseId;taTn=tnId||null;var tn=tnId?tnList(c).filter(function(x){return x.id===tnId})[0]:null;var d=Object.assign(taDefaults(c,tn),tn?(tn.agreement||{}):(c.tenancyDoc||{}));taRender(d)}
+function taOpen(caseId,tnId){var c=cases.filter(function(x){return x.id===caseId})[0];if(!c)return;taCase=caseId;taTn=tnId||null;var tn=tnId?tnList(c).filter(function(x){return x.id===tnId})[0]:null;if(tn&&tnCorp(tn)){var ag=tn.agreement&&tn.agreement.kind==='company'?tn.agreement:{};clRender(Object.assign(clDefaults(c,tn),ag));return}var d=Object.assign(taDefaults(c,tn),tn?((tn.agreement&&tn.agreement.kind!=='company'&&tn.agreement)||{}):(c.tenancyDoc||{}));taRender(d)}
 function taRender(d){
   var i=function(k,l,ph,type){return '<label class="f">'+l+'<input id="ta-'+k+'" type="'+(type||'text')+'" value="'+esc(d[k]==null?'':d[k])+'" placeholder="'+esc(ph||'')+'"></label>'};
   var a=function(k,l,ph,rows){return '<label class="f wide">'+l+'<textarea id="ta-'+k+'" rows="'+(rows||2)+'" placeholder="'+esc(ph||'')+'">'+esc(d[k]||'')+'</textarea></label>'};
@@ -2011,11 +2155,13 @@ function taRender(d){
 }
 function taRead(){
   var d={};document.querySelectorAll('#taOv [id^="ta-"]').forEach(function(e){d[e.id.slice(3)]=e.value});
+  if($('#clTerms')){d.terms=[];document.querySelectorAll('#clTerms .clterm').forEach(function(r){d.terms.push({t:r.querySelector('[data-clt="t"]').value.trim(),x:r.querySelector('[data-clt="x"]').value})})}
   ['billsIn','billsOut','grounds'].forEach(function(g){d[g]={}});document.querySelectorAll('#taOv [data-tagrp]').forEach(function(e){if(e.checked)d[e.getAttribute('data-tagrp')][e.getAttribute('data-tak')]=1});
   return d;
 }
 function lines(s){return String(s||'').split('\n').map(function(x){return x.trim()}).filter(Boolean)}
 function taBlocks(d){
+  if(d.kind==='company')return clBlocks(d);
   var L=lines(d.landlords),Tn=lines(d.tenants),B=[],h=function(t){B.push({h:t})},p=function(t){B.push({p:t})},kv=function(r){B.push({kv:r.filter(function(x){return x[1]})})},li=function(arr){B.push({li:arr})};
   var billName=function(k){return (TA_BILLS.filter(function(b){return b[0]===k})[0]||['',k])[1]};
   B.push({title:'Assured Periodic Tenancy Agreement'});B.push({sub:'including the written statement of terms (Housing Act 1988, section 16D). For a property in England.'});
@@ -2069,7 +2215,7 @@ function taHtml(d){
     if(b.title)return '<div class="dbig" style="margin-top:6px">'+esc(b.title)+'</div>';if(b.sub)return '<div class="muted" style="margin-bottom:8px">'+esc(b.sub)+'</div>';
     if(b.h)return '<h4>'+esc(b.h)+'</h4>';if(b.p)return '<p>'+esc(b.p)+'</p>';if(b.li)return '<ul>'+b.li.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul>';
     if(b.kv)return '<table class="dkv">'+b.kv.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td>'+nl2br(r[1])+'</td></tr>'}).join('')+'</table>';
-    if(b.sig)return '<h4>Signatures</h4>'+b.sig.landlords.map(function(n){return '<div class="dsig"><span>Landlord: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('')+b.sig.tenants.map(function(n){return '<div class="dsig"><span>Tenant: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('');
+    if(b.sig)return '<h4>Signatures</h4>'+b.sig.landlords.map(function(n){return '<div class="dsig"><span>Landlord: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('')+b.sig.tenants.map(function(n){return '<div class="dsig"><span>Tenant: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('')+(b.sig.guarantors||[]).map(function(n){return '<div class="dsig"><span>Guarantor: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('');
     return '';
   }).join('')+'<div class="dfoot">Created with '+esc((window.MD_CONFIG||{}).appName||'Client Desk')+' on '+fd(iso(TODAY))+'. A template, not legal advice.</div></div>';
 }
@@ -2084,15 +2230,16 @@ function taPdf(d){
     else if(b.p){para(b.p,9.5);P.y+=5}
     else if(b.li){b.li.forEach(function(x){var ls=wrapT(x,500,9.5);P.need(ls.length*13);P.t(44,P.y,'•',9.5);ls.forEach(function(l){P.t(55,P.y,l,9.5);P.y+=13})});P.y+=4}
     else if(b.kv){b.kv.forEach(function(r){var lw=wrapT(r[0],170,9,true),vw=wrapT(r[1],330,9.5),n=Math.max(lw.length,vw.length);P.need(n*13+4);lw.forEach(function(l,i){P.t(40,P.y+i*13,l,9,true,'l',G)});vw.forEach(function(l,i){P.t(220,P.y+i*13,l,9.5)});P.y+=n*13+4});P.y+=4}
-    else if(b.sig){P.need(60);P.y+=8;P.t(40,P.y,'Signatures',11,true,'l',A);P.y+=20;b.sig.landlords.map(function(n){return 'Landlord: '+n}).concat(b.sig.tenants.map(function(n){return 'Tenant: '+n})).forEach(function(n){P.need(40);P.t(40,P.y,n,9.5,true);P.y+=22;P.line(40,P.y,300,[0.3,0.3,0.3]);P.line(340,P.y,555,[0.3,0.3,0.3]);P.y+=4;P.t(40,P.y,'Signed',7.5,false,'l',G);P.t(340,P.y,'Date',7.5,false,'l',G);P.y+=20})}
+    else if(b.sig){P.need(60);P.y+=8;P.t(40,P.y,'Signatures',11,true,'l',A);P.y+=20;b.sig.landlords.map(function(n){return 'Landlord: '+n}).concat(b.sig.tenants.map(function(n){return 'Tenant: '+n})).concat((b.sig.guarantors||[]).map(function(n){return 'Guarantor: '+n})).forEach(function(n){P.need(40);P.t(40,P.y,n,9.5,true);P.y+=22;P.line(40,P.y,300,[0.3,0.3,0.3]);P.line(340,P.y,555,[0.3,0.3,0.3]);P.y+=4;P.t(40,P.y,'Signed',7.5,false,'l',G);P.t(340,P.y,'Date',7.5,false,'l',G);P.y+=20})}
   });
-  return P.bytes('Assured periodic tenancy agreement · '+String(d.property||'').replace(/\s*\n\s*/g,', ').slice(0,80)+' · A template, not legal advice');
+  return P.bytes((d.kind==='company'?'Company let tenancy agreement':'Assured periodic tenancy agreement')+' · '+String(d.property||'').replace(/\s*\n\s*/g,', ').slice(0,80)+' · A template, not legal advice');
 }
 function taPreview(){
   var d=taRead(),p=$('#taPrev');if(p)p.innerHTML=taHtml(d);
+  var cw=$('#clWarn');if(cw){var tm=+d.termMonths||0;cw.innerHTML=d.termType!=='periodic'&&tm>36?'<p class="dnote">A term of more than 3 years must be made as a deed, and one of more than 7 years must be registered at the Land Registry. This template is for terms of up to 3 years. Ask a solicitor for a longer lease.</p>':d.termType!=='periodic'&&d.start&&tm>0?'<p class="muted" style="font-size:12px;margin:4px 0 0">The fixed term ends on '+fd(clEnd(d.start,tm))+'.</p>':''}
   var w=$('#taDepWarn');if(w){var rent=+d.rent||0,dep=+d.deposit||0,yr=rent*({'Monthly':12,'Weekly':52,'Every 4 weeks':13,'Quarterly':4}[d.freq]||12),cap=r2(yr/52*(yr>=50000?6:5));w.innerHTML=dep&&rent&&dep>cap?'<p class="dnote">The deposit is more than the legal maximum of '+(yr>=50000?6:5)+' weeks’ rent ('+gbp(cap)+') under the Tenant Fees Act 2019.</p>':''}
 }
-function taSave(quiet){var d=taRead();d.savedAt=Date.now();var c=cases.filter(function(x){return x.id===taCase})[0];if(!c)return d;if(taTn){var nl=tnList(c).map(function(t){return t.id===taTn?Object.assign({},t,{agreement:d}):t});patch(c.id,{tenancies:nl});if(openId===c.id&&$('#caseForm'))setTimeout(function(){lastAuto=JSON.stringify(collectForm())},80);var bt=document.querySelector('[data-tnag="'+taTn+'"]');if(bt)bt.textContent='Open tenancy agreement'}else patch(c.id,{tenancyDoc:d});if(!quiet)toast('Tenancy agreement details saved');setTimeout(function(){if(openId)renderLive()},60);return d}
+function taSave(quiet){var d=taRead();d.savedAt=Date.now();var c=cases.filter(function(x){return x.id===taCase})[0];if(!c)return d;if(taTn){var nl=tnList(c).map(function(t){return t.id===taTn?Object.assign({},t,{agreement:d}):t});patch(c.id,{tenancies:nl});if(openId===c.id&&$('#caseForm'))setTimeout(function(){lastAuto=JSON.stringify(collectForm())},80);var bt=document.querySelector('[data-tnag="'+taTn+'"]');if(bt)bt.textContent=d.kind==='company'?'Open company let agreement':'Open tenancy agreement'}else patch(c.id,{tenancyDoc:d});if(!quiet)toast(d.kind==='company'?'Company let agreement details saved':'Tenancy agreement details saved');setTimeout(function(){if(openId)renderLive()},60);return d}
 
 /* --- events --- */
 document.addEventListener('click',function(e){
@@ -2115,8 +2262,10 @@ document.addEventListener('click',function(e){
   if((b=t.closest('[data-ivf]'))){ivFilter=b.getAttribute('data-ivf');render();return}
   if((b=t.closest('[data-taopen]'))){taOpen(b.getAttribute('data-taopen'));return}
   if(t.closest('[data-taclose]')||t.id==='taOv'){closeOv('taOv');return}
+  if(t.closest('[data-cladd]')){var pk=$('#clPick'),ct=CL_TERMS[+pk.value]||CL_TERMS[0],bx=$('#clTerms');bx.insertAdjacentHTML('beforeend',clTermRow({t:ct[1]?ct[0]:'',x:ct[1]}));var nr=bx.lastElementChild;nr.scrollIntoView({block:'nearest'});nr.querySelector(ct[1]?'textarea':'input').focus();taPreview();return}
+  if((b=t.closest('[data-clrm]'))){b.closest('.clterm').remove();taPreview();return}
   if(t.closest('[data-tasave]')){taSave();return}
-  if((b=t.closest('[data-tapdf]'))){var td=taSave(true);fileOut(taPdf(td),'Tenancy-agreement-'+String(td.property||'property').split(/[\n,]/)[0].replace(/[^A-Za-z0-9]+/g,'-').slice(0,40)+'.pdf',b.getAttribute('data-tapdf'));return}
+  if((b=t.closest('[data-tapdf]'))){var td=taSave(true);fileOut(taPdf(td),(td.kind==='company'?'Company-let-agreement-':'Tenancy-agreement-')+String(td.property||'property').split(/[\n,]/)[0].replace(/[^A-Za-z0-9]+/g,'-').slice(0,40)+'.pdf',b.getAttribute('data-tapdf'));return}
   if(t.closest('[data-taprint]')){var td2=taSave(true);printHtml(taHtml(td2));return}
 });
 document.addEventListener('input',function(e){var t=e.target;if(!t||!t.closest)return;if(t.closest('#dcOv'))dcPreview();else if(t.closest('#taOv'))taPreview()});
@@ -2132,7 +2281,28 @@ function tnMigrate(c){
 }
 function tnList(c){return (c&&c.tenancies)||(T.tenancyMode&&c?tnMigrate(c):[])}
 function tnCurrent(c){return tnList(c).filter(function(t){return (t.status||'current')==='current'})}
-function tnNames(tn){return (tn.people||[]).map(function(p){return p.name}).filter(Boolean).join(' & ')}
+function tnCorp(tn){return (tn&&tn.tenantType)==='corporate'}
+function tnAgLabel(tn){var corp=tnCorp(tn),has=tn.agreement&&((tn.agreement.kind==='company')===corp);return (has?'Open ':'Create ')+(corp?'company let agreement':'tenancy agreement')}
+function tnDir(v,i){return '<div class="tnd" style="display:flex;gap:8px;align-items:flex-end;margin:0 0 8px"><label class="f" style="flex:1;margin:0">Director<input data-td="1" maxlength="80" value="'+esc(v||'')+'"></label><button type="button" class="btn ghost sm" data-tnrmd="1">Remove</button></div>'}
+function tnCoHtml(tn){
+  var corp=tnCorp(tn),dirs=(tn.directors||[]).filter(Boolean).slice(0,4);
+  return '<div class="grid" style="margin:10px 0 10px"><label class="f">Type of tenant<select data-tf="tenantType"><option value="private"'+(corp?'':' selected')+'>Private tenant</option><option value="corporate"'+(corp?' selected':'')+'>Corporate tenant</option></select></label></div>'+
+   '<div class="tnco" style="'+(corp?'':'display:none')+'"><div class="grid" style="margin:0 0 10px"><label class="f">Company name<input data-tf="company" maxlength="120" value="'+esc(tn.company||'')+'"></label><label class="f">Company registration number<input data-tf="companyNo" maxlength="20" value="'+esc(tn.companyNo||'')+'"></label></div>'+
+   '<div class="tndirs">'+(dirs.length?dirs:['']).map(tnDir).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddd="1"'+(dirs.length>=4?' style="display:none"':'')+'>Add director</button>'+
+   '<p class="muted" style="margin:10px 0 8px;font-size:12px">A company usually cannot hold an assured tenancy, so the deposit and rent increase rules for ordinary tenants on this page may not apply to a company let. Use the company let agreement button at the bottom of this card.</p>'+
+   '<p style="margin:0 0 6px;font-weight:600;font-size:13px">Contact at the company</p></div>';
+}
+function tnCoSync(card){
+  var s=card.querySelector('[data-tf="tenantType"]'),corp=s&&s.value==='corporate',co=card.querySelector('.tnco'),ab=card.querySelector('[data-tnaddp]'),ad=card.querySelector('[data-tnaddd]');
+  if(co)co.style.display=corp?'':'none';if(ab)ab.textContent=corp?'Add another contact':'Add joint tenant';
+  var agb=card.querySelector('[data-tnag]');if(agb){var tid=card.getAttribute('data-tn'),tn0=tnList(currentCase()||{}).filter(function(x){return x.id===tid})[0]||{};agb.textContent=tnAgLabel(Object.assign({},tn0,{tenantType:corp?'corporate':'private'}))}
+  if(ad)ad.style.display=card.querySelectorAll('.tnd').length>=4?'none':'';
+  if(corp){var tt=card.querySelector('[data-tf="tenancyType"]');if(tt&&!tt.value)tt.value='Company let'}
+}
+document.addEventListener('change',function(e){var t=e.target;if(t&&t.getAttribute&&t.getAttribute('data-tf')==='tenantType'){var cd=t.closest('.tncard');if(cd)tnCoSync(cd)}if(t&&t.id==='f-postcode')t.value=pcFmt(t.value)});
+document.addEventListener('input',function(e){var t=e.target;if(t&&t.id==='f-propertyAddress'&&t.value.trim()){t.style.borderColor='';var m=$('#paErr');if(m)m.remove()}});
+function paNeed(){var f=$('#f-propertyAddress');if(!f)return;f.style.borderColor='#b3261e';if(!$('#paErr'))f.insertAdjacentHTML('afterend','<span id="paErr" role="alert" style="color:#b3261e;font-size:12px;font-weight:600">Address line one is needed before the property can be saved.</span>');var fs=f.closest('fieldset');if(fs&&fs.classList.contains('col-closed')){var cb=fs.querySelector('[data-coltoggle]');if(cb)cb.click()}f.scrollIntoView({block:'center'});try{f.focus({preventScroll:true})}catch(x){}}
+function tnNames(tn){if(tnCorp(tn)&&String(tn.company||'').trim())return String(tn.company).trim();return (tn.people||[]).map(function(p){return p.name}).filter(Boolean).join(' & ')}
 function tnMonthly(tn){var r=+tfv(tn,'rent')||0,f=tfv(tn,'rentFreq');return f==='Weekly'?r*52/12:f==='Every 4 weeks'?r*13/12:f==='Quarterly'?r/3:r}
 function rentSum(c){return tnCurrent(c).reduce(function(a,t){return a+tnMonthly(t)},0)}
 function occOf(c){var cur=tnCurrent(c);if(!cur.length)return 'Vacant';return cur.some(function(t){return tfv(t,'noticeDate')})?'Notice given':'Let'}
@@ -2159,16 +2329,99 @@ function tnCard(tn){
   var ended=(tn.status||'current')==='ended',nm=tnNames(tn),rent=tfv(tn,'rent'),st=tfv(tn,'tenancyStart');
   var sum=(nm||'New tenant')+(rent!==''?' · '+money(rent)+(tfv(tn,'rentFreq')?' '+String(tfv(tn,'rentFreq')).toLowerCase():''):'')+(st?' · from '+fd(st):'')+(ended&&tfv(tn,'moveOut')?' to '+fd(tfv(tn,'moveOut')):'');
   return '<details class="tncard'+(ended?' ended':'')+'" data-tn="'+esc(tn.id)+'"'+(ended?'':' open')+'><summary><b>'+esc(sum)+'</b> <span class="chip '+(ended?'':'ok')+'">'+(ended?'Past tenancy':'Current')+'</span></summary>'+
-   '<div class="tnpeople">'+((tn.people&&tn.people.length)?tn.people:[{}]).map(tnPerson).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddp="1">Add joint tenant</button>'+
+   tnCoHtml(tn)+'<div class="tnpeople">'+((tn.people&&tn.people.length)?tn.people:[{}]).map(tnPerson).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddp="1">'+(tnCorp(tn)?'Add another contact':'Add joint tenant')+'</button>'+
    (function(){var F=T.tenancyFields||[],cut=F.map(function(f){return f.k}).indexOf('rentDay')+1;if(cut<1)cut=F.length;var g=function(l){return '<div class="grid" style="margin-top:10px">'+l.map(function(f){return tfHtml(f,tn)}).join('')+'</div>'};return g(F.slice(0,cut))+rlBox(tn,currentCase()||{})+(F.length>cut?g(F.slice(cut)):'')})()+
-   '<div class="add" style="margin-top:8px"><button type="button" class="btn ghost sm" data-tnag="'+esc(tn.id)+'">'+(tn.agreement?'Open tenancy agreement':'Create tenancy agreement')+'</button><button type="button" class="btn ghost sm" data-tnrm="1" style="margin-left:auto">Remove tenancy</button></div></details>';
+   '<div class="add" style="margin-top:8px"><button type="button" class="btn ghost sm" data-tnag="'+esc(tn.id)+'">'+tnAgLabel(tn)+'</button><button type="button" class="btn ghost sm" data-tnrm="1" style="margin-left:auto">Remove tenancy</button></div></details>';
+}
+/* ---------- property folder and uploaded documents (landlord) ---------- */
+var DZ_BTN='background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--accent);cursor:pointer;text-align:left',pfTried={},pfRun=false,dzBusy=false;
+function pfClean(s,n){return String(s||'').replace(/[\\\/:*?"<>|#%~&{}\u0000-\u001f]/g,' ').replace(/\s+/g,' ').replace(/^[ .]+|[ .]+$/g,'').slice(0,n||80).replace(/[ .]+$/,'')}
+function pfName(c,used){
+  var a=pfClean(String(c.propertyAddress||'').split(/[\n,]/)[0])||('Property '+(c.clientNo||''));
+  var clash=(used&&used[a.toLowerCase()])||cases.some(function(x){return x.id!==c.id&&x.folder&&String(x.folder.name||'').toLowerCase()===a.toLowerCase()});
+  return clash?a+' ('+(c.clientNo||String(c.id||'').slice(0,4))+')':a;
+}
+function dzFiles(c,k){return ((c&&c.files)||[]).filter(function(f){return f.k===k})}
+function dzInner(c,k,label){
+  var fl=dzFiles(c,k),up=function(t){return '<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">'+esc(t)+'</button>'},rm=function(f){return '<button type="button" style="'+DZ_BTN+';color:#8a98a3" data-dzrm="'+esc(f.id)+'">Remove</button>'};
+  if(k==='other')return fl.map(function(f){return '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>'+rm(f)+'</div>'}).join('')+'<div class="pl">'+up('Upload a document')+'</div>';
+  if(!fl.length)return up('Upload '+label);
+  var f=fl[fl.length-1];
+  return '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">Open '+esc(label)+'</a>'+up('Replace')+rm(f);
+}
+function dzSpan(c,f){return '<span class="pl dz" style="flex-wrap:wrap" data-dz="'+esc(f.k)+'" data-dzl="'+esc(f.doc)+'">'+dzInner(c,f.k,f.doc)+'</span>'}
+function dzFolderHtml(c){
+  var f=c&&c.folder,w=window.CD_files?window.CD_files.where():'file storage';
+  if(f&&f.name)return '<p class="muted" style="margin:0 0 8px;font-size:12px">Folder in your '+esc(w)+': <b>Properties › '+esc(f.name)+'</b></p>'+(f.url?'<div class="pl" style="margin:0 0 10px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">Open property folder</a></div>':'');
+  return '<p class="muted" style="margin:0 0 8px;font-size:12px">A folder for this property is made in your '+esc(w)+' when the property is saved. It is named after the first line of the address.</p>';
+}
+function dzSide(c){return '<fieldset data-sec="docs"><legend>Property documents</legend><div id="dzFolder">'+dzFolderHtml(c)+'</div><div data-dz="other" data-dzl="document">'+dzInner(c,'other','document')+'</div><p class="muted" style="margin:8px 0 0;font-size:12px">Certificates can also be uploaded next to their dates. Files up to 50 MB.</p></fieldset>'}
+function dzRefresh(c){document.querySelectorAll('#caseForm [data-dz]').forEach(function(el){el.innerHTML=dzInner(c,el.getAttribute('data-dz'),el.getAttribute('data-dzl'))});var ff=$('#dzFolder');if(ff)ff.innerHTML=dzFolderHtml(c)}
+function dzErr(e){
+  if(e&&e.renew)return 'Google Drive needs reconnecting. Press the yellow bar at the bottom, then upload again.';
+  if(navigator.onLine===false||(e instanceof TypeError))return 'Could not reach your file storage. Check you are online, then upload again.';
+  if(e&&e.status===507)return 'Your file storage is full.';
+  return 'Could not upload the file ('+((e&&e.message)||'try again')+').';
+}
+function dzPick(k){
+  if(!openId){toast('Add the property address first. It saves itself, then try again.');return}
+  if(!window.CD_files||!window.CD_files.can()){toast('Could not reach your file storage. Check you are online, then try again.');return}
+  if(dzBusy){toast('Still uploading the last file. Try again in a moment.');return}
+  var inp=document.createElement('input');inp.type='file';inp.id='dzFile';inp.accept='.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.xls,.xlsx,.txt,image/*,application/pdf';inp.style.display='none';
+  var old=$('#dzFile');if(old)old.remove();document.body.appendChild(inp);
+  inp.addEventListener('change',function(){var file=inp.files&&inp.files[0];inp.remove();if(file)dzSend(k,file)});
+  inp.click();
+}
+function dzSend(k,file){
+  var id=openId,c=currentCase();if(!id||!c)return;
+  if(!file.size){toast('That file is empty.');return}
+  if(file.size>window.CD_files.max){toast('That file is over 50 MB. Choose a smaller file.');return}
+  var el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document';
+  var ext=(/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase(),dt=(($('#f-'+k)||{}).value)||iso(TODAY);
+  var fname=k==='other'?(pfClean(file.name.slice(0,file.name.length-ext.length),100)||'Document')+ext:label.charAt(0).toUpperCase()+label.slice(1)+' '+dt+ext;
+  var folder=(c.folder&&c.folder.name)||pfName(c);
+  dzBusy=true;pfTried[id]=1;toast('Uploading '+file.name+'…',true);
+  window.CD_files.upload(folder,fname,file).then(function(res){
+    dzBusy=false;
+    var cur=cases.filter(function(x){return x.id===id})[0]||c;
+    var files=(cur.files||[]).filter(function(f){return k==='other'||f.k!==k});
+    files.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:file.size,at:Date.now()});
+    var up={files:files};if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
+    patch(id,up);toast('Uploaded to Properties › '+folder);
+    if(openId===id)dzRefresh(Object.assign({},cur,up));
+  },function(e){dzBusy=false;toast(dzErr(e))});
+}
+function dzRemove(fid){
+  var id=openId,c=currentCase();if(!id||!c)return;
+  if(!confirm('Remove this link? The file itself stays in the property folder.'))return;
+  var up={files:(c.files||[]).filter(function(f){return f.id!==fid})};
+  patch(id,up);dzRefresh(Object.assign({},c,up));
+}
+document.addEventListener('click',function(e){
+  var t=e.target&&e.target.closest?e.target.closest('[data-dzup],[data-dzrm]'):null;if(!t)return;
+  e.preventDefault();
+  if(t.hasAttribute('data-dzup'))dzPick(t.getAttribute('data-dzup'));else dzRemove(t.getAttribute('data-dzrm'));
+});
+/* makes the storage folder for every property that has an address and no folder yet (new and existing properties) */
+function pfSweep(){
+  if(!T.tenancyMode||pfRun||!window.CD_files||!window.CD_files.can())return;
+  var todo=cases.filter(function(c){return String(c.propertyAddress||'').trim()&&!(c.folder&&c.folder.name)&&!pfTried[c.id]});
+  if(!todo.length)return;pfRun=true;var used={};
+  (function next(){
+    var c=todo.shift();if(!c){pfRun=false;return}
+    pfTried[c.id]=1;var nm=pfName(c,used);used[nm.toLowerCase()]=1;
+    window.CD_files.folder(nm).then(function(f){
+      if(f&&f.name){patch(c.id,{folder:f});if(openId===c.id){var cur=currentCase()||c;dzRefresh(Object.assign({},cur,{folder:f}))}}
+      next();
+    },function(){next()});
+  })();
 }
 function llBody(c){
   var main=T.sections.filter(function(s){return !s.side}),side=T.sections.filter(function(s){return s.side});
   var tenants='<fieldset id="tnFs"><legend>Tenants</legend><div id="tns">'+tnList(c).slice().sort(function(a,b){return ((a.status||'current')==='ended')-((b.status||'current')==='ended')}).map(tnCard).join('')+'</div>'+(tnList(c).length?'':'<p class="muted" id="tnEmpty" style="margin:0 0 8px">No tenants yet.</p>')+'<button type="button" class="btn sm" id="addTn">Add tenant</button></fieldset>';
   var prop=main.map(function(s,i){return secFs(s.id,esc(s.title))+(i===0?fld('clientNo','Property reference',c.clientNo)+sel('type','Type',c.type,typeOpts(c.type)):'')+s.fields.map(function(f){return fieldHtml(f,c)}).join('')+'</div></fieldset>'}).join('');
   return '<div class="llgrid"><div class="llmain">'+(c.propertyAddress?tenants+prop:prop+tenants)+'</div>'+
-   '<aside class="llside">'+side.map(function(s){return secFs(s.id,esc(s.title))+s.fields.map(function(f){return fieldHtml(f,c)}).join('')+'</div></fieldset>'}).join('')+'</aside></div>';
+   '<aside class="llside">'+side.map(function(s){return secFs(s.id,esc(s.title))+s.fields.map(function(f){return fieldHtml(f,c)}).join('')+'</div></fieldset>'}).join('')+dzSide(c)+'</aside></div>';
 }
 function tnCollect(){
   var cards=document.querySelectorAll('#tns .tncard');if(!$('#tns'))return null;
@@ -2178,6 +2431,7 @@ function tnCollect(){
     card.querySelectorAll('[data-tf]').forEach(function(e){var k=e.getAttribute('data-tf');tn[k]=e.type==='number'?num(e.value):e.value.trim()});
     (T.tenancyFields||[]).forEach(function(f){if(f.auto&&tn[f.k]){var s=tfv(Object.assign({},tn,{[f.k]:''}),f.auto.from);if(s&&tn[f.k]===autoDate(s,f.auto))tn[f.k]=''}});
     tn.rentLog=[];card.querySelectorAll('.rlrow').forEach(function(r){var o={id:r.getAttribute('data-rlid')};r.querySelectorAll('[data-rl]').forEach(function(i){var k=i.getAttribute('data-rl');o[k]=i.type==='number'?num(i.value):i.value});if(o.due||o.amount!=null)tn.rentLog.push(o)});
+    tn.tenantType=tn.tenantType==='corporate'?'corporate':'private';tn.directors=[];card.querySelectorAll('[data-td]').forEach(function(i){var v=i.value.trim();if(v&&tn.directors.length<4)tn.directors.push(v)});
     tn.people=[];card.querySelectorAll('.tnp').forEach(function(r){var p={};r.querySelectorAll('[data-tp]').forEach(function(i){p[i.getAttribute('data-tp')]=i.value.trim()});if(p.name||p.phone||p.email)tn.people.push(p)});
     out.push(tn);
   });
@@ -2186,6 +2440,8 @@ function tnCollect(){
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;var b;
   if(t.id==='addTn'){var box=$('#tns');if(!box)return;var em=$('#tnEmpty');if(em)em.remove();box.insertAdjacentHTML('afterbegin',tnCard({id:'t'+uid(),status:'current',people:[{}]}));var f=box.querySelector('.tncard [data-tp="name"]');if(f)f.focus();return}
+  if((b=t.closest('[data-tnaddd]'))){var cdd=b.closest('.tncard'),bx=cdd.querySelector('.tndirs');if(bx.querySelectorAll('.tnd').length<4){bx.insertAdjacentHTML('beforeend',tnDir(''));var li=bx.querySelectorAll('[data-td]');li[li.length-1].focus()}tnCoSync(cdd);return}
+  if((b=t.closest('[data-tnrmd]'))){var cdr=b.closest('.tncard'),bx2=cdr.querySelector('.tndirs');if(bx2.querySelectorAll('.tnd').length>1)b.closest('.tnd').remove();else b.closest('.tnd').querySelector('input').value='';tnCoSync(cdr);return}
   if((b=t.closest('[data-tnaddp]'))){var cd=b.closest('.tncard');cd.querySelector('.tnpeople').insertAdjacentHTML('beforeend',tnPerson({}));return}
   if((b=t.closest('[data-tnrmp]'))){var pp=b.closest('.tnpeople');if(pp.querySelectorAll('.tnp').length>1)b.closest('.tnp').remove();else b.closest('.tnp').querySelectorAll('input').forEach(function(i){i.value=''});return}
   if((b=t.closest('[data-tnrm]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Confirm remove';return}b.closest('.tncard').remove();updStrip();return}
@@ -2283,7 +2539,7 @@ document.addEventListener('click',function(e){
     var c=currentCase(),tn=(data.tenancies||[]).filter(function(x){return x.id===tnId})[0]||{},r=(tn.rentLog||[]).filter(function(x){return x.id===rowId})[0]||{};
     var amt=+r.amount||+tfv(tn,'rent')||0;if(!amt){toast('Add the rent amount first');return}
     if(!tnNames(tn)){toast('Add the tenant’s name first');return}
-    dcCase=openId;dcDoc={id:'d'+uid(),kind:'invoice',number:dcNewNumber('invoice'),date:iso(TODAY),due:r.due||iso(TODAY),status:r.status==='paid'?'paid':'draft',paidDate:r.status==='paid'?(r.paidDate||iso(TODAY)):'',toName:tnNames(tn),toAddr:String(c.propertyAddress||''),job:'',lines:[{d:'Rent for '+rlPeriod(r.due||iso(TODAY),tfv(tn,'rentFreq'))+'\n'+String(c.propertyAddress||'').split('\n')[0],q:1,p:amt,v:0}],notes:'',isNew:true,rentRow:rowId,tnId:tnId};
+    dcCase=openId;dcDoc={id:'d'+uid(),kind:'invoice',number:dcNewNumber('invoice'),date:iso(TODAY),due:r.due||iso(TODAY),status:r.status==='paid'?'paid':'draft',paidDate:r.status==='paid'?(r.paidDate||iso(TODAY)):'',toName:tnNames(tn),toAddr:paddr(c),job:'',lines:[{d:'Rent for '+rlPeriod(r.due||iso(TODAY),tfv(tn,'rentFreq'))+'\n'+String(c.propertyAddress||'').split('\n')[0],q:1,p:amt,v:0}],notes:'',isNew:true,rentRow:rowId,tnId:tnId};
     var d=dcSave(true);if(!d)return;
     row.querySelector('[data-rl="invId"]').value=d.id;b.textContent='Send invoice '+d.number;
     var d2=collectForm();patch(openId,{tenancies:d2.tenancies});lastAuto=JSON.stringify(d2);
@@ -2576,7 +2832,7 @@ claude.use('db').then(function(d){
     loaded=true;
     var ae=document.activeElement;
     var typing=ae&&(ae.id==='q');
-    render();if(trayOpen)renderTray();clearTimeout(window.__rt);window.__rt=setTimeout(rtSweep,400);
+    render();if(trayOpen)renderTray();clearTimeout(window.__rt);window.__rt=setTimeout(function(){rtSweep();pfSweep()},400);
     if(typing){var q=$('#q');q.focus&&q.focus()}
     if(openId){var ae2=document.activeElement;if(!(ae2&&(/^(ntText|prText|tkText|ntEdit)$/.test(ae2.id||'')||(ae2.closest&&(ae2.closest('table.nt.xl')||ae2.closest('[data-tkbox]'))))))renderLive()}
   },function(){loaded=true;db=null;render();toast('Lost connection to your saved cases')});
