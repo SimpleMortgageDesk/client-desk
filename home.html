@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Client Desk – keep your small business organised</title>
+<meta name="description" content="One simple place for your clients, properties, jobs, payments, documents and reminders. Saved in your own Outlook or Gmail account.">
+<meta name="theme-color" content="#0A6B50">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--ink:#101C26;--muted:#4f6070;--line:#D4DBDF;--bg:#F6F8F7;--card:#fff;--acc:#0A6B50;--acc2:#0d8a66;--soft:#DCEFE8;--warn:#8A5A00;--warnsoft:#FBEFD2;--bad:#A3261F;--badsoft:#FADDD9;
+  --font:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--acc)}
+.wrap{width:min(1120px,100% - 40px);margin:0 auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:10px;font:600 16px var(--font);text-decoration:none;border:1.5px solid var(--acc);cursor:pointer;transition:transform .12s,background .12s}
+.btn:hover{transform:translateY(-1px)}
+.btn.pri{background:var(--acc);color:#fff}
+.btn.pri:hover{background:var(--acc2)}
+.btn.sec{background:#fff;color:var(--acc)}
+.btn.sm{padding:8px 14px;font-size:14.5px}
+/* header */
+header{position:sticky;top:0;z-index:10;background:rgba(246,248,247,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:18px;height:64px}
+.brand{font-weight:800;font-size:19px;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand i{width:26px;height:26px;border-radius:7px;background:var(--acc);display:inline-block;position:relative}
+.brand i:after{content:"";position:absolute;inset:7px;border:2.5px solid #fff;border-radius:3px;border-top-width:5px}
+nav.links{display:flex;gap:22px;margin-left:12px}
+nav.links a{color:var(--muted);text-decoration:none;font-size:15px}
+nav.links a:hover{color:var(--ink)}
+header .acts{margin-left:auto;display:flex;gap:10px}
+/* hero */
+.hero{padding:64px 0 56px}
+.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.pill{display:inline-block;background:var(--soft);color:var(--acc);font-weight:700;font-size:13px;padding:5px 12px;border-radius:99px;letter-spacing:.2px}
+h1{font-size:clamp(34px,5vw,54px);line-height:1.08;margin:16px 0 18px;letter-spacing:-1px}
+h1 em{font-style:normal;color:var(--acc)}
+.lead{font-size:clamp(17px,2vw,19.5px);color:var(--muted);margin:0 0 26px;max-width:560px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.small{font-size:13.5px;color:var(--muted);margin-top:14px}
+/* app preview (drawn with HTML, invented data) */
+.mock{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(16,28,38,.16);overflow:hidden;font-size:13px}
+.mock .bar{display:flex;align-items:center;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);background:#fafbfb}
+.mock .bar b{width:9px;height:9px;border-radius:50%;background:#d9dee1;display:inline-block}
+.mock .bar span{margin-left:10px;font-weight:700;color:var(--ink)}
+.mock .body{padding:16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#F4F7F8;border-radius:10px;padding:10px 12px}
+.stat small{display:block;color:var(--muted);font-size:11.5px}
+.stat strong{font-size:18px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid #eef1f2}
+.row .ad{flex:1;min-width:0}
+.row .ad b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .ad small{color:var(--muted)}
+.chip{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.chip.ok{background:var(--soft);color:var(--acc)}
+.chip.due{background:var(--warnsoft);color:var(--warn)}
+.chip.late{background:var(--badsoft);color:var(--bad)}
+.rem{margin-top:12px;background:#FFF9EA;border:1px solid #F1E3B8;border-radius:10px;padding:10px 12px}
+.rem b{display:block;font-size:12.5px;margin-bottom:4px}
+.rem div{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:2px 0}
+/* sections */
+section{padding:72px 0}
+section.alt{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kicker{color:var(--acc);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:1px}
+h2{font-size:clamp(27px,3.6vw,38px);line-height:1.15;margin:8px 0 14px;letter-spacing:-.5px}
+.intro{color:var(--muted);font-size:18px;max-width:680px;margin:0 0 36px}
+.pains{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.pain{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px}
+.pain .q{font-size:24px}
+.pain p{margin:8px 0 0;color:var(--muted);font-size:15px}
+.pain strong{display:block;color:var(--ink);font-size:16px;margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.feat{border:1px solid var(--line);border-radius:14px;padding:22px;background:var(--bg)}
+.ico{width:42px;height:42px;border-radius:11px;background:var(--soft);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.ico svg{width:22px;height:22px;stroke:var(--acc);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.feat h3{margin:0 0 6px;font-size:18px}
+.feat p{margin:0;color:var(--muted);font-size:15px}
+.who{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column}
+.card h3{margin:10px 0 8px;font-size:18px}
+.card ul{margin:0;padding-left:18px;color:var(--muted);font-size:14.5px}
+.card li{margin:3px 0}
+.tag{align-self:flex-start;font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px}
+.tag.now{background:var(--acc);color:#fff}
+.tag.soon{background:#EDF0F1;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+.step{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;position:relative}
+.step:before{counter-increment:s;content:counter(s);width:34px;height:34px;border-radius:50%;background:var(--acc);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.step h3{margin:0 0 6px;font-size:18px}
+.step p{margin:0;color:var(--muted);font-size:15px}
+.trust{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.ticks{list-style:none;margin:0;padding:0}
+.ticks li{padding:10px 0 10px 34px;position:relative;border-bottom:1px solid #eef1f2;font-size:16px}
+.ticks li:before{content:"";position:absolute;left:4px;top:15px;width:16px;height:9px;border-left:3px solid var(--acc);border-bottom:3px solid var(--acc);transform:rotate(-45deg)}
+.ticks li span{display:block;color:var(--muted);font-size:14.5px}
+.flow{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center}
+.flow .box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;font-weight:700}
+.flow .box small{display:block;font-weight:400;color:var(--muted);font-size:13px}
+.flow .arrow{color:var(--acc);font-size:22px;line-height:1;margin:8px 0}
+.flow .no{margin-top:16px;font-size:14px;color:var(--bad);font-weight:600}
+details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:10px}
+summary{font-weight:700;cursor:pointer;font-size:16.5px}
+details p{margin:10px 0 0;color:var(--muted)}
+.final{background:var(--acc);color:#fff;border-radius:20px;padding:48px;text-align:center}
+.final h2{color:#fff}
+.final p{color:#d8efe6;font-size:18px;margin:0 0 24px}
+.final .btn.pri{background:#fff;color:var(--acc);border-color:#fff}
+.final .btn.sec{background:transparent;color:#fff;border-color:#fff}
+.final .cta{justify-content:center}
+footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center}
+footer .r{margin-left:auto}
+@media (max-width:980px){
+  .hero .wrap,.trust{grid-template-columns:1fr}
+  .pains,.who{grid-template-columns:1fr 1fr}
+  .grid,.steps{grid-template-columns:1fr 1fr}
+  nav.links{display:none}
+}
+@media (max-width:620px){
+  .wrap{width:calc(100% - 28px)}
+  .hero{padding:36px 0 40px}
+  section{padding:52px 0}
+  .pains,.who,.grid,.steps{grid-template-columns:1fr}
+  header .acts{gap:6px}
+  header .acts .btn.sm{padding:7px 11px;font-size:14px}
+  .brand{font-size:17px}
+  .final{padding:32px 20px}
+  .cta .btn{flex:1 1 100%}
+  footer .r{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
+</style>
+<script src="config.js"></script>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top"><i aria-hidden="true"></i><span data-app>Client Desk</span></a>
+    <nav class="links" aria-label="Page sections">
+      <a href="#how">How it helps</a><a href="#who">Who it's for</a><a href="#privacy">Your data</a><a href="#faq">Questions</a>
+    </nav>
+    <div class="acts">
+      <a class="btn sec sm" href="./?p=login">Log in</a>
+      <a class="btn pri sm" href="./?p=register">Register</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <span class="pill">Free while we test it</span>
+      <h1>Your small business, <em>organised</em> in one place.</h1>
+      <p class="lead">For self-employed people, sole traders, freelance consultants and small landlords. Keep your clients, properties, jobs, payments, documents and reminders together. Everything is saved in your own <span data-acct>Outlook or Gmail</span> account, not on our computers.</p>
+      <div class="cta">
+        <a class="btn pri" href="./?p=register">Register, it's free</a>
+        <a class="btn sec" href="./?p=login">Log in</a>
+      </div>
+      <p class="small">Works in your web browser on phone, tablet and computer. Nothing to install.</p>
+    </div>
+    <div class="mock" role="img" aria-label="Example of the app showing three properties with rent status and upcoming reminders (invented examples)">
+      <div class="bar"><b></b><b></b><b></b><span>Properties</span></div>
+      <div class="body">
+        <div class="stats">
+          <div class="stat"><small>Properties</small><strong>3</strong></div>
+          <div class="stat"><small>Rent a month</small><strong>£4,425</strong></div>
+          <div class="stat"><small>Overdue</small><strong style="color:var(--bad)">£875</strong></div>
+        </div>
+        <div class="row"><div class="ad"><b>1 Example Road</b><small>Tenant: A. Sample · £1,150 a month</small></div><span class="chip ok">Paid</span></div>
+        <div class="row"><div class="ad"><b>Flat 1, 2 Sample Street</b><small>Tenants: B. Test and C. Test · £875</small></div><span class="chip late">Overdue £875</span></div>
+        <div class="row"><div class="ad"><b>3 Demo Lane</b><small>HMO, 5 rooms · £2,400 a month</small></div><span class="chip due">Due 20 Nov</span></div>
+        <div class="rem">
+          <b>Coming up</b>
+          <div><span>Gas safety certificate, 2 Sample Street</span><span>in 25 days</span></div>
+          <div><span>Insurance renewal, 1 Example Road</span><span>in 6 weeks</span></div>
+          <div><span>Call tenant about late rent</span><span>today</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="alt" aria-labelledby="pain-h">
+  <div class="wrap">
+    <div class="kicker">Sound familiar?</div>
+    <h2 id="pain-h">Running a small business means remembering everything</h2>
+    <p class="intro">Details end up in text messages, emails, notebooks and spreadsheets. Then something important slips through.</p>
+    <div class="pains">
+      <div class="pain"><div class="q" aria-hidden="true">📱</div><strong>"Where did I put that?"</strong><p>Phone numbers, notes and agreements scattered across WhatsApp, email and paper.</p></div>
+      <div class="pain"><div class="q" aria-hidden="true">⏰</div><strong>"That expired last month"</strong><p>Certificates, renewals and follow-ups only remembered when it is too late.</p></div>
+      <div class="pain"><div class="q" aria-hidden="true">💷</div><strong>"Has that been paid?"</strong><p>Chasing payments and working out who still owes what.</p></div>
+      <div class="pain"><div class="q" aria-hidden="true">🧾</div><strong>"My accountant needs it by Friday"</strong><p>A scramble every tax year to gather income and expenses.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how" aria-labelledby="how-h">
+  <div class="wrap">
+    <div class="kicker">How it helps</div>
+    <h2 id="how-h">Less admin, fewer surprises</h2>
+    <p class="intro">The app does the remembering, keeps the paperwork tidy and gets the numbers ready, so you can get on with the work that pays.</p>
+    <div class="grid">
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></div><h3>Everything in one record</h3><p>Each client or property gets one page with contact details, tenants or jobs, notes, tasks and history. Tap a number or email address to send a WhatsApp or email.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><h3>Reminders that don't forget</h3><p>Gas safety, electrical checks, EPC, deposit protection, licences, insurance and mortgage deals, plus your own follow-ups. All shown before they are due.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div><h3>Get paid on time</h3><p>See at a glance what is paid, due or overdue. Late rent becomes a task to contact the tenant. Create an invoice as a PDF and send it by WhatsApp or email.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><h3>Documents filed for you</h3><p>Upload a certificate and it is saved in a folder for that property in your own OneDrive or Google Drive, with a clear name and date.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 5-6"/></svg></div><h3>Tax-year ready</h3><p>Record expenses as you go. One tap gives a report of income, expenses and mortgage interest for any dates, as a PDF or spreadsheet for your accountant.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></div><h3>Paperwork drafted for you</h3><p>Tenancy agreements and company let agreements filled in from what you have already typed, ready to check, print or share.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h3>Diary, tasks and notes</h3><p>Book appointments, keep a to-do list for each client or property, and jot ideas in a notebook. Outlook users can add bookings to their calendar.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div><h3>Phone, tablet and computer</h3><p>Use it anywhere, even with a weak signal. Changes wait on your device and save when you are back online. Add it to your home screen like an app.</p></div>
+      <div class="feat"><div class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div><h3>Locked when you step away</h3><p>Your own password protects the app and it locks itself after a while. Encrypted backups are there if you ever need them.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="who" aria-labelledby="who-h">
+  <div class="wrap">
+    <div class="kicker">Who it's for</div>
+    <h2 id="who-h">Built for people who work for themselves</h2>
+    <p class="intro">The app uses the right words, fields and reminders for your kind of work. We are starting with landlords.</p>
+    <div class="who">
+      <div class="card"><span class="tag now">Available now</span><h3>Small landlords</h3><ul><li>Properties, tenants and rent</li><li>Safety certificates and renewals</li><li>Expenses and tax-year reports</li><li>Tenancy agreements</li></ul></div>
+      <div class="card"><span class="tag soon">Coming soon</span><h3>Sole traders and trades</h3><ul><li>Gas, plumbing, electrical, building</li><li>Jobs, quotes and invoices</li><li>Yearly service reminders</li><li>Hair, beauty and barbers</li></ul></div>
+      <div class="card"><span class="tag soon">Coming soon</span><h3>Freelance consultants</h3><ul><li>Clients and contact history</li><li>Appointments and follow-ups</li><li>Invoices and payments</li><li>Key dates for each client</li></ul></div>
+      <div class="card"><span class="tag soon">Coming soon</span><h3>Other self-employed work</h3><ul><li>Accountants and bookkeepers</li><li>Architects and solicitors</li><li>Mortgage and finance advisers</li><li>A general version for anyone else</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="steps-h">
+  <div class="wrap">
+    <div class="kicker">Getting started</div>
+    <h2 id="steps-h">Up and running in a few minutes</h2>
+    <div class="steps">
+      <div class="step"><h3>Register</h3><p>Add your name, email and mobile, and choose a password. Then connect your <span data-acct>Outlook or Gmail</span> account, where your records will be kept.</p></div>
+      <div class="step"><h3>Add your first property or client</h3><p>Type the details once. Dates you enter set up the reminders for you.</p></div>
+      <div class="step"><h3>Let the app remember</h3><p>Open it when you need it. Overdue payments, renewals and tasks are waiting for you on the first screen.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="privacy" aria-labelledby="priv-h">
+  <div class="wrap trust">
+    <div>
+      <div class="kicker">Your data stays yours</div>
+      <h2 id="priv-h">Your clients' details never come to us</h2>
+      <ul class="ticks">
+        <li>Saved in your own account<span>Your records are files in a folder in your OneDrive or Google Drive. You can open that folder any time.</span></li>
+        <li>No database of ours, no adverts<span>We do not collect, sell or read your records. There is nothing of yours on our computers.</span></li>
+        <li>Keep it all if you stop<span>The folder stays in your account, so your records are still yours.</span></li>
+        <li>Clients kept separate<span>Each client's or property's details stay in their own record.</span></li>
+      </ul>
+      <p style="margin-top:18px"><a href="privacy.html">Read the privacy policy</a></p>
+    </div>
+    <div class="flow" aria-label="How your data moves">
+      <div class="box">Your phone or computer<small>a working copy, locked with your password</small></div>
+      <div class="arrow" aria-hidden="true">⇅</div>
+      <div class="box">Your own OneDrive or Google Drive<small>a folder named after you or your business</small></div>
+      <div class="no">✕ No copy is kept by us</div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" aria-labelledby="faq-h">
+  <div class="wrap" style="max-width:820px">
+    <div class="kicker">Questions</div>
+    <h2 id="faq-h">Good to know</h2>
+    <details><summary>How much does it cost?</summary><p>It is free while we test it. If we introduce paid plans later, we will tell you well before anything changes.</p></details>
+    <details><summary>Which email accounts can I use?</summary><p><span data-acctlong>A personal Microsoft account (Outlook, Hotmail or Live) or a Google account (Gmail).</span> Your records are saved in that account's OneDrive or Google Drive.</p></details>
+    <details><summary>Do I need to install anything?</summary><p>No. It runs in your web browser. On a phone, use "Add to Home Screen" from the browser menu and it opens like an app.</p></details>
+    <details><summary>Can I use it on more than one device?</summary><p>Yes. Log in on each device with the same account and password, and your records appear on all of them.</p></details>
+    <details><summary>What if I lose my phone?</summary><p>Your records are safe in your OneDrive or Google Drive. Log in on a new device and they come back. The app on the lost phone locks itself and logs out after a period of inactivity.</p></details>
+    <details><summary>Is the tenancy agreement legal advice?</summary><p>No. The agreements are templates for England that follow current government guidance. Always have important documents checked by a solicitor.</p></details>
+    <details><summary>Can my accountant see my records?</summary><p>Only what you send them. The app creates a report as a PDF or spreadsheet that you can email to your accountant.</p></details>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="final">
+      <h2>Spend less time on admin</h2>
+      <p>Register in a few minutes, free while we test it.</p>
+      <div class="cta">
+        <a class="btn pri" href="./?p=register">Register</a>
+        <a class="btn sec" href="./?p=login">Log in</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; <span id="yr">2026</span> <span data-owner>Client Desk</span></span>
+    <a href="privacy.html">Privacy policy</a>
+    <span id="contact"></span>
+    <span class="r">The examples on this page are invented.</span>
+  </div>
+</footer>
+<script>
+(function () {
+  var C = window.MD_CONFIG || {}, app = C.appName || 'Client Desk';
+  var real = function (v) { return v && !/PASTE/i.test(v) ? v : ''; };
+  document.title = app + ' – keep your small business organised';
+  document.querySelectorAll('[data-app]').forEach(function (e) { e.textContent = app; });
+  var owner = real(C.ownerName); document.querySelectorAll('[data-owner]').forEach(function (e) { e.textContent = owner || app; });
+  var mail = real(C.ownerEmail); if (mail) { var a = document.createElement('a'); a.href = 'mailto:' + mail; a.textContent = 'Contact: ' + mail; document.getElementById('contact').appendChild(a); }
+  document.getElementById('yr').textContent = new Date().getFullYear();
+  /* only mention Gmail once Google sign-in is switched on */
+  if (!real(C.googleClientId)) {
+    document.querySelectorAll('[data-acct]').forEach(function (e) { e.textContent = 'Outlook'; });
+    document.querySelectorAll('[data-acctlong]').forEach(function (e) { e.textContent = 'A personal Microsoft account (Outlook, Hotmail or Live). Gmail is coming soon.'; });
+  }
+  /* already signed in on this device: go straight to the app */
+  try { if (localStorage.getItem('cd.tok2')) document.querySelectorAll('a[href^="./?p="]').forEach(function (a) { a.href = './'; }); } catch (e) {}
+})();
+</script>
+</body>
+</html>

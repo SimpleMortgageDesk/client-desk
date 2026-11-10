@@ -1053,7 +1053,12 @@
   var signPage = null;
   function showSignIn(msg, page) {
     if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); msg = 'You were logged out after ' + idleLabel() + ' of inactivity. Log in again to continue.'; } } catch (e) {} }
-    page = page || (sget('cd.reg') ? 'register' : msg ? 'login' : 'home'); signPage = page;
+    var qp = (/[?&]p=(login|register)\b/.exec(location.search) || [])[1];
+    if (qp) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} }
+    page = page || qp || (sget('cd.reg') ? 'register' : msg ? 'login' : 'home');
+    /* the full welcome page explains the app; this screen is only for logging in or registering */
+    if (page === 'home' && !window.CD_DEMO && location.protocol !== 'file:' && CFG.welcomePage !== false) { location.replace('home.html'); return; }
+    signPage = page;
     var ok = provOk(), card = 'width:min(460px,100%);max-height:96vh;overflow:auto;box-sizing:border-box;background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)';
     var big = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:13px 16px;border-radius:10px;font:600 16px system-ui;cursor:pointer;text-align:left;margin-top:12px;box-sizing:border-box;';
     var pri = big + 'border:0;background:#0A6B50;color:#fff', sec = big + 'border:1px solid #2f4a40;background:#fff;color:#101C26';
@@ -1096,7 +1101,7 @@
     var o = overlay(html);
     o.onclick = function (e) {
       var a = e.target.closest && e.target.closest('[data-sp]'); if (!a) return; e.preventDefault();
-      if (a.getAttribute('data-sp') === 'home') sset('cd.reg', null);
+      if (a.getAttribute('data-sp') === 'home') { sset('cd.reg', null); if (!window.CD_DEMO && location.protocol !== 'file:' && CFG.welcomePage !== false) { location.href = 'home.html'; return; } }
       showSignIn('', a.getAttribute('data-sp'));
     };
     var b = o.querySelector('#mdGo'); if (b) b.onclick = function () { b.disabled = true; sset('cd.intent', 'login'); lset('cd.prov', 'ms'); startLogin(); };
