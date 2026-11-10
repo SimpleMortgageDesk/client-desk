@@ -205,6 +205,16 @@ function allEvents(){
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
 }
 function reviewEvents(){return allEvents().filter(function(e){return e.kind==='review'})}
+/* key dates for the Outlook calendar: sync.js turns these into 9am events with a phone alert */
+window.CD_keyDates=function(){
+  if(!loaded||!db)return null;var out=[];
+  cases.forEach(function(c){if(c.stage==='lost')return;var n=names(c);
+    reviewItems(c,true).forEach(function(r){out.push({key:c.id+'|'+r.key,date:r.date,title:r.label,who:n})});
+    (c.tasks||[]).forEach(function(t,i){if(!t.done&&t.due)out.push({key:c.id+'|task:'+(t.id||i),date:t.due,title:t.text,who:n})});
+  });
+  if(T.tenancyMode)homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:e.date,title:e.label,who:'My home'})});
+  return out;
+};
 function nextEvent(c){
   var e=caseEvents(c).sort(function(a,b){return a.date<b.date?-1:1});
   var over=e.filter(function(x){return diff(x.date)<0})[0];

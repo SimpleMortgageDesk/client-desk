@@ -468,6 +468,68 @@
     }
   }
 
+  /* ---------- key dates in Outlook (opt-in with calendar reminders): rent due, deposits, certificates, renewals and tasks
+     become 9am events, shown as free time, with a phone alert at the chosen time. Which event belongs to which date is kept
+     in settings/calkeys in the user's own storage, so every device updates the same events. ---------- */
+  var KD_CAT = APPN + ' reminders', KD_DOC = 'calkeys', KD_DAYS = 400, KD_MAX = 300, KD_STEP = 40, kdBusy = false, kdTimer = null, kdAgain = false;
+  var KD_LEADS = [[0, 'on the day'], [1440, 'the day before'], [4320, '3 days before'], [10080, 'a week before']];
+  function kdOn() { return calOn() && ls('cd.calkd') !== '0'; }
+  function kdState() { var d = mem.settings[KD_DOC]; d = (d && d.data) || {}; return { lead: d.lead == null ? 4320 : +d.lead, ev: d.ev || {} }; }
+  function kdLeadLabel(m) { var x = KD_LEADS.filter(function (l) { return l[0] === m; })[0]; return x ? x[1] : '3 days before'; }
+  function kdIso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function kdHash(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); }
+  function kdWant(lead) {
+    var src = window.CD_keyDates && window.CD_keyDates(); if (!src) return null;
+    var now = new Date(), from = kdIso(now), to = kdIso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + KD_DAYS)), out = {}, n = 0;
+    src.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).forEach(function (e) {
+      if (!e || !e.key || !/^\d{4}-\d{2}-\d{2}$/.test(e.date || '') || e.date < from || e.date > to || out[e.key] || n >= KD_MAX) return;
+      var title = String(e.title || 'Reminder').slice(0, 180) + (e.who ? ' · ' + String(e.who).slice(0, 80) : '');
+      var b = { subject: title, start: { dateTime: e.date + 'T09:00:00', timeZone: 'Europe/London' }, end: { dateTime: e.date + 'T09:15:00', timeZone: 'Europe/London' },
+        isReminderOn: true, reminderMinutesBeforeStart: lead, showAs: 'free', categories: [KD_CAT],
+        body: { contentType: 'text', content: 'Reminder from ' + APPN + '. Open ' + APPN + ' to see the details or mark it done.' } };
+      out[e.key] = { b: b, h: kdHash(JSON.stringify(b)), d: e.date }; n++;
+    });
+    return out;
+  }
+  function kdSchedule(ms) { if (!calOn() && !Object.keys(kdState().ev).length) return; clearTimeout(kdTimer); kdTimer = setTimeout(function () { kdSync(); }, ms == null ? 3000 : ms); }
+  /* clear: remove every future key-date event (used when key dates or calendar reminders are turned off) */
+  async function kdSync(clear) {
+    if (!tok() || st.offline || !firstPullDone || PROV !== 'ms') return;
+    if (kdBusy) { kdAgain = true; return; }
+    var S = kdState(), want = (clear || !kdOn()) ? {} : kdWant(S.lead);
+    if (!want) return;
+    var ev = Object.assign({}, S.ev), today = kdIso(new Date()), calls = 0, changed = false, more = false;
+    kdBusy = true;
+    try {
+      var old = Object.keys(ev);
+      for (var i = 0; i < old.length; i++) {
+        var k = old[i], cur = ev[k]; if (want[k]) continue;
+        if (cur.d && cur.d < today) { delete ev[k]; changed = true; continue; } /* past: leave it in the calendar as a record */
+        if (calls >= KD_STEP) { more = true; break; } calls++;
+        var rd = await gfetch('/me/events/' + encodeURIComponent(cur.id), { method: 'DELETE' });
+        if (rd.status === 401 || rd.status === 403) throw calPerm();
+        if (rd.ok || rd.status === 404) { delete ev[k]; changed = true; }
+      }
+      var keys = Object.keys(want);
+      for (var j = 0; j < keys.length && !more; j++) {
+        var key = keys[j], w = want[key], c = ev[key];
+        if (c && c.h === w.h) continue;
+        if (calls >= KD_STEP) { more = true; break; } calls++;
+        var r = null, id = '';
+        if (c && c.id) { r = await gfetch('/me/events/' + encodeURIComponent(c.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(w.b) }); id = c.id; if (r.status === 404) r = null; }
+        if (!r) { r = await gfetch('/me/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(w.b) }); id = ''; }
+        if (r.status === 401 || r.status === 403) throw calPerm();
+        if (r.ok) { if (!id) { var jj = await r.json().catch(function () { return {}; }); id = jj.id || ''; } if (id) { ev[key] = { id: id, h: w.h, d: w.d }; changed = true; } }
+      }
+    } catch (e) {
+      if (e && e.cal && calOn()) { lset('cd.cal', null); toast('Calendar reminders stopped: permission was not given. Turn them on again in Settings.'); }
+    } finally {
+      if (changed) collection('settings').doc(KD_DOC).set({ lead: S.lead, ev: ev, updatedAt: Date.now() });
+      kdBusy = false;
+      if (more || kdAgain) { kdAgain = false; kdSchedule(4000); }
+    }
+  }
+
   /* ---------- PDF / CSV record backup ---------- */
   function bkStage(c) { var t = TR(), m = { lost: 'Closed lost' }; (t.stages || []).forEach(function (x) { m[x.id] = x.label; }); return m[c.stage] || c.stage || ''; }
   var BK_INV = { 'Spouse / partner': 'Spouse / partner', 'Parent': 'Child', 'Child': 'Parent', 'Grandparent': 'Grandchild', 'Grandchild': 'Grandparent', 'Sibling': 'Sibling', 'Other relative': 'Other relative', 'Friend': 'Friend', 'Colleague': 'Colleague', 'Business partner': 'Business partner', 'Employer': 'Employee', 'Employee': 'Employer', 'Referred by': 'Referred client', 'Referred client': 'Referred by', 'Other': 'Other' };
@@ -1218,7 +1280,10 @@
           (isG ? row('Emailing documents ' + on(false, 'Email app'), 'With a Google account, invoices and reports open in your email app (or use Share PDF on a phone) and you attach the PDF yourself.', '')
             : row('Email documents from Outlook ' + on(mailOn), mailOn ? 'Invoices and reports are sent from your own Outlook with the PDF attached. A copy goes to your Sent folder.' : 'Send invoices and reports from your own Outlook with the PDF attached. Microsoft asks you to allow it once.', btn(mailOn ? 'mailoff' : 'mailon', mailOn ? 'Turn off' : 'Turn on', !mailOn))) +
           (isG ? row('Calendar reminders ' + on(false, 'Outlook only'), 'Adding appointments to a calendar works with Microsoft accounts. Your appointments are still kept and reminded in the app.', '')
-            : row('Calendar reminders ' + on(calOn()), (calOn() ? 'Booked appointments are added to your Outlook calendar' : 'Add booked appointments to your Outlook calendar') + ' with a ' + CAL_MIN + '-minute reminder, so your phone alerts you even when the app is closed.', btn(calOn() ? 'caloff' : 'calon', calOn() ? 'Turn off' : 'Turn on', !calOn()), '<span class="cds-note">Only the name, time, type, method and place go to the calendar, never your notes.</span>')))
+            : row('Calendar reminders ' + on(calOn()), (calOn() ? 'Booked appointments are added to your Outlook calendar' : 'Add booked appointments to your Outlook calendar') + ' with a ' + CAL_MIN + '-minute reminder, so your phone alerts you even when the app is closed.', btn(calOn() ? 'caloff' : 'calon', calOn() ? 'Turn off' : 'Turn on', !calOn()), '<span class="cds-note">Only the name, time, type, method and place go to the calendar, never your notes.</span>') +
+            (calOn() ? row('Key dates in Outlook ' + on(kdOn()), kdOn() ? 'Rent due, deposit deadlines, safety certificates, renewals and tasks with a due date are in your Outlook calendar at 9am, with a phone alert <b>' + kdLeadLabel(kdState().lead) + '</b>.' : 'Put rent due, deposit deadlines, safety certificates, renewals and tasks into your Outlook calendar, so your phone reminds you even when the app is closed.',
+              (kdOn() ? '<select data-kdlead aria-label="When to alert you" style="padding:7px;border:1px solid #D4DBDF;border-radius:8px;font:inherit;background:#fff;margin-right:6px">' + KD_LEADS.map(function (l) { return '<option value="' + l[0] + '"' + (l[0] === kdState().lead ? ' selected' : '') + '>Alert ' + l[1] + '</option>'; }).join('') + '</select>' : '') + btn(kdOn() ? 'kdoff' : 'kdon', kdOn() ? 'Turn off' : 'Turn on', !kdOn()),
+              '<span class="cds-note">Shown as free time, so your diary is not blocked. Each event has the reminder and the property or client name only. Install the Outlook app on your phone and allow its notifications.</span>') : '')))
         +
         grp('Backup and restore',
           row('PDF and CSV backup', 'All records in a password-protected ZIP, saved to folders you choose, with an automatic backup every 24 hours.', btn('pdfbk', 'Back up')) +
@@ -1237,6 +1302,7 @@
     var say = function (m) { var e = $('mdAccMsg'); if (e) e.textContent = m; };
     ov.addEventListener('mousedown', function (e) { if (e.target === ov) ov.remove(); });
     ov.addEventListener('change', async function (e) {
+      if (e.target.hasAttribute && e.target.hasAttribute('data-kdlead')) { var lead = +e.target.value, S0 = kdState(); collection('settings').doc(KD_DOC).set({ lead: lead, ev: S0.ev, updatedAt: Date.now() }); render('Phone alerts will now come ' + kdLeadLabel(lead) + ', at 9am. Updating Outlook…'); kdSchedule(500); return; }
       var isRes = e.target.id === 'mdRes';
       if ((e.target.id !== 'mdImp' && !isRes) || !e.target.files[0]) return;
       if (isRes && !confirm('Restore from this backup? Records in the file replace the matching records here with the backup version. Records not in the file are left alone.')) { e.target.value = ''; return; }
@@ -1259,7 +1325,9 @@
       else if (a === 'sync') { say('Syncing…'); await flush(); await pull(); say(st.err || (st.offline ? 'Offline. Will retry.' : 'Up to date.')); }
       else if (a === 'folder') { e.preventDefault(); try { var u = await ST.folderUrl(); if (u) window.open(u, '_blank', 'noopener'); else say('Folder not created yet.'); } catch (x) { say('Could not reach ' + SNAME() + '.'); } }
       else if (a === 'calon') { lset('cd.calwant', '1'); startLogin(); }
-      else if (a === 'caloff') { lset('cd.cal', null); render('Calendar reminders turned off. Events already in Outlook stay there.'); }
+      else if (a === 'caloff') { say('Removing upcoming key dates from Outlook…'); await kdSync(true); lset('cd.cal', null); render('Calendar reminders turned off. Upcoming key dates were removed from Outlook. Appointments already there stay.'); }
+      else if (a === 'kdon') { lset('cd.calkd', null); render('Key dates are being added to your Outlook calendar. This can take a minute.'); kdSchedule(500); }
+      else if (a === 'kdoff') { say('Removing upcoming key dates from Outlook…'); lset('cd.calkd', '0'); await kdSync(true); render('Key dates turned off and removed from Outlook.'); }
       else if (a === 'pdfbk') { ov.remove(); openBackup(); }
       else if (a === 'profile') { ov.remove(); openProfile(); }
       else if (a === 'biz') { ov.remove(); if (window.CD_openBiz) window.CD_openBiz(); }
@@ -1794,9 +1862,10 @@
     setState();
     flush(); pull();
     subs.appointments.push(function () { calSchedule(2000); }); calSchedule(5000); bkStart();
+    COLS.forEach(function (c) { subs[c].push(function () { kdSchedule(8000); }); }); kdSchedule(9000);
     var ro = ls('cd.reopen'); if (ro) { lset('cd.reopen', null); setTimeout(function () { toast('Confirmed. You can now make your changes.'); reopenTarget(ro); }, 1800); }
     var cn = ls('cd.calnote'); if (cn) { lset('cd.calnote', null); setTimeout(function () { toast(cn); }, 1500); }
-    setInterval(function () { if (document.visibilityState === 'visible') { flush(); pull(); calSchedule(3000); } }, 60000);
+    setInterval(function () { if (document.visibilityState === 'visible') { flush(); pull(); calSchedule(3000); kdSchedule(6000); } }, 60000);
     window.addEventListener('online', function () { st.offline = false; flush(); pull(); });
     window.addEventListener('offline', function () { st.offline = true; setState(); });
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flush(); else pull(); });
