@@ -1414,7 +1414,7 @@ document.addEventListener('click',function(e){
   var rdn=t.closest('[data-remdone]');
   if(rdn&&rdn.getAttribute('data-remdone').indexOf('__home|')===0){e.stopPropagation();var hp=rdn.getAttribute('data-remdone').split('|'),nh=Object.assign({},HOME||{});nh.remDone=Object.assign({},nh.remDone||{});nh.remDone[hp[1]]=hp[2];homeWrite(nh);toast('Reminder hidden. It comes back if you change that date.');return}
   if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast('Reminder hidden. It comes back if you change that date.')}return}
-  var tpb=t.closest('[data-trade]');if(tpb){saveTrade(tpb.getAttribute('data-trade'));var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+T.label);return}
+  var tpb=t.closest('[data-trade]');if(tpb&&(tpb.disabled||(window.CD_tradeOpen&&!window.CD_tradeOpen(tpb.getAttribute('data-trade')))))return;if(tpb){saveTrade(tpb.getAttribute('data-trade'));var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+T.label);return}
   if(t.closest('[data-tpclose]')){var ov2=$('#tpOv');if(ov2)ov2.remove();return}
   var adv=t.closest('[data-adv]');
   if(adv){e.stopPropagation();patch(adv.dataset.adv,{stage:adv.dataset.to});return}
@@ -1673,7 +1673,7 @@ function saveTrade(id){
 function openTradePicker(first){
   if($('#tpOv')||window.CD_TRADES.only)return;var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';
   o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trade"><h2>'+(first?'Welcome. What kind of work do you do?':'Change your trade')+'</h2><p class="muted" style="margin:4px 0 12px">This sets the fields, stages and reminders on your records. You can change it later in Settings.'+(first?'':' Your saved records keep all their details. Fields that do not belong to the new trade are hidden, not deleted.')+'</p><div class="tpgrid">'+
-    A.order.map(function(id){var x=A.all[id];return '<button type="button" class="tpb'+(!first&&id===T.id?' on':'')+'" data-trade="'+id+'"><b>'+esc(x.label)+'</b><span>'+esc(x.noun[1])+' · '+esc(x.stages.map(function(s){return s.label.replace(/^\d /,'')}).slice(0,4).join(', '))+'…</span></button>'}).join('')+
+    A.order.map(function(id){var x=A.all[id],op=!window.CD_tradeOpen||window.CD_tradeOpen(id);return '<button type="button" class="tpb'+(!first&&id===T.id?' on':'')+(op?'':' soon')+'" data-trade="'+id+'"'+(op?'':' disabled aria-disabled="true"')+'><b>'+esc(x.label)+(op?'':' <em class="tpsoon">Coming soon</em>')+'</b><span>'+esc(x.noun[1])+' · '+esc(x.stages.map(function(s){return s.label.replace(/^\d /,'')}).slice(0,4).join(', '))+'…</span></button>'}).join('')+
     '</div>'+(first?'':'<div class="mkact"><button type="button" class="btn ghost" data-tpclose="1">Cancel</button></div>')+'</div>';
   document.body.appendChild(o);
 }

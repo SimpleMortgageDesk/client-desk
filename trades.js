@@ -419,7 +419,14 @@
   var cur = null;
   try { cur = localStorage.getItem('cd.trade'); } catch (e) {}
   if (ONLY) { cur = ONLY; ORDER = [ONLY]; try { localStorage.setItem('cd.trade', ONLY); } catch (e) {} }
-  window.CD_TRADES = { order: ORDER, all: T, only: ONLY };
+  /* OPEN TRADES: the kinds of work people can choose right now. Every other trade is still listed,
+     greyed out as "Coming soon". To open another trade, add its id here, e.g. ['landlord', 'gas'].
+     [] = all trades can be chosen. People already set up with another trade keep it. */
+  var OPEN = ['landlord'].filter(function (id) { return T[id]; });
+  var isOpen = function (id) { return !OPEN.length || OPEN.indexOf(id) > -1; };
+  ORDER = ORDER.filter(isOpen).concat(ORDER.filter(function (id) { return !isOpen(id); }));
+  window.CD_TRADES = { order: ORDER, all: T, only: ONLY, open: OPEN };
+  window.CD_tradeOpen = isOpen;
   window.CD_tradeSet = function (id) { if (!T[id] || (ONLY && id !== ONLY)) return; cur = id; try { localStorage.setItem('cd.trade', id); } catch (e) {} };
   window.CD_tradeChosen = function () { return !!(cur && T[cur]); };
   window.CD_T = function () { return T[cur] || T.general; };
