@@ -574,8 +574,11 @@ header.top .in{padding-block:12px}}
 .tncard>summary::before{content:'▸';color:var(--muted)}.tncard[open]>summary::before{content:'▾'}
 .tncard.ended{opacity:.85;background:#F7F8F9}
 .tnpeople{margin-top:8px}
-.tnp{display:grid;grid-template-columns:1.3fr 1fr 1.3fr auto;gap:8px;align-items:end;margin-bottom:6px}
-@media(max-width:700px){.tnp{grid-template-columns:1fr}}
+.tnp{display:grid;grid-template-columns:1.3fr 1fr 1.3fr auto;gap:8px;align-items:start;margin-bottom:6px}
+/* top-aligned so Name, Phone and Email boxes line up even though Phone and Email have call/email links underneath */
+.tnp .x{align-self:start;margin-top:21px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:none;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:0}
+.tnp .x:hover{color:var(--bad,#b3261e);border-color:var(--bad,#b3261e)}
+@media(max-width:700px){.tnp{grid-template-columns:1fr}.tnp .x{margin-top:0;justify-self:end}}
 /* rent payments and sending */
 .rlbox{margin-top:12px;border-top:1px dashed var(--line,#D4DBDF);padding-top:10px}
 .rlh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}

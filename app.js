@@ -231,8 +231,8 @@ function visible(){
 function renderNav(){updTrayBtn();
   var items=toolItems([['clients',CL()],['cases',T.tenancyMode?T.noun[1]:'All '+NS()],['pipeline','Pipeline'],['tasks','Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
-  var tools={invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1};
-  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['gendocs','Generate documents'],['notebook','Notebook'],['bookappt','Book appointment'],['acctset','Settings']]);
+  var tools={invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1};
+  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['gendocs','Generate documents'],['notebook','Notebook'],['bookappt','Book appointment'],['myhome','My home'],['acctset','Settings']]);
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
@@ -274,6 +274,7 @@ function render(){
   if((view==='calculator'&&!T.calculator)||(view==='birthdays'&&!T.dob))view='tasks';
   if(T.hideTabs&&T.hideTabs.indexOf(view)>-1)view=T.landing||'tasks';
   if(T.tenancyMode&&(view==='invoices'||view==='marketing'))view='cases';
+  if(!T.tenancyMode&&view==='myhome')view=T.landing||'tasks';
   if(view==='tasks'){if(!$('#trList')||!v.contains($('#trList'))){v.innerHTML='<div class="homesplit"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section><section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section><aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();renderTray();renderRem()}
   else if(view==='notebook'){if(!$('#nbMain')||!v.contains($('#nbMain'))){v.innerHTML=nbShell();nbShown=null}renderNotebook()}
   else if(view==='calculator'){if(!$('#calcMain')||!v.contains($('#calcMain'))){v.innerHTML=calcShell();calcUpdate()}}
@@ -284,6 +285,7 @@ function render(){
   else if(view==='invoices')v.innerHTML=invoicesHTML();
   else if(view==='pipeline')v.innerHTML=pipelineHTML();
   else if(view==='cases')v.innerHTML=casesHTML();
+  else if(view==='myhome')v.innerHTML='<div class="pagehead"><h1>My home</h1></div>'+homeCard(true);
   else v.innerHTML=remindersHTML();
 }
 function emptyHTML(){
@@ -330,7 +332,7 @@ function casesHTML(){
   var llSum=T.tenancyMode?(function(){var let_=cases.filter(function(c){return c.stage!=='lost'&&tnCurrent(c).length}).length,roll=cases.reduce(function(a,c){return a+rentSum(c)},0);return '<div class="stats"><div class="stat"><b>'+cases.length+'</b><span>Properties</span></div><div class="stat"><b>'+let_+'</b><span>Let</span></div><div class="stat"><b>'+(cases.length-let_)+'</b><span>Vacant</span></div><div class="stat"><b>'+money(Math.round(roll*100)/100)+'</b><span>Rent a month</span></div></div>'})():'';
   var h='<div class="pagehead"><h1>'+(T.tenancyMode?'Properties':'All '+NS())+'</h1>'+llSum+'<button class="btn ghost" data-act="export">Export CSV</button></div>'+
     '<div class="filters">'+(T.tenancyMode?'':'<select id="stageSel" aria-label="Filter by stage">'+opts+'</select> ')+'<select id="sortSel" aria-label="Sort clients">'+[['updated','Sort: recently updated'],['first','Sort: first name A–Z'],['review','Sort: next '+T.reviewWord.toLowerCase()+' date'],['task','Sort: next task due date'],['clientno','Sort: client number']].map(function(o){return '<option value="'+o[0]+'"'+(sortBy===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'+lenderSelHTML()+revSelHTML()+'<details class="colpick"><summary class="btn ghost">Columns</summary><div class="colbox">'+CASE_COLS.map(function(c){return '<label><input type="checkbox" data-colk="'+c[0]+'"'+(colOn(c[0])?' checked':'')+'> '+c[1]+'</label>'}).join('')+'</div></details>'+((stageFilter||lenderFilter||revFilter)?' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>':'')+'</div>';
-  if(!cases.length)return h+emptyHTML()+(T.tenancyMode?homeCard():'')+mtdCard();
+  if(!cases.length)return h+emptyHTML()+mtdCard();
   var shown=CASE_COLS.filter(function(x){return colOn(x[0])});
   h+='<div class="tw"><table><thead><tr><th>'+esc(T.tenancyMode?'Property':T.person[0]==='Applicant'||T.person[0]==='Contact'?'Client':T.person[0])+'</th>'+shown.map(function(x){return '<th>'+esc(x[1])+'</th>'}).join('')+'</tr></thead><tbody>';
   if(!list.length)h+='<tr><td colspan="'+(shown.length+1)+'" class="muted">No '+NS()+' match.</td></tr>';
@@ -353,7 +355,7 @@ function casesHTML(){
       return '<td>'+esc(fmtField(c,k))+sub+'</td>';
     }).join('')+'</tr>';
   });
-  return h+'</tbody></table></div>'+(T.tenancyMode?homeCard():'')+mtdCard();
+  return h+'</tbody></table></div>'+mtdCard();
 }
 
 /* ---------- reminders ---------- */
@@ -1203,7 +1205,7 @@ var sideLater=false;
 function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
-  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-gnopen="1">Generate documents</button><button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button><button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
+  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'>My home</button><button type="button" class="sbtn" data-gnopen="1">Generate documents</button><button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button><button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
   var items=toolItems([['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   s.innerHTML='<div id="sideTools"><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
@@ -1768,7 +1770,7 @@ document.addEventListener('keydown',function(e){
 
 /* ---------- business details, quotes, invoices and tenancy agreements ---------- */
 var BIZ={},HOME=null;
-function bizSnap(s){var d=s.docs.filter(function(x){return x.id==='business'})[0];BIZ=d?d.data():{};var hd=s.docs.filter(function(x){return x.id==='home'})[0],nh=hd?hd.data():null;if(JSON.stringify(nh)!==JSON.stringify(HOME)){HOME=nh;if(view==='cases')render();renderRem();renderNav()}if(view==='invoices')render();if(T.tenancyMode)renderSide()}
+function bizSnap(s){var d=s.docs.filter(function(x){return x.id==='business'})[0];BIZ=d?d.data():{};var hd=s.docs.filter(function(x){return x.id==='home'})[0],nh=hd?hd.data():null;if(JSON.stringify(nh)!==JSON.stringify(HOME)){HOME=nh;if(view==='cases'||view==='myhome')render();renderRem();renderNav()}if(view==='invoices')render();if(T.tenancyMode)renderSide()}
 function bizName(){var p=profA();return BIZ.name||p.biz||p.name||''}
 function okLogo(u){return /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(String(u||''))}
 function vatOn(){return BIZ.vatReg==='yes'}
@@ -1971,14 +1973,14 @@ function homeEvents(){
   add('boilerDue',homeV(h,'boilerDue'),'Boiler service due');add('eicrDue',homeV(h,'eicrDue'),'Electrical check due');
   return out;
 }
-function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases')render();renderRem();renderNav()}
-function homeCard(){
-  var h=HOME;
-  if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div><h2>My home</h2><p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills and safety checks. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
+function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases'||view==='myhome')render();renderRem();renderNav()}
+function homeCard(pg){
+  var h=HOME,hd=pg?'':'<h2>My home</h2>';
+  if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div>'+hd+'<p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills and safety checks. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
   var bal=+h.balance||0,val=+h.value||0,ltv=bal&&val?Math.round(bal/val*1000)/10:null,eq=val?val-bal:null;
   var chip=function(d,l){return d?'<span class="chip '+tone(d)+'">'+esc(l)+' '+fd(d)+'</span>':''};
   var fact=function(l,v){return v?'<div class="hf"><span>'+esc(l)+'</span><b>'+v+'</b></div>':''};
-  return '<section class="homecard"><div class="hch"><div><h2>My home</h2><div class="hadr">'+esc(h.addr1)+(h.postcode?', '+esc(h.postcode):'')+'</div><div class="muted" style="font-size:13px">'+esc([h.ownership,h.ptype,h.bedrooms?h.bedrooms+' bed':''].filter(Boolean).join(' · '))+'</div></div><button type="button" class="btn ghost" id="homeEdit">View and edit</button></div>'+
+  return '<section class="homecard"><div class="hch"><div>'+hd+'<div class="hadr">'+esc(h.addr1)+(h.postcode?', '+esc(h.postcode):'')+'</div><div class="muted" style="font-size:13px">'+esc([h.ownership,h.ptype,h.bedrooms?h.bedrooms+' bed':''].filter(Boolean).join(' · '))+'</div></div><button type="button" class="btn ghost" id="homeEdit">View and edit</button></div>'+
     '<div class="hfacts">'+fact('Estimated value',val?money(val):'')+fact('Mortgage balance',bal?money(bal):'')+fact('Equity',eq!=null&&bal?money(eq):'')+fact('Loan to value',ltv!=null?ltv+'%':'')+fact('Lender',esc(h.lender||''))+fact('Rate',h.rate?esc(h.rate)+'%'+(h.dealType?' '+esc(String(h.dealType).toLowerCase()):''):'')+fact('Monthly payment',h.payment?money(h.payment):'')+'</div>'+
     '<div class="hchips">'+chip(homeV(h,'dealEnd'),'Deal ends')+chip(homeV(h,'insRenewal'),'Insurance renewal')+chip(homeV(h,'boilerDue'),'Boiler service')+chip(homeV(h,'energyEnd'),'Energy deal ends')+'</div>'+advBox(homeV(h,'dealEnd'),'Mortgage deal on your home')+'</section>';
 }
