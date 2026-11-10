@@ -2533,7 +2533,7 @@ function tnAgLabel(tn){var corp=tnCorp(tn),has=tn.agreement&&((tn.agreement.kind
 function tnDir(v,i){return '<div class="tnd" style="display:flex;gap:8px;align-items:flex-end;margin:0 0 8px"><label class="f" style="flex:1;margin:0">Director<input data-td="1" maxlength="80" value="'+esc(v||'')+'"></label><button type="button" class="btn ghost sm" data-tnrmd="1">Remove</button></div>'}
 function tnCoHtml(tn){
   var corp=tnCorp(tn),dirs=(tn.directors||[]).filter(Boolean).slice(0,4);
-  return '<div class="grid" style="margin:10px 0 10px"><label class="f">Type of tenant<select data-tf="tenantType"><option value="private"'+(corp?'':' selected')+'>Private tenant</option><option value="corporate"'+(corp?' selected':'')+'>Corporate tenant</option></select></label></div>'+
+  return '<div class="tntype"><label class="f">Type of tenant<select data-tf="tenantType"><option value="private"'+(corp?'':' selected')+'>Private tenant</option><option value="corporate"'+(corp?' selected':'')+'>Corporate tenant</option></select></label></div>'+
    '<div class="tnco" style="'+(corp?'':'display:none')+'"><div class="grid" style="margin:0 0 10px"><label class="f">Company name<input data-tf="company" maxlength="120" value="'+esc(tn.company||'')+'"></label><label class="f">Company registration number<input data-tf="companyNo" maxlength="20" value="'+esc(tn.companyNo||'')+'"></label></div>'+
    '<div class="tndirs">'+(dirs.length?dirs:['']).map(tnDir).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddd="1"'+(dirs.length>=4?' style="display:none"':'')+'>Add director</button>'+
    '<p class="muted" style="margin:10px 0 8px;font-size:12px">A company usually cannot hold an assured tenancy, so the deposit and rent increase rules for ordinary tenants on this page may not apply to a company let. Use the company let agreement button at the bottom of this card.</p>'+
@@ -2572,13 +2572,40 @@ function tfHtml(f,tn){
   return '<label class="f">'+esc(f.l)+inp+'</label>';
 }
 function tnPerson(p){p=p||{};return '<div class="tnp"><label class="f">Name<input data-tp="name" value="'+esc(p.name||'')+'"></label><label class="f">Phone<input data-tp="phone" type="tel" value="'+esc(p.phone||'')+'"><span class="pl">'+plinks(p.phone)+'</span></label><label class="f">Email<input data-tp="email" type="email" value="'+esc(p.email||'')+'"><span class="pl el">'+elinks(p.email)+'</span></label><button type="button" class="x" data-tnrmp="1" aria-label="Remove this tenant">×</button></div>'}
+/* tenant card sections: the basics always show; deposit and checks fold away behind a one-line summary */
+var TN_GROUPS=[['rent','Tenancy and rent',['status','tenancyType','tenancyStart','rent','rentFreq','rentDay']],
+  ['deposit','Deposit',['deposit','depositReceived','depositDue','depositScheme','depositProtected']],
+  ['checks','Checks, rent increases and notices',['rightToRent','infoSheet','lastRentIncrease','nextRentIncrease','noticeDate','moveOut']]];
+function tnSumDeposit(tn){
+  var dep=+tfv(tn,'deposit')||0,sch=tfv(tn,'depositScheme'),rec=tfv(tn,'depositReceived'),due=tfv(tn,'depositDue'),pr=tfv(tn,'depositProtected');
+  if(sch==='Not taken')return ['','No deposit taken'];
+  if(pr)return ['ok',(dep?money(dep)+' · ':'')+'protected'+(sch?' with '+sch:'')+' on '+fd(pr)];
+  if(rec&&due)return [diff(due)<0?'bad':'warn',(dep?money(dep)+' · ':'')+'not protected yet · protect by '+fd(due)];
+  if(dep)return ['',money(dep)+(sch?' · '+sch:'')];
+  return ['','Not added yet'];
+}
+function tnSumChecks(tn){
+  var out=[],rtr=tfv(tn,'rightToRent'),nx=tfv(tn,'nextRentIncrease'),nt=tfv(tn,'noticeDate'),mo=tfv(tn,'moveOut');
+  out.push(rtr?'Right to rent checked '+fd(rtr):'Right to rent not recorded');
+  if(nx)out.push('next rent increase from '+fd(nx));if(nt)out.push('notice '+fd(nt));if(mo)out.push('moving out '+fd(mo));
+  return [rtr?'':'warn',out.join(' · ')];
+}
+function tnSections(tn,isNew){
+  var F=T.tenancyFields||[],used={},grid=function(keys){return '<div class="grid">'+keys.map(function(k){used[k]=1;var f=T.tByKey[k];return f?tfHtml(f,tn):''}).join('')+'</div>'};
+  var g=TN_GROUPS.map(function(x){return [x[0],x[1],x[2].filter(function(k){return T.tByKey&&T.tByKey[k]})]});
+  F.forEach(function(f){if(!g.some(function(x){return x[2].indexOf(f.k)>-1}))g[g.length-1][2].push(f.k)});
+  var h='<div class="tnsec"><div class="tnsh">'+esc(g[0][1])+'</div>'+grid(g[0][2])+'</div>'+rlBox(tn,currentCase()||{});
+  g.slice(1).forEach(function(x){if(!x[2].length)return;var sm=x[0]==='deposit'?tnSumDeposit(tn):tnSumChecks(tn),open=sm[0]==='bad'||(x[0]==='deposit'&&sm[0]==='warn');
+    h+='<details class="tnsec tnfold"'+(open?' open':'')+'><summary><span class="tnsh">'+esc(x[1])+'</span><span class="tnsum '+sm[0]+'">'+(sm[0]==='bad'||sm[0]==='warn'?'&#9888; ':'')+esc(isNew&&sm[1]==='Not added yet'?'Add later if you like':sm[1])+'</span></summary>'+grid(x[2])+'</details>'});
+  return h;
+}
 function tnCard(tn,isNew,others){
   var ended=(tn.status||'current')==='ended',nm=tnNames(tn),rent=tfv(tn,'rent'),st=tfv(tn,'tenancyStart');
   var sum=(nm||'New tenant')+(rent!==''?' · '+money(rent)+(tfv(tn,'rentFreq')?' '+String(tfv(tn,'rentFreq')).toLowerCase():''):'')+(st?' · from '+fd(st):'')+(ended&&tfv(tn,'moveOut')?' to '+fd(tfv(tn,'moveOut')):'');
   return '<details class="tncard'+(ended?' ended':'')+(isNew?' isnew':' locked')+'" data-tn="'+esc(tn.id)+'"'+(isNew?' data-new="1"':'')+(ended?'':' open')+'><summary><b>'+esc(isNew?'Create tenant':sum)+'</b> <span class="chip '+(ended?'':'ok')+'">'+(isNew?'Not saved yet':ended?'Previous tenant':'Current')+'</span><span class="chip tnlk">Locked</span></summary>'+
    (isNew&&others?'<label class="tnmove"><input type="checkbox" data-tnmove="1" checked> Move '+esc(others)+' to Previous tenants when this tenant is saved</label>':'')+
-   tnCoHtml(tn)+'<div class="tnpeople">'+((tn.people&&tn.people.length)?tn.people:[{}]).map(tnPerson).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddp="1">'+(tnCorp(tn)?'Add another contact':'Add joint tenant')+'</button>'+
-   (function(){var F=T.tenancyFields||[],cut=F.map(function(f){return f.k}).indexOf('rentDay')+1;if(cut<1)cut=F.length;var g=function(l){return '<div class="grid" style="margin-top:10px">'+l.map(function(f){return tfHtml(f,tn)}).join('')+'</div>'};return g(F.slice(0,cut))+rlBox(tn,currentCase()||{})+(F.length>cut?g(F.slice(cut)):'')})()+
+   '<div class="tnsec"><div class="tnsh">Who is renting</div>'+tnCoHtml(tn)+'<div class="tnpeople">'+((tn.people&&tn.people.length)?tn.people:[{}]).map(tnPerson).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddp="1">'+(tnCorp(tn)?'Add another contact':'Add joint tenant')+'</button></div>'+
+   tnSections(tn,isNew)+
    '<div class="tnacts">'+(isNew?'':'<button type="button" class="btn ghost sm" data-tnag="'+esc(tn.id)+'">'+tnAgLabel(tn)+'</button><button type="button" class="btn ghost sm" data-tnstmt="'+esc(tn.id)+'">Rent statement</button>')+'<span class="sp"></span>'+
    (isNew?'<button type="button" class="btn ghost sm" data-tncancel="1">Cancel</button>':'<button type="button" class="btn ghost sm danger" data-tnrm="1">Delete tenant</button><button type="button" class="btn ghost sm" data-tnedit="1">Edit</button>')+
    '<button type="button" class="btn sm" data-tnsave="1">Save tenant</button></div></details>';
@@ -2687,7 +2714,7 @@ function tnFsHtml(c){
 /* a saved tenant is locked (read only) until Edit is pressed; rent payments stay usable */
 function tnLock(card,on){
   card.classList.toggle('locked',!!on);
-  card.querySelectorAll('[data-tf],[data-tp],[data-td],[data-tnmove]').forEach(function(i){i.disabled=!!on});
+  card.querySelectorAll('[data-tf],[data-tp],[data-td],[data-tnmove]').forEach(function(i){i.disabled=!!on;var l=i.closest('label.f');if(l&&!l.closest('.rlrow'))l.classList.toggle('blank',!!on&&(!String(i.value||'').trim()||(i.getAttribute('data-tf')==='tenantType'&&i.value==='private')||(i.getAttribute('data-tf')==='status'&&i.value==='current')))});
   var lk=card.querySelector('.tnlk');if(lk)lk.textContent=on?'Locked':'Editing';
 }
 function tnLockAll(){document.querySelectorAll('#tnFs .tncard.locked').forEach(function(cd){tnLock(cd,true)})}
@@ -2752,14 +2779,22 @@ document.addEventListener('input',function(e){
   updStrip();
 });
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.closest&&t.closest('.tncard'))updStrip()});
+document.addEventListener('click',function(e){var g=e.target&&e.target.closest&&e.target.closest('[data-rltog]');if(!g)return;var row=g.closest('.rlrow'),open=row.classList.toggle('rlc')===false;g.setAttribute('aria-expanded',String(open));g.querySelector('.rlx').textContent=open?'Hide':'Details'});
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest&&e.target.closest('[data-rlmore]');if(!b)return;var bx=b.closest('.rlrows');if(bx)bx.querySelectorAll('.rlold').forEach(function(r){r.hidden=false});b.remove()});
 
 /* ---------- rent payments, rent invoices and sending invoices ---------- */
 function rlStep(d,freq,day){if(freq==='Weekly')return addDays(d,7);if(freq==='Every 4 weeks')return addDays(d,28);var n=addMonths(d,freq==='Quarterly'?3:1);if(day&&day>=1&&day<=31){var p=pd(n),last=new Date(p.getFullYear(),p.getMonth()+1,0).getDate();n=iso(new Date(p.getFullYear(),p.getMonth(),Math.min(day,last)))}return n}
 function rlPeriod(due,freq){if(!due)return '';var end=addDays(rlStep(due,freq||'Monthly'),-1);return fd(due)+' to '+fd(end)}
 function rlState(r){if(r.status==='paid')return 'paid';return r.due&&diff(r.due)<0?'over':'due'}
+/* paid months fold to one line ("Oct 2026 · £1,150 · Paid 1 Oct"); press it to see or change the details */
+function rlSumLine(r){
+  var dm=function(d,o){return /^\d{4}-\d{2}-\d{2}$/.test(d||'')?pd(d).toLocaleDateString('en-GB',o):''};
+  var mon=dm(r.due,{month:'short',year:'numeric'})||'No date',pdl=dm(r.paidDate,{day:'numeric',month:'short'});
+  return '<button type="button" class="rlsum" data-rltog="1" aria-expanded="false"><span class="rlm">'+esc(mon)+'</span><span class="rla">'+(r.amount!=null&&r.amount!==''?money(r.amount):'')+'</span><span class="chip ok">Paid'+(pdl?' '+esc(pdl):'')+'</span>'+(r.invId?'<span class="rli">Invoice</span>':'')+'<span class="rlx">Details</span></button>';
+}
 function rlRow(r,c){
   var st=rlState(r),inv=r.invId?docsOf(c).filter(function(d){return d.id===r.invId})[0]:null;
-  return '<div class="rlrow" data-rlid="'+esc(r.id)+'"><label class="f">Due date<input type="date" data-rl="due" value="'+esc(r.due||'')+'"></label>'+
+  return '<div class="rlrow'+(st==='paid'?' rlpaid rlc':'')+'" data-rlid="'+esc(r.id)+'">'+(st==='paid'?rlSumLine(r):'')+'<label class="f">Due date<input type="date" data-rl="due" value="'+esc(r.due||'')+'"></label>'+
    '<label class="f">Amount<span class="ig"><i>£</i><input type="number" step="any" data-rl="amount" value="'+esc(r.amount==null?'':r.amount)+'"></span></label>'+
    '<label class="f">Rent<select data-rl="status"><option value="due"'+(r.status!=='paid'?' selected':'')+'>Rent due</option><option value="paid"'+(r.status==='paid'?' selected':'')+'>Rent paid</option></select></label>'+
    '<label class="f">Payment date<input type="date" data-rl="paidDate" value="'+esc(r.paidDate||'')+'"></label><input type="hidden" data-rl="invId" value="'+esc(r.invId||'')+'">'+
@@ -2767,7 +2802,7 @@ function rlRow(r,c){
 }
 function rlBox(tn,c){
   var rows=(tn.rentLog||[]).slice().sort(function(a,b){return a.due<b.due?1:a.due>b.due?-1:0});
-  return '<div class="rlbox"><div class="rlh"><b>Rent payments</b><button type="button" class="btn ghost sm" data-rladd="1">Add next rent</button></div><div class="rlrows">'+(rows.length?rows.map(function(r){return rlRow(r,c)}).join(''):'<p class="muted rlnone" style="margin:4px 0">No rent lines yet. Press Add next rent.</p>')+'</div></div>';
+  return '<div class="rlbox"><div class="rlh"><b>Rent payments</b><button type="button" class="btn ghost sm" data-rladd="1">Add next rent</button></div><div class="rlrows">'+(rows.length?rows.map(function(r,i){return i<6?rlRow(r,c):rlRow(r,c).replace('<div class="rlrow','<div hidden class="rlrow rlold')}).join('')+(rows.length>6?'<button type="button" class="btn ghost sm" data-rlmore="1">Show '+(rows.length-6)+' older payment'+(rows.length===7?'':'s')+'</button>':''):'<p class="muted rlnone" style="margin:4px 0">No rent lines yet. Press Add next rent.</p>')+'</div></div>';
 }
 function rlNextDue(card){
   var g=function(k){var e=card.querySelector('[data-tf="'+k+'"]');return e?e.value:''},freq=g('rentFreq')||'Monthly',day=+g('rentDay')||0,start=g('tenancyStart');
