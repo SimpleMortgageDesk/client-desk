@@ -526,7 +526,7 @@ function openDrawer(id,draft){
    (T.tenancyMode?'':'<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="'+esc(c.oneDriveLink)+'"><span class="pl" id="odl">'+odLink(c.oneDriveLink)+'</span></label></fieldset>')+
   '</form>'+
   '<div class="df"><div>'+(id?'<button type="button" class="btn danger" id="delBtn">Delete '+esc(N1())+'</button><span class="muted" id="autoMsg" style="font-size:12px;margin-left:10px">Auto-save on (every 5 seconds)</span>':'')+'</div><div style="display:flex;gap:8px"><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn" id="saveBtn">Save '+esc(N1())+'</button></div></div></div>';
-  colOpen={};if(T.tenancyMode){colOpen['property']=1;colOpen['tenants']=1;colOpen['certificates and safety']=1;colOpen['property documents']=1}else if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=true;lkOpen=false;curLinks=((c&&c.links)||[]).map(function(l){return {id:l.id,cid:l.cid,rel:l.rel}});renderLive();renderLinks();
+  colOpen={};if(T.tenancyMode){if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=1}else if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=true;lkOpen=false;curLinks=((c&&c.links)||[]).map(function(l){return {id:l.id,cid:l.cid,rel:l.rel}});renderLive();renderLinks();
   var first=$('#drawer [data-a="name"]');if(first&&!id)first.focus();
   ntDraft=(id&&c.noteDraft)||'';prDraft=(id&&c.protDraft)||'';lastND=ntDraft;lastPD=prDraft;renderLive();
   if(T.tenancyMode&&id)rhRender();
@@ -2325,13 +2325,16 @@ function tfHtml(f,tn){
   return '<label class="f">'+esc(f.l)+inp+'</label>';
 }
 function tnPerson(p){p=p||{};return '<div class="tnp"><label class="f">Name<input data-tp="name" value="'+esc(p.name||'')+'"></label><label class="f">Phone<input data-tp="phone" type="tel" value="'+esc(p.phone||'')+'"><span class="pl">'+plinks(p.phone)+'</span></label><label class="f">Email<input data-tp="email" type="email" value="'+esc(p.email||'')+'"><span class="pl el">'+elinks(p.email)+'</span></label><button type="button" class="x" data-tnrmp="1" aria-label="Remove this tenant">×</button></div>'}
-function tnCard(tn){
+function tnCard(tn,isNew,others){
   var ended=(tn.status||'current')==='ended',nm=tnNames(tn),rent=tfv(tn,'rent'),st=tfv(tn,'tenancyStart');
   var sum=(nm||'New tenant')+(rent!==''?' · '+money(rent)+(tfv(tn,'rentFreq')?' '+String(tfv(tn,'rentFreq')).toLowerCase():''):'')+(st?' · from '+fd(st):'')+(ended&&tfv(tn,'moveOut')?' to '+fd(tfv(tn,'moveOut')):'');
-  return '<details class="tncard'+(ended?' ended':'')+'" data-tn="'+esc(tn.id)+'"'+(ended?'':' open')+'><summary><b>'+esc(sum)+'</b> <span class="chip '+(ended?'':'ok')+'">'+(ended?'Past tenancy':'Current')+'</span></summary>'+
+  return '<details class="tncard'+(ended?' ended':'')+(isNew?' isnew':'')+'" data-tn="'+esc(tn.id)+'"'+(isNew?' data-new="1"':'')+(ended?'':' open')+'><summary><b>'+esc(isNew?'New tenant':sum)+'</b> <span class="chip '+(ended?'':'ok')+'">'+(isNew?'Not saved yet':ended?'Previous tenant':'Current')+'</span></summary>'+
+   (isNew&&others?'<label class="tnmove"><input type="checkbox" data-tnmove="1" checked> Move '+esc(others)+' to Previous tenants when this tenant is saved</label>':'')+
    tnCoHtml(tn)+'<div class="tnpeople">'+((tn.people&&tn.people.length)?tn.people:[{}]).map(tnPerson).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddp="1">'+(tnCorp(tn)?'Add another contact':'Add joint tenant')+'</button>'+
    (function(){var F=T.tenancyFields||[],cut=F.map(function(f){return f.k}).indexOf('rentDay')+1;if(cut<1)cut=F.length;var g=function(l){return '<div class="grid" style="margin-top:10px">'+l.map(function(f){return tfHtml(f,tn)}).join('')+'</div>'};return g(F.slice(0,cut))+rlBox(tn,currentCase()||{})+(F.length>cut?g(F.slice(cut)):'')})()+
-   '<div class="add" style="margin-top:8px"><button type="button" class="btn ghost sm" data-tnag="'+esc(tn.id)+'">'+tnAgLabel(tn)+'</button><button type="button" class="btn ghost sm" data-tnrm="1" style="margin-left:auto">Remove tenancy</button></div></details>';
+   '<div class="tnacts">'+(isNew?'':'<button type="button" class="btn ghost sm" data-tnag="'+esc(tn.id)+'">'+tnAgLabel(tn)+'</button>')+'<span class="sp"></span>'+
+   (isNew?'<button type="button" class="btn ghost sm" data-tncancel="1">Cancel</button>':'<button type="button" class="btn ghost sm danger" data-tnrm="1">Delete tenant</button>')+
+   '<button type="button" class="btn sm" data-tnsave="1">Save tenant</button></div></details>';
 }
 /* ---------- property folder and uploaded documents (landlord) ---------- */
 var DZ_BTN='background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--accent);cursor:pointer;text-align:left',pfTried={},pfRun=false,dzBusy=false;
@@ -2418,15 +2421,40 @@ function pfSweep(){
 }
 function llBody(c){
   var main=T.sections.filter(function(s){return !s.side}),side=T.sections.filter(function(s){return s.side});
-  var tenants='<fieldset id="tnFs"><legend>Tenants</legend><div id="tns">'+tnList(c).slice().sort(function(a,b){return ((a.status||'current')==='ended')-((b.status||'current')==='ended')}).map(tnCard).join('')+'</div>'+(tnList(c).length?'':'<p class="muted" id="tnEmpty" style="margin:0 0 8px">No tenants yet.</p>')+'<button type="button" class="btn sm" id="addTn">Add tenant</button></fieldset>';
+  var tenants=tnFsHtml(c);
   var prop=main.map(function(s,i){return secFs(s.id,esc(s.title))+(i===0?fld('clientNo','Property reference',c.clientNo)+sel('type','Type',c.type,typeOpts(c.type)):'')+s.fields.map(function(f){return fieldHtml(f,c)}).join('')+'</div></fieldset>'}).join('');
-  return '<div class="llgrid"><div class="llmain">'+(c.propertyAddress?tenants+prop:prop+tenants)+'</div>'+
+  return '<div class="llgrid"><div class="llmain">'+prop+tenants+'</div>'+
    '<aside class="llside">'+side.map(function(s){return secFs(s.id,esc(s.title))+s.fields.map(function(f){return fieldHtml(f,c)}).join('')+'</div></fieldset>'}).join('')+dzSide(c)+'</aside></div>';
 }
+/* Tenants section: current tenants, then a closed list of previous tenants.
+   A newly added tenant (data-new) moves the current tenants to Previous tenants when it is saved, unless the box on the new card is unticked. */
+function tnFsHtml(c){
+  var all=tnList(c),cur=all.filter(function(t){return (t.status||'current')!=='ended'}),prev=all.filter(function(t){return (t.status||'current')==='ended'}).sort(function(a,b){return String(tfv(b,'moveOut')||tfv(b,'tenancyStart')||'').localeCompare(String(tfv(a,'moveOut')||tfv(a,'tenancyStart')||''))});
+  var sum=cur.length?cur.map(tnNames).filter(Boolean).join(', '):'Vacant';
+  return '<fieldset id="tnFs"><legend>Tenants <span class="lgsum">'+esc(sum)+'</span></legend>'+
+   '<div class="tnbar"><span class="tnh">Current tenant'+(cur.length>1?'s':'')+'</span><button type="button" class="btn sm" id="addTn">Add tenant</button></div>'+
+   '<div id="tns">'+cur.map(function(t){return tnCard(t)}).join('')+'</div>'+
+   (cur.length?'':'<p class="muted" id="tnEmpty" style="margin:0 0 8px">No current tenant. Press Add tenant.</p>')+
+   '<details class="tnprev" id="tnPrev"><summary><span class="tnh">Previous tenants</span> <span class="chip">'+prev.length+'</span></summary><div id="tnsPrev">'+(prev.length?prev.map(function(t){return tnCard(t)}).join(''):'<p class="muted" style="margin:6px 0">No previous tenants yet.</p>')+'</div></details></fieldset>';
+}
+function tnRedraw(){
+  var fs=$('#tnFs'),c=currentCase();if(!fs||!c)return;
+  var wasPrev=($('#tnPrev')||{}).open,closed=fs.classList.contains('col-closed');
+  var tmp=document.createElement('div');tmp.innerHTML=tnFsHtml(c);var nf=tmp.firstChild;fs.parentNode.replaceChild(nf,fs);
+  if(wasPrev)$('#tnPrev').open=true;
+  colOpen['tenants']=!closed;decorateSecs();
+  if(typeof rhRender==='function')rhRender();updStrip();
+}
+function tnSaveNow(msg){
+  if(!openId){toast('Add address line one of the property first. It saves itself, then save the tenant.');paNeed();return false}
+  var data=collectForm();patch(openId,data);lastAuto=JSON.stringify(data);
+  setTimeout(function(){tnRedraw();if(msg)toast(msg)},80);return true;
+}
 function tnCollect(){
-  var cards=document.querySelectorAll('#tns .tncard');if(!$('#tns'))return null;
+  var cards=document.querySelectorAll('#tnFs .tncard');if(!$('#tns'))return null;
   var old=tnList(currentCase()||{}),out=[];
   cards.forEach(function(card){
+    if(card.hasAttribute('data-new')&&!Array.prototype.some.call(card.querySelectorAll('[data-tp="name"],[data-tf="company"],[data-tp="phone"],[data-tp="email"]'),function(i){return i.value.trim()}))return;
     var id=card.getAttribute('data-tn'),prev=old.filter(function(t){return t.id===id})[0]||{},tn=Object.assign({},prev,{id:id});
     card.querySelectorAll('[data-tf]').forEach(function(e){var k=e.getAttribute('data-tf');tn[k]=e.type==='number'?num(e.value):e.value.trim()});
     (T.tenancyFields||[]).forEach(function(f){if(f.auto&&tn[f.k]){var s=tfv(Object.assign({},tn,{[f.k]:''}),f.auto.from);if(s&&tn[f.k]===autoDate(s,f.auto))tn[f.k]=''}});
@@ -2435,16 +2463,27 @@ function tnCollect(){
     tn.people=[];card.querySelectorAll('.tnp').forEach(function(r){var p={};r.querySelectorAll('[data-tp]').forEach(function(i){p[i.getAttribute('data-tp')]=i.value.trim()});if(p.name||p.phone||p.email)tn.people.push(p)});
     out.push(tn);
   });
+  var nw=Array.prototype.slice.call(document.querySelectorAll('#tns .tncard[data-new]')).filter(function(cd){var b=cd.querySelector('[data-tnmove]');if(b&&!b.checked)return false;return Array.prototype.some.call(cd.querySelectorAll('[data-tp="name"],[data-tf="company"]'),function(i){return i.value.trim()})});
+  if(nw.length){
+    var ids=nw.map(function(cd){return cd.getAttribute('data-tn')}),st=(out.filter(function(t){return t.id===ids[0]})[0]||{}).tenancyStart,end=st&&/^\d{4}-\d{2}-\d{2}$/.test(st)?addDays(st,-1):iso(TODAY);
+    out.forEach(function(t){if(ids.indexOf(t.id)<0&&(t.status||'current')==='current'){t.status='ended';if(!t.moveOut)t.moveOut=end}});
+  }
   return out;
 }
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;var b;
-  if(t.id==='addTn'){var box=$('#tns');if(!box)return;var em=$('#tnEmpty');if(em)em.remove();box.insertAdjacentHTML('afterbegin',tnCard({id:'t'+uid(),status:'current',people:[{}]}));var f=box.querySelector('.tncard [data-tp="name"]');if(f)f.focus();return}
+  if(t.id==='addTn'){var box=$('#tns');if(!box)return;if(box.querySelector('[data-new]')){toast('Finish or cancel the new tenant first.');box.querySelector('[data-new] [data-tp="name"]').focus();return}var em=$('#tnEmpty');if(em)em.remove();
+    var oth=Array.prototype.map.call(box.querySelectorAll('.tncard'),function(cd){var sel=cd.querySelector('[data-tf="status"]');if(sel&&sel.value==='ended')return '';var n=Array.prototype.map.call(cd.querySelectorAll('[data-tp="name"]'),function(i){return i.value.trim()}).filter(Boolean).join(' & ');var co=cd.querySelector('[data-tf="company"]');return (co&&co.value.trim()&&cd.querySelector('[data-tf="tenantType"]').value==='corporate')?co.value.trim():(n||'the current tenant')}).filter(Boolean);
+    box.querySelectorAll('.tncard').forEach(function(cd){cd.open=false});
+    box.insertAdjacentHTML('afterbegin',tnCard({id:'t'+uid(),status:'current',people:[{}]},true,oth.join(' and ')));var fs0=$('#tnFs');if(fs0&&fs0.classList.contains('col-closed')){var cb0=fs0.querySelector('[data-coltoggle]');if(cb0)cb0.click()}var f=box.querySelector('.tncard [data-tp="name"]');if(f){f.focus();f.scrollIntoView({block:'center'})}return}
+  if((b=t.closest('[data-tnsave]'))){var sc=b.closest('.tncard');if(sc.hasAttribute('data-new')){var hasNm=Array.prototype.some.call(sc.querySelectorAll('[data-tp="name"],[data-tf="company"]'),function(i){return i.value.trim()});if(!hasNm){toast('Add the tenant\'s name first.');var nf=sc.querySelector('[data-tp="name"]');if(nf)nf.focus();return}}
+    var mv=sc.hasAttribute('data-new')&&sc.querySelector('[data-tnmove]')&&sc.querySelector('[data-tnmove]').checked;tnSaveNow(mv?'Tenant saved. The previous tenant moved to Previous tenants.':'Tenant saved');return}
+  if((b=t.closest('[data-tncancel]'))){b.closest('.tncard').remove();if(!document.querySelector('#tns .tncard'))$('#tns').insertAdjacentHTML('afterend','<p class="muted" id="tnEmpty" style="margin:0 0 8px">No current tenant. Press Add tenant.</p>');updStrip();return}
   if((b=t.closest('[data-tnaddd]'))){var cdd=b.closest('.tncard'),bx=cdd.querySelector('.tndirs');if(bx.querySelectorAll('.tnd').length<4){bx.insertAdjacentHTML('beforeend',tnDir(''));var li=bx.querySelectorAll('[data-td]');li[li.length-1].focus()}tnCoSync(cdd);return}
   if((b=t.closest('[data-tnrmd]'))){var cdr=b.closest('.tncard'),bx2=cdr.querySelector('.tndirs');if(bx2.querySelectorAll('.tnd').length>1)b.closest('.tnd').remove();else b.closest('.tnd').querySelector('input').value='';tnCoSync(cdr);return}
   if((b=t.closest('[data-tnaddp]'))){var cd=b.closest('.tncard');cd.querySelector('.tnpeople').insertAdjacentHTML('beforeend',tnPerson({}));return}
   if((b=t.closest('[data-tnrmp]'))){var pp=b.closest('.tnpeople');if(pp.querySelectorAll('.tnp').length>1)b.closest('.tnp').remove();else b.closest('.tnp').querySelectorAll('input').forEach(function(i){i.value=''});return}
-  if((b=t.closest('[data-tnrm]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Confirm remove';return}b.closest('.tncard').remove();updStrip();return}
+  if((b=t.closest('[data-tnrm]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Press again to delete';setTimeout(function(){if(b.isConnected&&b.classList.contains('armed')){b.classList.remove('armed');b.textContent='Delete tenant'}},5000);return}b.closest('.tncard').remove();tnSaveNow('Tenant deleted');return}
   if((b=t.closest('[data-tnag]'))){e.preventDefault();if(!openId){toast('Add the property address first. The property saves itself, then try again.');return}var tid=b.getAttribute('data-tnag'),data=collectForm();patch(openId,data);lastAuto=JSON.stringify(data);setTimeout(function(){taOpen(openId,tid)},60);return}
 });
 document.addEventListener('input',function(e){

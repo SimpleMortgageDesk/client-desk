@@ -1142,34 +1142,90 @@
   function sessionExpired() { showSignIn('Your sign-in has expired. Please sign in again. Your unsaved changes are kept on this device.'); }
 
   /* ---------- account / settings ---------- */
+  function ACCN() { try { var b = (mem.settings.business && mem.settings.business.data) || {}; return (b.accountant && b.accountant.name) || ''; } catch (e) { return ''; } }
+  function cdsCss() {
+    if ($('cdsCss')) return;
+    var st = document.createElement('style'); st.id = 'cdsCss';
+    st.textContent = '.cds-ov{position:fixed;inset:0;z-index:250;background:rgba(8,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px}' +
+      '.cds{background:#F4F6F7;color:#101C26;width:min(680px,100%);max-height:94vh;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;font:14px system-ui,-apple-system,"Segoe UI",sans-serif;box-shadow:0 18px 50px rgba(16,28,38,.35)}' +
+      '.cds-head{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#fff;border-bottom:1px solid #E1E6E9}' +
+      '.cds-head h2{margin:0;font-size:20px;letter-spacing:-.2px}' +
+      '.cds-x{width:36px;height:36px;border-radius:50%;border:1px solid #D4DBDF;background:#fff;font-size:22px;line-height:1;cursor:pointer;color:#33424e}.cds-x:hover{background:#F0F3F4}' +
+      '.cds-body{overflow:auto;padding:18px 22px 22px}' +
+      '.cds-acct{display:flex;align-items:center;gap:14px;background:#0A6B50;color:#fff;border-radius:14px;padding:16px 18px;flex-wrap:wrap}' +
+      '.cds-av{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;flex:none}' +
+      '.cds-who{display:flex;flex-direction:column;min-width:0;flex:1}.cds-who b{font-size:16px}.cds-who span{opacity:.88;font-size:13px;overflow:hidden;text-overflow:ellipsis}.cds-who .cds-prov{opacity:.72;font-size:12.5px}' +
+      '.cds-sync{display:flex;align-items:center;gap:7px;font-size:12.5px;background:rgba(255,255,255,.14);padding:6px 10px;border-radius:99px}.cds-dot{width:8px;height:8px;border-radius:50%;background:#7CE0B8}' +
+      '.cds-msg{margin:10px 2px 0;min-height:0;color:#0A6B50;font-weight:600}.cds-msg:empty{display:none}' +
+      '.cds-grp{margin-top:20px}.cds-grp h3{margin:0 0 8px 2px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#58697A}' +
+      '.cds-card{background:#fff;border:1px solid #E1E6E9;border-radius:12px;overflow:hidden}' +
+      '.cds-row{display:flex;align-items:center;gap:16px;padding:14px 16px;border-top:1px solid #EDF0F2}.cds-row:first-child{border-top:0}' +
+      '.cds-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.cds-txt b{font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cds-txt span{color:#58697A;font-size:13px;line-height:1.45;overflow-wrap:anywhere}' +
+      '.cds-txt .cds-note{font-size:12px;color:#7a8893}.cds-warn{color:#A3261F!important;font-weight:600}' +
+      '.cds-act{flex:none;display:flex;gap:8px}' +
+      '.cds-btn{display:inline-flex;align-items:center;justify-content:center;min-width:92px;padding:8px 14px;border-radius:8px;border:1px solid #C9D2D7;background:#fff;color:#101C26;font:600 13.5px system-ui,sans-serif;cursor:pointer;text-decoration:none;white-space:nowrap}.cds-btn:hover{background:#F3F6F7}' +
+      '.cds-btn.pri{background:#0A6B50;border-color:#0A6B50;color:#fff}.cds-btn.pri:hover{background:#0d8a66}' +
+      '.cds-btn.danger{border-color:#E3B5B0;color:#A3261F}.cds-btn.danger:hover{background:#FDF1EF}' +
+      '.cds-btn:focus-visible,.cds-x:focus-visible{outline:2px solid #0A6B50;outline-offset:2px}' +
+      '.cds-file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}' +
+      '.cds-badge{font-style:normal;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:.4px}.cds-badge.on{background:#DCEFE8;color:#0A6B50}.cds-badge.off{background:#EDF0F1;color:#6b7a86}' +
+      '.cds-out{margin-top:20px;display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #F0D5D1;border-radius:12px;padding:14px 16px}.cds-out div{flex:1;display:flex;flex-direction:column;gap:3px}.cds-out span{color:#58697A;font-size:13px}' +
+      '@media(max-width:560px){.cds-ov{padding:0}.cds{max-height:100vh;height:100%;border-radius:0}.cds-body{padding:14px 14px 28px}.cds-row,.cds-out{flex-direction:column;align-items:stretch;gap:10px}.cds-act{justify-content:flex-start}.cds-act .cds-btn,.cds-out .cds-btn{flex:1}.cds-sync{width:100%}}' +
+      '@media(prefers-color-scheme:dark){html:not([data-theme=light]) .cds{color-scheme:light}}';
+    document.head.appendChild(st);
+  }
   async function openAccount() {
-    var ov = document.createElement('div');
-    ov.style.cssText = 'position:fixed;inset:0;z-index:250;background:rgba(8,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px';
-    document.body.appendChild(ov);
+    var ov = document.createElement('div'); ov.className = 'cds-ov';
+    cdsCss(); document.body.appendChild(ov);
     var t = tok() || {};
     function render(msg) {
-      var acc = t.account || {};
-      ov.innerHTML = '<div style="background:#fff;color:#101C26;width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">Settings</h2><button class="btn ghost" data-a="close">Close</button></div>' +
-        '<p style="margin:14px 0 4px"><b>Signed in with your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account</b><br>' + esc(acc.name || '') + ' ' + esc(acc.mail || '') + '</p>' +
-        '<p style="margin:6px 0 0;color:#1b5e20;font-size:13px">' + esc((($('syncState') || {}).textContent || '').trim()) + '</p>' +
-        '<p style="margin:10px 0 0;color:#58697A;font-size:12px">App version: ' + esc(window.MD_BUILD || 'unknown') + ' &middot; <a href="#" data-a="guide">Quick guide</a> &middot; <a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p><p style="margin:10px 0;color:#58697A">Records are saved in your ' + SNAME() + ', in the folder <b>' + esc(rootLabel()) + '</b> (<a href="#" data-a="folder">open it</a>). ' + esc(pending() ? pending() + ' change(s) are waiting to upload.' : 'Everything is uploaded.') + '</p>' + (PROV === 'google' ? '<p style="margin:0 0 10px;color:#58697A;font-size:12.5px">Google asks you to confirm access about once an hour; a yellow bar appears when it does. Changes wait safely on this device until you reconnect.</p>' : '') +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Emailing invoices</h3>' + (PROV === 'google' ? '<p style="margin:0 0 8px;color:#58697A">With a Google account, invoices and reports open in your email app (or use Share PDF on a phone) so you attach the PDF yourself. Sending straight from the app with the PDF attached works with Microsoft accounts.</p>' : '<p style="margin:0 0 8px;color:#58697A">' + (ls('cd.mail') === '1' ? 'On. Invoices are emailed from your own Outlook with the PDF attached, and a copy goes to your Sent folder.' : 'Off. Turn it on to email invoices from your own Outlook with the PDF attached. Microsoft will ask you to allow it once.') + '</p><button class="btn ghost" data-a="' + (ls('cd.mail') === '1' ? 'mailoff' : 'mailon') + '">' + (ls('cd.mail') === '1' ? 'Turn off' : 'Turn on emailing') + '</button>') +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Business details</h3><p style="margin:0 0 8px;color:#58697A">Logo, address, VAT and payment details for your quotes and invoices.</p><button class="btn ghost" data-a="biz">Business details and logo</button>' + (TR().tenancyMode ? '<h3 style="margin:18px 0 6px;font-size:15px">Your accountant</h3><p style="margin:0 0 8px;color:#58697A">Name, phone, email and address, used for the rent and expenses report.</p><button class="btn ghost" data-a="acc">Your accountant</button>' : '') +
-        ((window.CD_TRADES || {}).only ? '' : '<h3 style="margin:18px 0 6px;font-size:15px">Your trade</h3><p style="margin:0 0 8px;color:#58697A">' + esc(TR().label || '') + '. This sets the fields, stages and reminders on your records.</p><button class="btn ghost" data-a="trade">Change trade</button>') +
-        '<h3 style="margin:18px 0 6px;font-size:15px">My profile</h3><p style="margin:0 0 8px;color:#58697A">' + (profGet().name ? esc(profGet().name) + (profGet().biz ? ' &middot; ' + esc(profGet().biz) : '') : 'Add your name, business, mobile number and email.') + '</p><button class="btn" data-a="profile">' + (profGet().name || profGet().phone ? 'Edit profile' : 'Set up profile') + '</button>' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Security</h3>' + (pinData() ? '<p style="margin:0 0 8px;color:#1b5e20">App password is on. The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.</p><button class="btn ghost" data-a="pin">Change app password</button>' : '<p style="margin:0 0 8px;color:#b3261e;background:#fdecea;border-radius:6px;padding:8px 10px"><b>Warning:</b> no app password is set. Anyone who picks up this device while you are signed in can see your clients.</p><button class="btn" data-a="pin">Set app password</button>') +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Sync</h3><div style="margin:0 0 6px"><button class="btn" data-a="sync">Sync now</button></div>' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">PDF/CSV Record Backup</h3><p style="margin:0 0 8px;color:#58697A">Saves all records as a password-protected ZIP (PDF and CSV) to the folders you choose, with an automatic backup every 24 hours.</p><button class="btn" data-a="pdfbk" style="background:#2f4a40;border-color:#2f4a40;color:#fff">PDF/CSV Record Backup</button>' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Import a backup file</h3><p style="margin:0 0 8px;color:#58697A">Loads records from a ' + APPN + ' backup (.json). Records that already exist are not overwritten.</p>' +
-        '<input type="file" id="mdImp" accept=".json,application/json" style="max-width:100%">' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Restore from backup</h3><p style="margin:0 0 8px;color:#58697A">Use this if something was changed or deleted by mistake. Records in the backup file replace the matching records here.</p><input type="file" id="mdRes" accept=".json,application/json" style="max-width:100%">' +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Calendar reminders</h3>' + (PROV === 'google' ? '<p style="margin:0 0 8px;color:#58697A">Adding appointments to your calendar is available with Microsoft (Outlook) accounts. Your appointments are still kept and reminded in the app.</p>' : (calOn()
-          ? '<p style="margin:0 0 8px;color:#1b5e20">On. Booked appointments are added to your Outlook calendar with a ' + CAL_MIN + '-minute reminder.</p><button class="btn ghost" data-a="caloff">Turn off</button>'
-          : '<p style="margin:0 0 8px;color:#58697A">Adds each booked appointment to your Outlook calendar with a ' + CAL_MIN + '-minute reminder, so your phone alerts you even when this app is closed. You will be asked to approve calendar access once.</p><button class="btn" data-a="calon">Turn on</button>') +
-        '<p style="margin:8px 0 0;color:#58697A;font-size:12px">Only the name, time, type, method and place go to the calendar, never your notes. On your phone, use the Outlook app or add this Microsoft account to your phone calendar, and allow notifications.</p>') +
-        '<h3 style="margin:18px 0 6px;font-size:15px">Log out</h3><p style="margin:0 0 8px;color:#58697A">Removes the records from this device. They stay safe in your ' + SNAME() + '.</p><button class="btn" data-a="out">Log out</button>' +
-        '<p style="margin-top:14px;min-height:18px" id="mdAccMsg">' + esc(msg || '') + '</p></div>';
+      var acc = t.account || {}, P = profGet(), isG = PROV === 'google', mailOn = ls('cd.mail') === '1';
+      var ini = String(P.name || acc.name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join('');
+      var row = function (title, desc, act, extra) { return '<div class="cds-row"><div class="cds-txt"><b>' + title + '</b>' + (desc ? '<span>' + desc + '</span>' : '') + (extra || '') + '</div>' + (act ? '<div class="cds-act">' + act + '</div>' : '') + '</div>'; };
+      var grp = function (title, rows) { return '<section class="cds-grp"><h3>' + title + '</h3><div class="cds-card">' + rows + '</div></section>'; };
+      var btn = function (a, label, pri) { return '<button type="button" class="cds-btn' + (pri ? ' pri' : '') + '" data-a="' + a + '">' + label + '</button>'; };
+      var on = function (yes, txt) { return '<i class="cds-badge ' + (yes ? 'on' : 'off') + '">' + (txt || (yes ? 'On' : 'Off')) + '</i>'; };
+      var syncTxt = esc((($('syncState') || {}).textContent || '').trim()) || 'Ready';
+      var pend = pending() ? pending() + ' change(s) waiting to upload.' : 'Everything is uploaded.';
+      var sec = pinData() ? row('App password ' + on(true), 'Asked when you log in. The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.', btn('pin', 'Change'))
+        : acctMode() ? row('Password ' + on(true, isG ? 'Gmail' : 'Outlook'), 'You unlock with your ' + (isG ? 'Gmail' : 'Outlook') + ' account password. The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.', btn('pin', 'Use an app password'))
+        : row('App password ' + on(false, 'Not set'), '<span class="cds-warn">Anyone who picks up this device while you are signed in can see your records.</span>', btn('pin', 'Set password', 1));
+      ov.innerHTML = '<div class="cds" role="dialog" aria-modal="true" aria-labelledby="cdsT">' +
+        '<div class="cds-head"><h2 id="cdsT">Settings</h2><button type="button" class="cds-x" data-a="close" aria-label="Close settings">&times;</button></div>' +
+        '<div class="cds-body">' +
+        '<div class="cds-acct"><div class="cds-av" aria-hidden="true">' + esc(ini) + '</div><div class="cds-who"><b>' + esc(P.name || acc.name || '') + '</b><span>' + esc(acc.mail || '') + '</span><span class="cds-prov">' + (isG ? 'Google account' : 'Microsoft account') + (P.biz ? ' &middot; ' + esc(P.biz) : '') + '</span></div>' +
+        '<div class="cds-sync"><span class="cds-dot"></span>' + syncTxt + '</div></div>' +
+        '<p id="mdAccMsg" class="cds-msg" role="status">' + esc(msg || '') + '</p>' +
+        grp('Your details',
+          row('My profile', esc(P.name ? P.name + (P.phone ? ' · ' + P.phone : '') + (P.email ? ' · ' + P.email : '') : 'Add your name, mobile number and email.'), btn('profile', P.name ? 'Edit' : 'Set up', !P.name)) +
+          row('Business details and logo', 'Name, address, logo, VAT and payment details shown on your documents.', btn('biz', 'Edit')) +
+          (TR().tenancyMode ? row('Your accountant', esc((ACCN() || 'Name, phone, email and address') + '. Used for the rent and expenses report.'), btn('acc', 'Edit')) : '') +
+          ((window.CD_TRADES || {}).only ? '' : row('Your trade', esc(TR().label || '') + '. Sets the fields, stages and reminders.', btn('trade', 'Change'))))
+        +
+        grp('Security', sec)
+        +
+        grp('Storage and sync',
+          row('Where your records are saved', '<b style="color:#101C26">' + esc(rootLabel()) + '</b>', btn('folder', 'Open folder'), isG ? '<span class="cds-note">Google asks you to confirm access about once an hour. A yellow bar appears when it does, and your changes wait safely on this device.</span>' : '') +
+          row('Sync', esc(pend), btn('sync', 'Sync now')))
+        +
+        grp('Email and calendar',
+          (isG ? row('Emailing documents ' + on(false, 'Email app'), 'With a Google account, invoices and reports open in your email app (or use Share PDF on a phone) and you attach the PDF yourself.', '')
+            : row('Email documents from Outlook ' + on(mailOn), mailOn ? 'Invoices and reports are sent from your own Outlook with the PDF attached. A copy goes to your Sent folder.' : 'Send invoices and reports from your own Outlook with the PDF attached. Microsoft asks you to allow it once.', btn(mailOn ? 'mailoff' : 'mailon', mailOn ? 'Turn off' : 'Turn on', !mailOn))) +
+          (isG ? row('Calendar reminders ' + on(false, 'Outlook only'), 'Adding appointments to a calendar works with Microsoft accounts. Your appointments are still kept and reminded in the app.', '')
+            : row('Calendar reminders ' + on(calOn()), (calOn() ? 'Booked appointments are added to your Outlook calendar' : 'Add booked appointments to your Outlook calendar') + ' with a ' + CAL_MIN + '-minute reminder, so your phone alerts you even when the app is closed.', btn(calOn() ? 'caloff' : 'calon', calOn() ? 'Turn off' : 'Turn on', !calOn()), '<span class="cds-note">Only the name, time, type, method and place go to the calendar, never your notes.</span>')))
+        +
+        grp('Backup and restore',
+          row('PDF and CSV backup', 'All records in a password-protected ZIP, saved to folders you choose, with an automatic backup every 24 hours.', btn('pdfbk', 'Back up')) +
+          row('Import a backup file', 'Adds records from a ' + esc(APPN) + ' backup (.json). Records you already have are not changed.', '<label class="cds-btn" for="mdImp">Choose file</label><input type="file" id="mdImp" accept=".json,application/json" class="cds-file">') +
+          row('Restore from a backup', 'Puts records back after a mistake. Records in the file replace the matching records here.', '<label class="cds-btn" for="mdRes">Choose file</label><input type="file" id="mdRes" accept=".json,application/json" class="cds-file">'))
+        +
+        grp('Help',
+          row('Quick guide', 'A short tour of the main screens.', btn('guide', 'Open')) +
+          row('Privacy policy', 'What is stored, where, and your rights.', '<a class="cds-btn" href="privacy.html" target="_blank" rel="noopener">Open</a>') +
+          row('App version', esc(window.MD_BUILD || 'unknown'), ''))
+        +
+        '<div class="cds-out"><div><b>Log out of this device</b><span>Removes your records from this device. They stay safe in your ' + SNAME() + '.</span></div><button type="button" class="cds-btn danger" data-a="out">Log out</button></div>' +
+        '</div></div>';
     }
     render('');
     var say = function (m) { var e = $('mdAccMsg'); if (e) e.textContent = m; };
