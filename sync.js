@@ -1,10 +1,10 @@
-/* Client Desk (web): Microsoft or Google sign-in, OneDrive or Google Drive storage, offline cache.
+/* MySimpleDesk (web): Microsoft or Google sign-in, OneDrive or Google Drive storage, offline cache.
    Stores one JSON file per record in a folder named after the business, in the user's own OneDrive (Apps / <app> / <business>)
    or Google Drive (My Drive / <app> - <business>). No other server is used. */
 (function () {
   'use strict';
   var CFG = window.MD_CONFIG || {};
-  var APPN = CFG.appName || 'Client Desk', APPF = APPN.replace(/[^A-Za-z0-9]+/g, '-');
+  var APPN = CFG.appName || 'MySimpleDesk', APPF = APPN.replace(/[^A-Za-z0-9]+/g, '-'), DRIVE = CFG.driveFolder || APPN;
   var TR = function () { return (window.CD_T && window.CD_T()) || { noun: ['Record', 'Records'], fields: [], id: 'general' }; };
   /* a registration in progress chose a kind of work: use it before the app draws anything */
   try { var reg0 = JSON.parse(sessionStorage.getItem('cd.reg') || 'null'); if (reg0 && reg0.trade && window.CD_tradeSet) window.CD_tradeSet(reg0.trade); } catch (e) {}
@@ -24,9 +24,9 @@
   function FOLDER() { var f = ls('cd.folder'); return f == null ? null : f; }
   function rootLabel() {
     var f = FOLDER() || '';
-    return PROV === 'google' ? 'Google Drive \u203a My Drive \u203a ' + gRootName(f) : 'OneDrive \u203a Apps \u203a ' + APPN + (f ? ' \u203a ' + f : '');
+    return PROV === 'google' ? 'Google Drive \u203a My Drive \u203a ' + gRootName(f) : 'OneDrive \u203a Apps \u203a ' + DRIVE + (f ? ' \u203a ' + f : '');
   }
-  function gRootName(f) { return APPN + ' \u2013 ' + f; }
+  function gRootName(f) { return DRIVE + ' \u2013 ' + f; }
   /* Google sign-in pop-up: hand the result back to the main window and close. */
   if (window.opener && window.name === 'cdg' && /access_token=|error=/.test(location.hash)) {
     try { window.opener.postMessage({ cdg: location.hash.slice(1) }, location.origin); } catch (e) {}
@@ -1512,7 +1512,7 @@
     ov.addEventListener('click', function (e) { if ((e.target.closest && e.target.closest('[data-g]')) || e.target === ov) ov.remove(); });
   }
   /* ---------- sign-up list (only when config signupUrl is set): the ACCOUNT HOLDER's own details, never their records ---------- */
-  function suOn() { var u = CFG.signupUrl || ''; return /^https:\/\//.test(u) && !/PASTE/i.test(u); }
+  function suOn() { var u = CFG.signupUrl || ''; return (/^https:\/\//.test(u) || /^\/api\//.test(u)) && !/PASTE/i.test(u) && !/github\.io$/i.test(location.hostname); }
   function suSend(kind) {
     try {
       if (!suOn() || !tok()) return;
@@ -1859,7 +1859,7 @@
         '<div id="cdFoldMsg" style="color:#A3261F;font-size:13px;margin-top:10px;min-height:16px"></div></form>');
       var nm = o.querySelector('#cdFoldName'), wh = o.querySelector('#cdFoldWhere');
       function sel() { var c = o.querySelector('input[name=cdf]:checked'); return c ? c.value : 'new'; }
-      function upd() { var n = cleanName(nm.value), useNew = sel() === 'new'; nm.parentNode.style.display = useNew ? '' : 'none'; wh.textContent = useNew ? 'Folder: ' + (PROV === 'google' ? 'Google Drive \u203a My Drive \u203a ' + gRootName(n || '\u2026') : 'OneDrive \u203a Apps \u203a ' + APPN + ' \u203a ' + (n || '\u2026')) : ''; }
+      function upd() { var n = cleanName(nm.value), useNew = sel() === 'new'; nm.parentNode.style.display = useNew ? '' : 'none'; wh.textContent = useNew ? 'Folder: ' + (PROV === 'google' ? 'Google Drive \u203a My Drive \u203a ' + gRootName(n || '\u2026') : 'OneDrive \u203a Apps \u203a ' + DRIVE + ' \u203a ' + (n || '\u2026')) : ''; }
       o.addEventListener('input', upd); o.addEventListener('change', upd); upd();
       o.querySelector('form').addEventListener('submit', async function (e) {
         e.preventDefault(); var msg = o.querySelector('#cdFoldMsg'), btn = o.querySelector('button[type=submit]'), v = sel();

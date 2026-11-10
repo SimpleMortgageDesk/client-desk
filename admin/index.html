@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>Users · Admin</title>
+<link rel="icon" href="../icon-192.png">
+<style>
+:root{--ink:#101C26;--muted:#58697A;--line:#D4DBDF;--bg:#F6F8F7;--acc:#0A6B50;--soft:#DCEFE8;--bad:#A3261F}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+.wrap{width:min(1200px,100% - 32px);margin:0 auto;padding:24px 0 48px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}h1{font-size:24px;margin:0}
+.who{margin-left:auto;color:var(--muted);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}.stat b{display:block;font-size:26px}.stat span{color:var(--muted);font-size:13px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+input[type=search]{flex:1;min-width:200px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff}
+button{padding:9px 14px;border-radius:9px;border:1px solid var(--acc);background:#fff;color:var(--acc);font:600 14px system-ui;cursor:pointer}
+button.pri{background:var(--acc);color:#fff}button.del{border-color:#E3B5B0;color:var(--bad);padding:5px 10px;font-size:12.5px}
+.tw{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:10px 12px;border-bottom:1px solid #EEF1F2;text-align:left;white-space:nowrap}
+th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}tr:last-child td{border-bottom:0}
+.new{background:var(--soft);color:var(--acc);font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;margin-left:6px}
+.msg{padding:14px 16px;border-radius:12px;background:#fff;border:1px solid var(--line)}.msg.err{border-color:#E3B5B0;color:var(--bad)}
+.note{color:var(--muted);font-size:13px;margin-top:14px}
+@media (prefers-color-scheme:dark){:root{--ink:#E8EEEC;--muted:#9AA8B0;--line:#2B3438;--bg:#121719;--soft:#163A30}.stat,.tw,input[type=search],.msg,button{background:#1A2124}th{background:#1E2629}td{border-color:#242C30}button.pri{background:var(--acc);color:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Users</h1><span class="who" id="who"></span></header>
+  <div class="stats" id="stats"></div>
+  <div class="bar"><input type="search" id="q" placeholder="Search name, email, mobile or business" aria-label="Search users"><button class="pri" id="csv">Download CSV</button><button id="reload">Refresh</button></div>
+  <div id="out"><div class="msg">Loading…</div></div>
+  <p class="note">Only account holders' own details are kept here. Tenants', clients' and properties' details never come to this list. Delete someone here if they ask you to remove their details.</p>
+</div>
+<script>
+(function () {
+  var users = [], $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var day = function (s) { return s ? new Date(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; };
+  var ago = function (s, d) { return s && (Date.now() - new Date(s).getTime()) < d * 864e5; };
+  function load() {
+    $('out').innerHTML = '<div class="msg">Loading…</div>';
+    fetch('../api/admin/users', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('Error ' + r.status)); return j; }); })
+      .then(function (j) { users = j.users || []; $('who').textContent = 'Signed in as ' + j.admin; draw(); })
+      .catch(function (e) { $('out').innerHTML = '<div class="msg err">' + esc(e.message || 'Could not load the list.') + '</div>'; });
+  }
+  function draw() {
+    var q = $('q').value.trim().toLowerCase();
+    var list = users.filter(function (u) { return !q || [u.name, u.email, u.mobile, u.business, u.trade].join(' ').toLowerCase().indexOf(q) > -1; });
+    $('stats').innerHTML = [[users.length, 'Users'], [users.filter(function (u) { return ago(u.signed_up || u.first_seen, 7); }).length, 'New in the last 7 days'],
+      [users.filter(function (u) { return ago(u.signed_up || u.first_seen, 30); }).length, 'New in the last 30 days'], [users.filter(function (u) { return ago(u.last_seen, 30); }).length, 'Active in the last 30 days']]
+      .map(function (s) { return '<div class="stat"><b>' + s[0] + '</b><span>' + s[1] + '</span></div>'; }).join('');
+    if (!users.length) { $('out').innerHTML = '<div class="msg">No users yet. People appear here when they register, or the next time an existing user opens the app.</div>'; return; }
+    $('out').innerHTML = '<div class="tw"><table><thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Business</th><th>Kind of work</th><th>Account</th><th>Signed up</th><th>Last active</th><th>Days active</th><th></th></tr></thead><tbody>' +
+      list.map(function (u) { return '<tr><td>' + esc(u.name) + (ago(u.signed_up || u.first_seen, 7) ? '<span class="new">NEW</span>' : '') + '</td><td><a href="mailto:' + esc(u.email) + '">' + esc(u.email) + '</a></td><td>' + esc(u.mobile) + '</td><td>' + esc(u.business) + '</td><td>' + esc(u.trade) + '</td><td>' + esc(u.account) + '</td><td>' + (u.signed_up ? day(u.signed_up) : '<span title="Recorded when they next used the app">' + day(u.first_seen) + '*</span>') + '</td><td>' + day(u.last_seen) + '</td><td>' + esc(u.days_active) + '</td><td><button class="del" data-del="' + esc(u.email) + '">Delete</button></td></tr>'; }).join('') +
+      '</tbody></table></div>' + (users.some(function (u) { return !u.signed_up; }) ? '<p class="note">* Already using the app before the list started; date first recorded.</p>' : '');
+  }
+  function csv() {
+    var cols = ['name', 'email', 'account_email', 'mobile', 'business', 'trade', 'account', 'signed_up', 'first_seen', 'last_seen', 'days_active'];
+    var cell = function (v) { v = String(v == null ? '' : v); if (/^[=+\-@]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+    var text = [cols.join(',')].concat(users.map(function (u) { return cols.map(function (c) { return cell(u[c]); }).join(','); })).join('\r\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv' })); a.download = 'users-' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+  }
+  $('q').addEventListener('input', draw); $('reload').addEventListener('click', load); $('csv').addEventListener('click', csv);
+  $('out').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-del]'); if (!b) return; var em = b.getAttribute('data-del');
+    if (!confirm('Delete ' + em + ' from the list? This cannot be undone.')) return;
+    fetch('../api/admin/users?email=' + encodeURIComponent(em), { method: 'DELETE', credentials: 'same-origin' }).then(function (r) { if (!r.ok) throw 0; users = users.filter(function (u) { return u.email !== em; }); draw(); }).catch(function () { alert('Could not delete. Try again.'); });
+  });
+  load();
+})();
+</script>
+</body>
+</html>

@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Client Desk – keep your small business organised</title>
+<title>MySimpleDesk – property records and reminders for landlords</title>
 <meta name="description" content="One simple place for your clients, properties, jobs, payments, documents and reminders. Saved in your own Outlook or Gmail account.">
 <meta name="theme-color" content="#0A6B50">
 <link rel="icon" href="icon-192.png">
-<link rel="canonical" href="https://simplemortgagedesk.github.io/client-desk/home.html">
+<link rel="canonical" href="https://mysimpledesk.co.uk/home.html">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://simplemortgagedesk.github.io/client-desk/home.html">
-<meta property="og:title" content="Client Desk – keep your small business organised">
+<meta property="og:url" content="https://mysimpledesk.co.uk/home.html">
+<meta property="og:title" content="MySimpleDesk – property records and reminders for landlords">
 <meta property="og:description" content="One simple place for your clients, properties, jobs, payments, documents and reminders. Saved in your own Outlook or Gmail account.">
-<meta property="og:image" content="https://simplemortgagedesk.github.io/client-desk/icon-512.png">
+<meta property="og:image" content="https://mysimpledesk.co.uk/icon-512.png">
 <meta name="twitter:card" content="summary">
 <style>
 :root{--ink:#101C26;--muted:#4f6070;--line:#D4DBDF;--bg:#F6F8F7;--card:#fff;--acc:#0A6B50;--acc2:#0d8a66;--soft:#DCEFE8;--warn:#8A5A00;--warnsoft:#FBEFD2;--bad:#A3261F;--badsoft:#FADDD9;
@@ -140,12 +140,12 @@ footer .r{margin-left:auto}
 }
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
 </style>
-<script src="config.js?v=202611111300"></script>
+<script src="config.js?v=202611111600"></script>
 </head>
 <body>
 <header>
   <div class="wrap">
-    <a class="brand" href="#top"><i aria-hidden="true"></i><span data-app>Client Desk</span></a>
+    <a class="brand" href="#top"><i aria-hidden="true"></i><span data-app>MySimpleDesk</span></a>
     <nav class="links" aria-label="Page sections">
       <a href="#how">How it helps</a><a href="#who">Who it's for</a><a href="#privacy">Your data</a><a href="#faq">Questions</a>
     </nav>
@@ -228,7 +228,7 @@ footer .r{margin-left:auto}
   <div class="wrap">
     <div class="kicker">Who it's for</div>
     <h2 id="who-h">Built for landlords who manage their own properties</h2>
-    <p class="intro">Whether you let one flat or a small portfolio, Client Desk keeps each property, its tenants, rent and paperwork together, and reminds you before anything is due.</p>
+    <p class="intro">Whether you let one flat or a small portfolio, MySimpleDesk keeps each property, its tenants, rent and paperwork together, and reminds you before anything is due.</p>
     <div class="who">
       <div class="card"><h3>Every property in one place</h3><ul><li>Tenants, contacts and joint tenants</li><li>Documents filed in your own OneDrive</li><li>Your own home kept separately</li></ul></div>
       <div class="card"><h3>Rent under control</h3><ul><li>Rent due, paid and overdue at a glance</li><li>Rent invoices and statements as PDFs</li><li>Send by WhatsApp or email</li></ul></div>
@@ -302,7 +302,7 @@ footer .r{margin-left:auto}
 
 <footer>
   <div class="wrap">
-    <span>&copy; <span id="yr">2026</span> <span data-owner>Client Desk</span></span>
+    <span>&copy; <span id="yr">2026</span> <span data-owner>MySimpleDesk</span></span>
     <a href="privacy.html">Privacy policy</a>
     <span id="contact"></span>
     <span class="r">The examples on this page are invented.</span>
@@ -310,9 +310,9 @@ footer .r{margin-left:auto}
 </footer>
 <script>
 (function () {
-  var C = window.MD_CONFIG || {}, app = C.appName || 'Client Desk';
+  var C = window.MD_CONFIG || {}, app = C.appName || 'MySimpleDesk';
   var real = function (v) { return v && !/PASTE/i.test(v) ? v : ''; };
-  document.title = app + ' – keep your small business organised';
+  document.title = app + ' – property records and reminders for landlords';
   document.querySelectorAll('[data-app]').forEach(function (e) { e.textContent = app; });
   var owner = real(C.ownerName); document.querySelectorAll('[data-owner]').forEach(function (e) { e.textContent = owner || app; });
   var mail = real(C.ownerEmail); if (mail) { var a = document.createElement('a'); a.href = 'mailto:' + mail; a.textContent = 'Contact: ' + mail; document.getElementById('contact').appendChild(a); }

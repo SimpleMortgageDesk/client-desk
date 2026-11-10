@@ -5,7 +5,7 @@ function applyTrade(){
   T=window.CD_T();STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
   var nb=document.getElementById('newBtn');if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
   var q=document.getElementById('q');if(q)q.placeholder='Search '+T.noun[1].toLowerCase();
-  var bn=document.getElementById('brandName'),an=(window.MD_CONFIG||{}).appName||'Client Desk';if(bn){var sp=an.lastIndexOf(' ');bn.innerHTML=sp>0?esc(an.slice(0,sp))+' <span style="font-weight:300">'+esc(an.slice(sp+1))+'</span>':esc(an)}
+  var bn=document.getElementById('brandName'),an=(window.MD_CONFIG||{}).appName||'MySimpleDesk';if(bn){var sp=an.lastIndexOf(' '),dk=/^(.+)(Desk)$/.exec(an);bn.innerHTML=sp>0?esc(an.slice(0,sp))+' <span style="font-weight:300">'+esc(an.slice(sp+1))+'</span>':dk?esc(dk[1])+'<span style="font-weight:300">'+dk[2]+'</span>':esc(an)}
   document.title=an;
   if(!landingDone&&window.CD_tradeChosen&&window.CD_tradeChosen()){landingDone=true;if(T.landing&&(view==='tasks'||view===undefined))view=T.landing}
 }
@@ -1411,7 +1411,7 @@ function backupAll(){
   if(!loaded||!cases.length){toast('Nothing to back up yet');return}
   claude.use('downloads').then(function(dl){
     if(!dl){toast('Downloads are not available in this view');return}
-    var an=(window.MD_CONFIG||{}).appName||'Client Desk';
+    var an=(window.MD_CONFIG||{}).appName||'MySimpleDesk';
     var payload={app:an,trade:T.id,exportedAt:new Date().toISOString(),count:cases.length,cases:cases,notebook:notes,appointments:appts,marketing:[{id:'contacts',items:mkItems}].concat(mkMsgsDoc?[{id:'messages',items:mkMsgsDoc}]:[]),settings:[{id:'trade',trade:T.id}].concat(BIZ.savedAt?[Object.assign({id:'business'},BIZ)]:[])};
     return dl.save({filename:an.replace(/[^A-Za-z0-9]+/g,'-').toLowerCase()+'-backup-'+iso(TODAY)+'.json',data:JSON.stringify(payload,null,2)}).then(function(){toast('Backup saved: '+cases.length+' '+NS())},function(e){if(e&&e.code!=='declined')toast('Could not save the backup')});
   });
@@ -2479,7 +2479,7 @@ function taHtml(d){
     if(b.kv)return '<table class="dkv">'+b.kv.map(function(r){return '<tr><td>'+esc(r[0])+'</td><td>'+nl2br(r[1])+'</td></tr>'}).join('')+'</table>';
     if(b.sig)return '<h4>Signatures</h4>'+b.sig.landlords.map(function(n){return '<div class="dsig"><span>Landlord: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('')+b.sig.tenants.map(function(n){return '<div class="dsig"><span>Tenant: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('')+(b.sig.guarantors||[]).map(function(n){return '<div class="dsig"><span>Guarantor: '+esc(n)+'</span><span>Signed ____________________</span><span>Date __________</span></div>'}).join('');
     return '';
-  }).join('')+'<div class="dfoot">Created with '+esc((window.MD_CONFIG||{}).appName||'Client Desk')+' on '+fd(iso(TODAY))+'. A template, not legal advice.</div></div>';
+  }).join('')+'<div class="dfoot">Created with '+esc((window.MD_CONFIG||{}).appName||'MySimpleDesk')+' on '+fd(iso(TODAY))+'. A template, not legal advice.</div></div>';
 }
 function taPdf(d){
   var P=new Pdf(),G=[0.35,0.41,0.47],A=[0.18,0.29,0.25];
@@ -2894,7 +2894,7 @@ document.addEventListener('click',function(e){
   if(t.closest('[data-snprint]')){var c6=cases.filter(function(x){return x.id===snCase})[0],d6=c6&&docsOf(c6).filter(function(x){return x.id===snDoc})[0];if(d6)printHtml(dcHtml(d6));return}
   if((b=t.closest('[data-snpdf]'))){var c3=cases.filter(function(x){return x.id===snCase})[0],d3=c3&&docsOf(c3).filter(function(x){return x.id===snDoc})[0];if(d3){fileOut(dcPdf(d3),snFile(d3),b.getAttribute('data-snpdf'));if(b.getAttribute('data-snpdf')==='share')snMark('shared PDF','')}return}
   if((b=t.closest('[data-snvia]'))){var v=b.getAttribute('data-snvia').split('|'),c4=cases.filter(function(x){return x.id===snCase})[0],d4=c4&&docsOf(c4).filter(function(x){return x.id===snDoc})[0],p4=d4&&snPeople(c4,d4)[+v[1]];if(p4)snMark(v[0],v[0]==='whatsapp'?(p4.phone||''):(p4.email||''));return}
-  if(t.closest('[data-snmailon]')){if(window.confirm('Microsoft will ask you to allow '+((window.MD_CONFIG||{}).appName||'Client Desk')+' to send email as you. You only do this once. Continue?'))window.CD_mail.enable();return}
+  if(t.closest('[data-snmailon]')){if(window.confirm('Microsoft will ask you to allow '+((window.MD_CONFIG||{}).appName||'MySimpleDesk')+' to send email as you. You only do this once. Continue?'))window.CD_mail.enable();return}
   if((b=t.closest('[data-snmail]'))){
     var c5=cases.filter(function(x){return x.id===snCase})[0],d5=c5&&docsOf(c5).filter(function(x){return x.id===snDoc})[0],p5=d5&&snPeople(c5,d5)[+b.getAttribute('data-snmail')];if(!p5)return;
     b.disabled=true;b.textContent='Sending…';
@@ -3039,7 +3039,7 @@ function gnHtml(rows,from,to){
      '<table class="dtab"><thead><tr><th>Rent received</th><th>Tenant</th><th>For rent due</th><th>Amount</th></tr></thead><tbody>'+(p.rent.length?p.rent.map(function(r){return '<tr><td>'+fd(r.date)+'</td><td>'+esc(r.who)+'</td><td>'+fd(r.due)+'</td><td>'+gbp(r.amount)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">None in this period</td></tr>')+'<tr><td colspan="3"><b>Total rent</b></td><td><b>'+gbp(p.rt)+'</b></td></tr></tbody></table>'+
      '<table class="dtab" style="margin-top:6px"><thead><tr><th>Expense date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead><tbody>'+(p.ex.length?p.ex.map(function(e){return '<tr><td>'+fd(e.date)+'</td><td>'+esc(e.cat||'')+'</td><td>'+esc([e.desc,e.to].filter(Boolean).join(' · '))+'</td><td>'+gbp(e.amount)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">None in this period</td></tr>')+'<tr><td colspan="3"><b>Total expenses</b></td><td><b>'+gbp(p.et)+'</b></td></tr></tbody></table>'+
      (p.mo.rows.length?'<table class="dtab" style="margin-top:6px"><thead><tr><th>Mortgage payment</th><th>Details</th><th>Interest part</th><th>Amount</th></tr></thead><tbody>'+p.mo.rows.map(function(r){return '<tr><td>'+fd(r.date)+'</td><td>'+esc(mLabel(p.mo))+'</td><td>'+(r.i==null?'—':gbp(r.i))+'</td><td>'+gbp(r.amount)+'</td></tr>'}).join('')+'<tr><td colspan="2"><b>Total mortgage payments</b></td><td><b>'+(p.mo.est?gbp(p.mo.est):'—')+'</b></td><td><b>'+gbp(p.mo.tot)+'</b></td></tr></tbody></table>':'')}).join('')+
-   '<div class="dfoot">Prepared from the records kept in '+esc((window.MD_CONFIG||{}).appName||'Client Desk')+' on '+fd(iso(TODAY))+'. Check against your bank statements and receipts.</div></div>';
+   '<div class="dfoot">Prepared from the records kept in '+esc((window.MD_CONFIG||{}).appName||'MySimpleDesk')+' on '+fd(iso(TODAY))+'. Check against your bank statements and receipts.</div></div>';
 }
 function gnPdf(rows,from,to){
   var P=new Pdf(),G=[0.35,0.41,0.47],A=[0.18,0.29,0.25],tt=gnTotals(rows),a=ACC();
@@ -3065,7 +3065,7 @@ function gnPdf(rows,from,to){
     table(['Expense date','Category','Description','Amount'],[[46,'l'],[120,'l'],[300,'l'],[549,'r']],p.ex.map(function(e){return [fd(e.date),e.cat||'',[e.desc,e.to].filter(Boolean).join(' · '),gbp(e.amount)]}),['Total expenses',gbp(p.et)]);
     if(p.mo.rows.length)table(['Mortgage payment','Details','Interest part','Amount'],[[46,'l'],[150,'l'],[420,'l'],[549,'r']],p.mo.rows.map(function(r){return [fd(r.date),mLabel(p.mo),r.i==null?'-':gbp(r.i),gbp(r.amount)]}),['Total mortgage payments'+(p.mo.est?' (interest part '+gbp(p.mo.est)+')':''),gbp(p.mo.tot)]);
   });
-  P.need(30);P.y+=6;wrapT('Prepared from the records kept in '+((window.MD_CONFIG||{}).appName||'Client Desk')+' on '+fd(iso(TODAY))+'. Check against your bank statements and receipts.',515,8).forEach(function(l){P.t(40,P.y,l,8,false,'l',G);P.y+=10});
+  P.need(30);P.y+=6;wrapT('Prepared from the records kept in '+((window.MD_CONFIG||{}).appName||'MySimpleDesk')+' on '+fd(iso(TODAY))+'. Check against your bank statements and receipts.',515,8).forEach(function(l){P.t(40,P.y,l,8,false,'l',G);P.y+=10});
   return P.bytes('Rent received and expenses · '+fd(from)+' to '+fd(to));
 }
 function gnCsv(rows){

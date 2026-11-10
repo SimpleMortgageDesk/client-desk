@@ -1,4 +1,4 @@
-/* Client Desk trade profiles.
+/* MySimpleDesk trade profiles.
    Each profile decides what a record is called, its stages, its fields, which dates
    are worked out automatically and which dates become reminders.
 
