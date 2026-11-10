@@ -371,9 +371,10 @@
       { k: 'nextRentIncrease', l: 'Rent review possible' },
       { k: 'moveOut', l: 'Tenant moving out' }],
     reminders: [
-      { k: 'gsrDue', l: 'Gas safety record due' }, { k: 'eicrDue', l: 'EICR due' }, { k: 'epcExpiry', l: 'EPC expires' },
-      { k: 'licenceExpiry', l: 'Licence expires' }, { k: 'insuranceRenewal', l: 'Insurance renewal' },
-      { k: 'btlFixedUntil', l: 'Mortgage deal ends', ref: 'btlLender', refL: '' }],
+      /* lead: remind this many months before the date, then again every 30 days until the date is updated */
+      { k: 'gsrDue', l: 'Gas safety record due', lead: 2 }, { k: 'eicrDue', l: 'EICR due', lead: 2 }, { k: 'epcExpiry', l: 'EPC expires', lead: 2 },
+      { k: 'licenceExpiry', l: 'Licence expires', lead: 2 }, { k: 'insuranceRenewal', l: 'Insurance renewal', lead: 2 },
+      { k: 'btlFixedUntil', l: 'Mortgage deal ends', ref: 'btlLender', refL: '', lead: 4 }],
     value: { k: 'rent', l: 'Rent roll' }, addr: 'propertyAddress', sub: 'type', subRef: 'agent',
     cols: [['tenants', 'Tenants'], ['rentSum', 'Rent a month'], ['rentSt', 'Rent status'], ['occ', 'Status'], ['legal', 'Legal to let'], ['type', 'Type'], ['epcRating', 'EPC'], ['review', 'Next key date'], ['task', 'Next task due']],
     strip: [['rentSum', 'Rent a month'], ['occ', 'Status'], ['next', 'Next key date']],

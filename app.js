@@ -57,18 +57,22 @@ function paddr(c){var a=String((c&&c.propertyAddress)||'').trim(),p=String((c&&c
 function names(c){if(T&&T.tenancyMode){var pa=short(paddr(c));return pa||'Unnamed property'}return pnames(c)}
 function pnames(c){var a=(c.applicants||[]).map(function(x){return x.name}).filter(Boolean);return a.length?a.join(' & '):'Unnamed client'}
 function remDone(c,r,d){return !!(c.remDone&&c.remDone[r.k]===d)}
+/* repeating expiry reminders: first one lead months before the date; each press of "In 30 days" moves it on 30 days; a new date starts again */
+function remDue(snoozed,exp,lead){var r0=addMonths(exp,-lead);return (/^\d{4}-\d{2}-\d{2}$/.test(snoozed||'')&&snoozed>=r0)?addDays(snoozed,30):r0}
 function reviewItems(c,useStage){
   var st=stageOf(c),out=[];
   T.reminders.forEach(function(r){
     if(useStage&&r.only&&r.only.indexOf(st)<0)return;
     if(r.unless&&r.unless.some(function(k){return fv(c,k)!==''}))return;
-    var d=fv(c,r.k);if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d)||remDone(c,r,d))return;
+    var d=fv(c,r.k);if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
     var ref=r.ref?fv(c,r.ref):'',rl=ref?(r.refL?'. '+r.refL+' '+(T.byKey[r.ref]&&T.byKey[r.ref].t==='date'?fd(ref):ref):': '+ref):'';
+    if(r.lead){out.push({date:remDue(c.remDone&&c.remDone[r.k],d,r.lead),label:r.l+' '+fd(d)+rl,key:r.k,sec:false,rep:1,exp:d});return}
+    if(remDone(c,r,d))return;
     out.push({date:d,label:r.l+rl,key:r.k,sec:false});
   });
   return out.concat(tnReminders(c)).concat(T.tenancyMode?rlReminders(c).concat(rpReminders(c)):[]).concat(docReminders(c));
 }
-function reviewOf(c){var r=reviewItems(c).map(function(x){return x.date}).sort();return r[0]||''}
+function reviewOf(c){var r=reviewItems(c).map(function(x){return x.exp||x.date}).sort();return r[0]||''}
 function firstName(c){var a=(c.applicants||[]).map(function(x){return (x.name||'').trim()}).filter(Boolean)[0]||'';return a.replace(/^(mr|mrs|miss|ms|dr)\.?\s+/i,'').toLowerCase()}
 function cnum(c){var m=/(\d+)/.exec(c.clientNo||'');return m?+m[1]:1e9}
 function odLink(u){u=String(u||'').trim();return /^https?:\/\//i.test(u)?'<a href="'+esc(u)+'" target="_blank" rel="noopener">Open OneDrive folder</a>':''}
@@ -196,7 +200,7 @@ function patch(id,data){
 function caseEvents(c){
   var ev=[],st=c.stage,n=names(c);
   function add(date,label,kind){if(date)ev.push({date:date,label:label,kind:kind,id:c.id,who:n})}
-  reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:n,key:r.key})});
+  reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:n,key:r.key,rep:r.rep,exp:r.exp})});
   (c.tasks||[]).forEach(function(t){if(!t.done&&t.due)ev.push({date:t.due,label:t.text,kind:'task',id:c.id,who:n})});
   return ev;
 }
@@ -209,12 +213,13 @@ function reviewEvents(){return allEvents().filter(function(e){return e.kind==='r
 window.CD_keyDates=function(){
   if(!loaded||!db)return null;var out=[];
   cases.forEach(function(c){if(c.stage==='lost')return;var n=names(c);
-    reviewItems(c,true).forEach(function(r){out.push({key:c.id+'|'+r.key,date:r.date,title:r.label,who:n})});
+    reviewItems(c,true).forEach(function(r){out.push({key:c.id+'|'+r.key,date:kdNext(r),title:r.label,who:n})});
     (c.tasks||[]).forEach(function(t,i){if(!t.done&&t.due)out.push({key:c.id+'|task:'+(t.id||i),date:t.due,title:t.text,who:n})});
   });
-  if(T.tenancyMode)homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:e.date,title:e.label,who:'My home'})});
+  if(T.tenancyMode)homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:kdNext(e),title:e.label,who:'My home'})});
   return out;
 };
+function kdNext(r){if(!r.rep)return r.date;var n=diff(r.date);return n>=0?r.date:addDays(r.date,Math.ceil(-n/30)*30)}
 function nextEvent(c){
   var e=caseEvents(c).sort(function(a,b){return a.date<b.date?-1:1});
   var over=e.filter(function(x){return diff(x.date)<0})[0];
@@ -380,7 +385,7 @@ function remindersHTML(){
     if(!items.length)return;
     h+='<div class="group"><h3 class="'+x[1]+'">'+x[0]+' · '+items.length+'</h3>';
     items.forEach(function(e){
-      h+='<div class="evrow"><button class="ev" data-open="'+e.id+'"><div class="d">'+fd(e.date)+'<small>'+rel(e.date)+'</small></div><div><b>'+esc(e.label)+'</b><div class="who">'+esc(e.who)+'</div></div><span class="chip '+tone(e.date)+'">'+esc(T.reviewWord)+'</span></button><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'" title="Hide this reminder">Done</button></div>';
+      h+='<div class="evrow"><button class="ev" data-open="'+e.id+'"><div class="d">'+fd(e.date)+'<small>'+rel(e.date)+'</small></div><div><b>'+esc(e.label)+'</b><div class="who">'+esc(e.who)+'</div></div><span class="chip '+tone(e.date)+'">'+esc(T.reviewWord)+'</span></button><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'"'+(e.rep?' data-rep="1" title="Remind me again in 30 days. Update the date when it is renewed.">In 30 days':' title="Hide this reminder">Done')+'</button></div>';
     });
     h+='</div>';
   });
@@ -1209,7 +1214,7 @@ function applySide(){document.body.classList.toggle('side-on',sideOn);if(sideVis
 if(mqSide.addEventListener)mqSide.addEventListener('change',function(){applySide()});
 window.addEventListener('resize',function(){if(sideVisible()&&view==='reminders'){view='tasks';render()}renderNav();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')});
 function sideItem(e,g){
-  return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-open="'+e.id+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+'</div></div><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'" title="Hide this reminder">Done</button></div>';
+  return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-open="'+e.id+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+'</div></div><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'"'+(e.rep?' data-rep="1" title="Remind me again in 30 days. Update the date when it is renewed.">In 30 days':' title="Hide this reminder">Done')+'</button></div>';
 }
 var sideLater=false;
 function renderSide(){
@@ -1422,8 +1427,8 @@ document.addEventListener('click',function(e){
     try{localStorage.setItem('cd.ui.secHidden',JSON.stringify(secHidden))}catch(x){}return}
   var t=e.target;
   var rdn=t.closest('[data-remdone]');
-  if(rdn&&rdn.getAttribute('data-remdone').indexOf('__home|')===0){e.stopPropagation();var hp=rdn.getAttribute('data-remdone').split('|'),nh=Object.assign({},HOME||{});nh.remDone=Object.assign({},nh.remDone||{});nh.remDone[hp[1]]=hp[2];homeWrite(nh);toast('Reminder hidden. It comes back if you change that date.');return}
-  if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast('Reminder hidden. It comes back if you change that date.')}return}
+  if(rdn&&rdn.getAttribute('data-remdone').indexOf('__home|')===0){e.stopPropagation();var hp=rdn.getAttribute('data-remdone').split('|'),nh=Object.assign({},HOME||{});nh.remDone=Object.assign({},nh.remDone||{});nh.remDone[hp[1]]=hp[2];homeWrite(nh);toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'));return}
+  if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'))}return}
   var tpb=t.closest('[data-trade]');if(tpb&&(tpb.disabled||(window.CD_tradeOpen&&!window.CD_tradeOpen(tpb.getAttribute('data-trade')))))return;if(tpb){saveTrade(tpb.getAttribute('data-trade'));var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+T.label);return}
   if(t.closest('[data-tpclose]')){var ov2=$('#tpOv');if(ov2)ov2.remove();return}
   var adv=t.closest('[data-adv]');
@@ -1977,10 +1982,10 @@ function homeF(k){var f=null;HOME_F.forEach(function(g){g[1].forEach(function(x)
 function homeV(h,k){h=h||{};if(h[k])return h[k];var f=homeF(k);if(f&&f[4]&&h[f[4].from])return addMonths(h[f[4].from],f[4].m);return ''}
 function homeEvents(){
   var h=HOME;if(!h||!h.addr1)return [];var out=[],who='My home · '+h.addr1;
-  function add(k,date,label){if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return;if(h.remDone&&h.remDone[k]===date)return;out.push({date:date,label:label,kind:'review',id:'__home',who:who,key:k})}
-  var de=homeV(h,'dealEnd');if(de){add('dealReview',addMonths(de,-6),'Review your mortgage deal (it ends '+fd(de)+')');add('dealEnd',de,'Mortgage deal ends')}
-  add('insRenewal',homeV(h,'insRenewal'),'Home insurance renewal');add('energyEnd',homeV(h,'energyEnd'),'Energy deal ends');
-  add('boilerDue',homeV(h,'boilerDue'),'Boiler service due');add('eicrDue',homeV(h,'eicrDue'),'Electrical check due');
+  function add(k,exp,label,lead){if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp))return;out.push({date:remDue(h.remDone&&h.remDone[k],exp,lead),label:label+' '+fd(exp),kind:'review',id:'__home',who:who,key:k,rep:1,exp:exp})}
+  add('dealEnd',homeV(h,'dealEnd'),'Mortgage deal ends',4);
+  add('insRenewal',homeV(h,'insRenewal'),'Home insurance renewal',2);add('energyEnd',homeV(h,'energyEnd'),'Energy deal ends',2);
+  add('boilerDue',homeV(h,'boilerDue'),'Boiler service due',2);add('eicrDue',homeV(h,'eicrDue'),'Electrical check due',2);
   return out;
 }
 function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases'||view==='myhome')render();renderRem();renderNav()}
