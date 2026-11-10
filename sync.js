@@ -1115,6 +1115,44 @@
   function sset(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function provOk() { return { ms: !!CFG.clientId && !/PASTE/i.test(CFG.clientId), g: !!CFG.googleClientId && !/PASTE/i.test(CFG.googleClientId) }; }
   var signPage = null;
+  /* split sign-up screen: form on the left, what the app does on the right (right side hidden on small screens) */
+  function signCss() {
+    if ($('mdSignCss')) return;
+    var st = document.createElement('style'); st.id = 'mdSignCss';
+    st.textContent = '#mdSign{background:#EFEEE9 !important}' +
+      '.mdsplit{display:flex;gap:18px;width:min(860px,100%);max-height:96vh;align-items:stretch}' +
+      '.mdl{flex:1 1 440px;min-width:0;overflow:auto;box-sizing:border-box;background:#FBFAF7;border:1px solid #E2DED6;border-radius:18px;padding:28px 34px;box-shadow:0 10px 30px rgba(16,28,38,.07)}' +
+      '.mdr{flex:0 0 360px;box-sizing:border-box;border-radius:18px;padding:34px 32px;color:#fff;display:flex;flex-direction:column;overflow:hidden;' +
+        'background:radial-gradient(120% 60% at 80% 0%,rgba(13,138,102,.35),transparent 60%),radial-gradient(90% 40% at 0% 100%,rgba(13,138,102,.22),transparent 60%),#0D1412}' +
+      '.mdr .k{font:600 11.5px system-ui;letter-spacing:.08em;text-transform:uppercase;color:#A9C9BD}' +
+      '.mdr h2{font:700 30px/1.12 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;margin:10px 0 22px;letter-spacing:-.3px}' +
+      '.mdr .pt{display:flex;gap:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);border-radius:12px;padding:14px;margin-bottom:10px}' +
+      '.mdr .pt i{flex:0 0 24px;height:24px;border-radius:50%;border:1px solid #2E8F72;color:#7FD0B3;font:600 12px/22px system-ui;text-align:center;font-style:normal}' +
+      '.mdr .pt b{display:block;font:600 14.5px system-ui;margin-bottom:3px}.mdr .pt span{font:13px/1.45 system-ui;color:#C9D3D0}' +
+      '.mdr .ft{margin-top:auto;padding-top:18px;font:13px/1.5 system-ui;color:#C9D3D0}' +
+      '.mdhd{display:flex;align-items:center;gap:10px;margin-bottom:22px}.mdhd a.br{display:flex;align-items:center;gap:10px;color:#101C26;text-decoration:none}' +
+      '.mdhd .lg{width:30px;height:30px;border-radius:8px;background:#0A6B50;position:relative;flex:0 0 30px}.mdhd .lg:after{content:"";position:absolute;inset:8px;border:2.5px solid #fff;border-radius:3px;border-top-width:5px}' +
+      '.mdhd b{display:block;font:600 15px system-ui}.mdhd small{display:block;font:11.5px system-ui;color:#6B7780}.mdhd .sw{margin-left:auto;font:14px system-ui;color:#37474F;text-decoration:none}' +
+      '.mdl h1{font:700 30px/1.15 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;margin:0 0 8px;color:#101C26;letter-spacing:-.3px}' +
+      '.mdl .lead{color:#58697A;font:14px/1.5 system-ui;margin:0 0 18px}' +
+      '.mdl label{font-weight:600}.mdoffer{background:#E2ECE7;border-radius:10px;padding:12px 14px;margin:16px 0 0;font:14px/1.5 system-ui;color:#101C26}' +
+      '.mdoffer summary{cursor:pointer;color:#0A6B50;font-weight:600;font-size:13px;margin-top:4px}.mdoffer p{margin:6px 0 0;font-size:13px;color:#37474F}' +
+      '.mdsteps{margin:14px 0 0;padding-left:20px;font:13px/1.5 system-ui;color:#58697A}.mdsteps li{margin:3px 0}' +
+      '.mdlegal{margin:16px 0 0;font:12px system-ui;color:#6B7780}.mdlegal a{color:#37474F}' +
+      '.mdl fieldset{border-color:#CFCBC2 !important;background:transparent}.mdl legend{font:600 14px system-ui !important;text-transform:none !important;letter-spacing:0 !important;color:#101C26 !important;border:0 !important}' +
+      '.mdl fieldset label{font-weight:400}.mdl fieldset label span span{font-weight:400}.mdl select{background:#F3F2EE !important}.mdhd .sw{white-space:nowrap}' +
+      '.mdoffer{display:none}' +
+      '@media(max-width:880px){.mdr{display:none}.mdl{padding:22px 20px}}@media(max-width:420px){.mdhd small{display:none}}';
+    document.head.appendChild(st);
+  }
+  function signAside() {
+    return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For landlords who manage their own properties</div>' +
+      '<h2>Your rentals, organised. Your records, yours.</h2>' +
+      '<div class="pt"><i>1</i><div><b>See what needs doing today</b><span>Overdue rent, expiring certificates and tasks are waiting on your first screen.</span></div></div>' +
+      '<div class="pt"><i>2</i><div><b>Each property in one place</b><span>Tenants, rent, deposit, repairs and documents together, ready when you need them.</span></div></div>' +
+      '<div class="pt"><i>3</i><div><b>Reminded before it is urgent</b><span>Gas safety and insurance two months ahead, mortgage deals four months ahead, straight to your Outlook calendar.</span></div></div>' +
+      '<div class="ft">Your records stay in your own OneDrive, so they are still yours even if you stop using the app. We never see your tenants\' details.</div></aside>';
+  }
   function showSignIn(msg, page) {
     if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); msg = 'You were logged out after ' + idleLabel() + ' of inactivity. Log in again to continue.'; } } catch (e) {} }
     var qp = (/[?&]p=(login|register)\b/.exec(location.search) || [])[1];
@@ -1123,7 +1161,8 @@
     /* the full welcome page explains the app; this screen is only for logging in or registering */
     if (page === 'home' && !window.CD_DEMO && location.protocol !== 'file:' && CFG.welcomePage !== false) { location.replace('home.html'); return; }
     signPage = page;
-    var ok = provOk(), card = 'width:min(460px,100%);max-height:96vh;overflow:auto;box-sizing:border-box;background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)';
+    var split = page === 'login' || page === 'register'; if (split) signCss();
+    var ok = provOk(), card = split ? '' : 'width:min(460px,100%);max-height:96vh;overflow:auto;box-sizing:border-box;background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)';
     var big = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:13px 16px;border-radius:10px;font:600 16px system-ui;cursor:pointer;text-align:left;margin-top:12px;box-sizing:border-box;';
     var pri = big + 'border:0;background:#0A6B50;color:#fff', sec = big + 'border:1px solid #2f4a40;background:#fff;color:#101C26';
     var sub = function (t, light) { return '<span style="font:400 13px system-ui;' + (light ? 'opacity:.9' : 'color:#58697A') + '">' + t + '</span>'; };
@@ -1131,19 +1170,22 @@
     var foot = '<p style="color:#58697A;font-size:12px;margin:14px 0 0"><a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>';
     var err = '<div id="mdErr" role="alert" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div>';
     var back = '<a href="#" data-sp="home" style="color:#0A6B50;font-size:13px">&larr; Back</a>';
+    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + esc(APPN) + '</b><small>Property records and reminders for landlords</small></span></a>' +
+      '<a href="#" class="sw" data-sp="' + other + '">' + (other === 'login' ? 'Log in' : 'Register') + '</a></div>'; };
+    var legal = '<p class="mdlegal"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>';
     var msLbl = (CFG.tenant || 'consumers') === 'consumers' ? 'Outlook or Hotmail' : 'Outlook, Hotmail or Microsoft 365';
     var html;
     if (!ok.ms && !ok.g) html = '<div style="' + card + '">' + head + '<p style="color:#A3261F;font-size:14px">This copy has not been set up yet (no Microsoft or Google app ID).</p></div>';
-    else if (page === 'login') html = '<div style="' + card + '">' + back + '<h2 style="margin:10px 0 4px;font-size:21px">Log in</h2>' +
-      '<p style="color:#58697A;margin:0 0 4px;font-size:14px;line-height:1.45">Choose the email account you registered with.</p>' +
+    else if (page === 'login') html = '<div class="mdl">' + hdr('register') + '<h1>Welcome back</h1>' +
+      '<p class="lead">Log in with the email account you registered with. Your records load from your own OneDrive.</p>' +
       (ok.ms ? '<button id="mdGo" style="' + pri + '">Log in with ' + msLbl + sub('Microsoft account', 1) + '</button>' : '') +
       (ok.g ? '<button id="mdGoG" style="' + (ok.ms ? sec : pri) + '">Log in with Gmail' + sub('Google account', !ok.ms) + '</button>' : '') +
-      '<p style="margin:16px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Register</a></p>' + err + foot + '</div>';
+      '<p style="margin:16px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' + err + legal + '</div>';
     else if (page === 'register') {
-      var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:10px;border:1px solid #D4DBDF;border-radius:8px;font:15px system-ui;margin:4px 0 10px';
+      var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
       var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
-      html = '<form id="rgForm" novalidate style="' + card + '">' + back + '<h2 style="margin:10px 0 4px;font-size:21px">Register</h2>' +
-        '<p style="color:#58697A;margin:0 0 12px;font-size:14px;line-height:1.45">Create your account. Your records are saved in your own Outlook or Gmail account, never on our computers.</p>' +
+      html = '<form id="rgForm" novalidate class="mdl">' + hdr('login') + '<h1>Free for a year. No card needed.</h1>' +
+        '<p class="lead">Every feature included. Set up your account in a few minutes. Your records are saved in your own ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, never on our computers.</p>' +
         '<p id="rgTop" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
         '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
@@ -1157,12 +1199,14 @@
         '<p style="margin:6px 0 0;font-size:14px;font-weight:600">Where should your records be kept?</p>' +
         (ok.ms ? '<button type="submit" data-rg="ms" style="' + (gm && ok.g ? sec : pri) + '">Register with ' + msLbl + sub('Saved in your OneDrive', !(gm && ok.g)) + '</button>' : '') +
         (ok.g ? '<button type="submit" data-rg="google" style="' + (gm || !ok.ms ? pri : sec) + '">Register with Gmail' + sub('Saved in your Google Drive', gm || !ok.ms) + '</button>' : '') +
-        '<p style="margin:10px 0 0;color:#58697A;font-size:12.5px">Next, ' + (ok.ms && ok.g ? 'Microsoft or Google' : ok.ms ? 'Microsoft' : 'Google') + ' asks you to sign in and to let the app use its own folder in your account.</p>' +
-        '<p style="margin:14px 0 0;font-size:14px">Already registered? <a href="#" data-sp="login" style="color:#0A6B50;font-weight:600">Log in</a></p>' + err + foot + '</form>';
+        '<ol class="mdsteps"><li>' + (ok.ms && ok.g ? 'Microsoft or Google' : ok.ms ? 'Microsoft' : 'Google') + ' asks you to sign in and to let the app use its own folder in your account.</li><li>Add your first property. That is all it takes to get set up.</li></ol>' +
+        (suOn() ? '<p style="margin:10px 0 0;color:#58697A;font-size:12.5px">We keep your name, email, mobile and business name so we can run your account and contact you about ' + esc(APPN) + '. We never receive your tenants\', clients\' or properties\' details. <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>' : '') +
+        '<p style="margin:14px 0 0;font-size:14px">Already registered? <a href="#" data-sp="login" style="color:#0A6B50;font-weight:600">Log in</a></p>' + err + legal + '</form>';
     } else html = '<div style="' + card + '">' + head +
       '<p style="color:#58697A;margin:0 0 6px;font-size:14px;line-height:1.45">Properties, tenants, rent, expenses and certificates in one place. Everything is saved in your own Outlook or Gmail account.</p>' +
       '<button data-sp="login" style="' + pri + '">Log in' + sub('I already have an account', 1) + '</button>' +
       '<button data-sp="register" style="' + sec + '">Register' + sub('New here? Create your account') + '</button>' + err + foot + '</div>';
+    if (split && (ok.ms || ok.g)) html = '<div class="mdsplit">' + html + signAside() + '</div>';
     var o = overlay(html);
     o.onclick = function (e) {
       var a = e.target.closest && e.target.closest('[data-sp]'); if (!a) return; e.preventDefault();
@@ -1467,6 +1511,21 @@
     document.body.appendChild(ov);
     ov.addEventListener('click', function (e) { if ((e.target.closest && e.target.closest('[data-g]')) || e.target === ov) ov.remove(); });
   }
+  /* ---------- sign-up list (only when config signupUrl is set): the ACCOUNT HOLDER's own details, never their records ---------- */
+  function suOn() { var u = CFG.signupUrl || ''; return /^https:\/\//.test(u) && !/PASTE/i.test(u); }
+  function suSend(kind) {
+    try {
+      if (!suOn() || !tok()) return;
+      var today = new Date().toISOString().slice(0, 10);
+      if (kind !== 'signup' && ls('cd.su') === today) return; /* at most once a day per device */
+      var p = profGet(), a = (tok() || {}).account || {}, email = String(p.email || a.mail || a.email || '').trim();
+      if (!email && !a.mail) return;
+      var body = { event: kind, name: p.name || a.name || '', email: email, accountEmail: a.mail || a.email || '', mobile: p.phone || '', business: p.biz || '',
+        trade: TR().label || '', account: PROV === 'google' ? 'Google' : 'Microsoft', app: APPN, build: window.MD_BUILD || '' };
+      fetch(CFG.signupUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), keepalive: true })
+        .then(function () { lset('cd.su', today); }).catch(function () {});
+    } catch (e) {}
+  }
   function guideMaybe() { if (!tok() || ls('cd.guide')) return false; lset('cd.guide', '1'); openGuide(); return true; }
   var pwWait = 0, setupSkipped = false, noAcct = false;
   function afterSignIn() {
@@ -1481,6 +1540,7 @@
       markAct(); profPush();
       if (reg.trade) { try { localWrite('settings', 'trade', { trade: reg.trade, updatedAt: Date.now() }, 'set'); } catch (e) {} }
       toast('Welcome, ' + reg.name + '. Your account is ready.');
+      setTimeout(function () { suSend('signup'); }, 2000);
       lset('cd.guide', '1'); setTimeout(openGuide, 600);
       return true;
     }
@@ -1863,6 +1923,7 @@
     flush(); pull();
     subs.appointments.push(function () { calSchedule(2000); }); calSchedule(5000); bkStart();
     COLS.forEach(function (c) { subs[c].push(function () { kdSchedule(8000); }); }); kdSchedule(9000);
+    setTimeout(function () { suSend('seen'); }, 20000);
     var ro = ls('cd.reopen'); if (ro) { lset('cd.reopen', null); setTimeout(function () { toast('Confirmed. You can now make your changes.'); reopenTarget(ro); }, 1800); }
     var cn = ls('cd.calnote'); if (cn) { lset('cd.calnote', null); setTimeout(function () { toast(cn); }, 1500); }
     setInterval(function () { if (document.visibilityState === 'visible') { flush(); pull(); calSchedule(3000); kdSchedule(6000); } }, 60000);

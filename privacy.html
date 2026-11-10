@@ -33,11 +33,12 @@
   <div class="top"><span>&#9670; <span data-app>Client Desk</span></span><a href="./">Back to the app</a></div>
   <div class="card">
     <h1>Privacy policy</h1>
-    <p class="muted">Last updated: 9 November 2026</p>
+    <p class="muted">Last updated: 10 November 2026</p>
 
     <div class="key">
       <p><b>The short version.</b> <span data-app>Client Desk</span> has no server and no database of its own. The records you type in are saved in <b>your own</b> Microsoft OneDrive or Google Drive account, in a folder named after your business, and on the device you are using. We (the people who provide the app) never receive, see or store your records, your clients' details or your account password.</p>
-      <p style="margin:0">There are no adverts, no tracking, no analytics and no cookies.</p>
+      <p style="margin:0" data-nosu>There are no adverts, no tracking, no analytics and no cookies.</p>
+      <p style="margin:0" data-su hidden>There are no adverts, no analytics and no cookies. We keep a short list of who has an account, with your own name, email, mobile and business name only (see section 3a).</p>
     </div>
 
     <h2>1. Who we are</h2>
@@ -63,6 +64,18 @@
       <tr><td>Your app password (if you choose one)</td><td>As a one-way scrambled code, on your device and in your own OneDrive or Google Drive folder. The password itself is never stored or sent anywhere</td><td>To log you in on your devices and lock the app when you are away</td></tr>
       <tr><td>Backup files</td><td>Only where you choose to save them</td><td>So you have your own copy of your records</td></tr>
     </table>
+
+    <div data-su hidden>
+    <h2>3a. Your account details we keep</h2>
+    <p>When you register, the app sends us <b>your own</b> account details so we can run the service and contact you about it. This is the only information that comes to us.</p>
+    <ul>
+      <li><b>What:</b> your name, email address, mobile number, business name, kind of work, whether you use a Microsoft or Google account, the date you signed up and the date you last used the app (sent at most once a day).</li>
+      <li><b>Never:</b> your records, your tenants', clients' or properties' details, your documents, notes or your password.</li>
+      <li><b>Why:</b> to know who has an account, to contact you about your account, changes to the service, problems or new features, and to count how many people use it. Our legal basis is our contract with you and our legitimate interest in running the service. We do not sell or share it, and we do not use it for advertising.</li>
+      <li><b>Where:</b> in our sign-up list, held for us by a service provider under contract.</li>
+      <li><b>How long:</b> while you use the app, and deleted 12 months after you last used it, or sooner if you ask.</li>
+    </ul>
+    </div>
 
     <h2>4. Permissions the app asks for</h2>
     <p><b>Microsoft</b> (only if you sign in with a Microsoft account):</p>
@@ -94,6 +107,7 @@
       <li><b>GitHub</b> (which hosts the app's files) may record technical details such as your IP address when your browser downloads the app, under GitHub's own privacy statement. The app's files contain no personal information.</li>
       <li>If you choose to send a document by WhatsApp, email or Share, it goes through the app or service you pick.</li>
     </ul>
+    <ul data-su hidden><li>Our <b>sign-up list</b> (section 3a) is held for us by a service provider under contract, who only stores it for us.</li></ul>
     <p>The app loads no outside scripts, fonts, trackers or adverts.</p>
 
     <h2>7. Your clients' information</h2>
@@ -111,11 +125,12 @@
     <ul>
       <li>Your records stay in your OneDrive or Google Drive until you delete them, in the app or by deleting the folder.</li>
       <li>Logging out removes the copy from that device.</li>
+      <li data-su hidden>Your account details in our sign-up list are deleted 12 months after you last use the app, or sooner if you email <span data-email></span>.</li>
       <li>To stop the app's access, remove it from your account: <a href="https://account.live.com/consent/Manage" rel="noopener" target="_blank">Microsoft app permissions</a> or <a href="https://myaccount.google.com/connections" rel="noopener" target="_blank">Google third-party connections</a>. Your files stay in your account until you delete them.</li>
     </ul>
 
     <h2>10. Your rights</h2>
-    <p>Because your records are in your own account, you can see, correct, download and delete them at any time yourself. We do not hold a copy, so we cannot share, change or delete it for you. If you have a question or concern, email <span data-email></span>. You also have the right to complain to the Information Commissioner's Office: <a href="https://ico.org.uk/make-a-complaint/" rel="noopener" target="_blank">ico.org.uk/make-a-complaint</a>.</p>
+    <p>Because your records are in your own account, you can see, correct, download and delete them at any time yourself. We do not hold a copy, so we cannot share, change or delete it for you.<span data-su hidden> For the account details in our sign-up list (section 3a), you can ask us for a copy, or ask us to correct or delete them, by emailing <span data-email></span>.</span> If you have a question or concern, email <span data-email></span>. You also have the right to complain to the Information Commissioner's Office: <a href="https://ico.org.uk/make-a-complaint/" rel="noopener" target="_blank">ico.org.uk/make-a-complaint</a>.</p>
 
     <h2>11. Children</h2>
     <p>The app is for businesses and self-employed people. It is not intended for anyone under 18.</p>
@@ -130,6 +145,9 @@
   var app = c.appName || 'Client Desk';
   document.querySelectorAll('[data-app]').forEach(function (e) { e.textContent = app; });
   document.title = 'Privacy policy · ' + app;
+  var su = !ph(c.signupUrl) && /^https:\/\//.test(c.signupUrl || '');
+  document.querySelectorAll('[data-su]').forEach(function (e) { e.hidden = !su; });
+  document.querySelectorAll('[data-nosu]').forEach(function (e) { e.hidden = su; });
   document.querySelectorAll('[data-owner]').forEach(function (e) {
     if (ph(c.ownerName)) { e.textContent = '[business name: add ownerName in config.js]'; e.className = 'fill'; } else e.textContent = c.ownerName;
   });
