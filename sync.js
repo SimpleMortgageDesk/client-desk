@@ -873,12 +873,12 @@
     function draw(msg) {
       var p = profGet();
       if (setup && !p.name && mem.settings.profile && mem.settings.profile.data) { var sp = mem.settings.profile.data; p = { name: sp.name || '', role: sp.role || '', biz: sp.biz || '', reg: sp.reg || '', phone: '', email: sp.email || '' }; p._ph = sp.phone || ''; }
-      var ph = p.phone || p._ph || ls('cd.bkwa') || '', acc = (tok() || {}).account || {}, lk = !setup && !!(p.name || p.phone || p.biz || p.email) && !reFresh(), dis = lk ? ' disabled' : '', needPw = !pinData();
+      var ph = p.phone || p._ph || ls('cd.bkwa') || '', acc = (tok() || {}).account || {}, lk = !setup && !!(p.name || p.phone || p.biz || p.email) && !reFresh(), dis = lk ? ' disabled' : '', needPw = !lockable();
       ov.innerHTML = '<div style="background:#fff;color:#101C26;width:min(520px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
         '<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">' + (setup ? 'Create your profile' : 'My profile') + '</h2>' + '<button class="btn ghost" data-p="close">Close</button></div>' +
-        (setup ? '<p style="margin:12px 0 0;padding:8px 10px;background:#EAF4EF;border-radius:8px;font-size:13px">' + (p._ph ? 'Welcome back. Your details were copied from your other device. Choose an app password for <b>this</b> device (it can be the same as your other one).' : 'Welcome. Add your name, mobile number and email, and choose a strong password. The password locks the app when you are away from it.') + '</p>' : '') +
+        (setup ? '<p style="margin:12px 0 0;padding:8px 10px;background:#EAF4EF;border-radius:8px;font-size:13px">' + (noAcct ? 'We could not find an account for <b>' + esc(acc.mail || 'this email account') + '</b>. Fill in your details to register.' : p._ph ? 'Welcome back. Your details were copied from your account. Choose a password: it will be used to log in on all your devices from now on.' : 'Welcome. Add your name, mobile number and email, and choose a strong password. The password locks the app when you are away from it.') + '</p>' : '') +
         '<p id="prTop" role="alert" style="display:none;margin:12px 0 0;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
-        '<p style="margin:12px 0;color:#58697A;font-size:13px">Your own details. They stay on this device. They sign your marketing and birthday messages, and your mobile number is used to send you your backup password on WhatsApp.</p>' +
+        '<p style="margin:12px 0;color:#58697A;font-size:13px">Your own details. They are kept on this device and in your own ' + SNAME() + ', so your other devices can use them. They sign your messages, and your mobile number is used to send you your backup password on WhatsApp.</p>' +
         (lk ? '<p style="margin:0 0 10px;padding:8px 10px;background:#FFF6DD;border-radius:8px;font-size:13px">Your profile is locked. To change anything, confirm with your Microsoft account password.</p><button class="btn" data-p="unlock" style="margin-bottom:12px">Unlock to edit</button>' : '') + '<label>Your name <span style="color:#b3261e">*</span></label><input id="prName"' + dis + ' type="text" maxlength="80" value="' + esc(p.name || '') + '" style="' + inp + '">' +
         '<label>Job title or role (for example Gas Safe registered engineer)</label><input id="prRole"' + dis + ' type="text" maxlength="80" value="' + esc(p.role || '') + '" placeholder="' + esc(TR().label || '') + '" style="' + inp + '">' +
         '<label>Business name</label><input id="prBiz"' + dis + ' type="text" maxlength="80" value="' + esc(p.biz || '') + '" style="' + inp + '">' +
@@ -887,7 +887,11 @@
           ? '<div style="display:flex;gap:8px;align-items:center;margin:4px 0 10px"><input type="text" disabled value="+' + esc(waShow(p.phone)) + '" style="flex:1;padding:8px 10px;border:1px solid #D4DBDF;border-radius:8px;font:inherit;background:#EDF0F1"><button class="btn ghost" data-p="chg"' + dis + '>Change number</button></div><div id="prChg"></div>'
           : '<input id="prPhone" type="tel" placeholder="e.g. 07700 900123" value="' + esc(ph) + '" style="' + inp + '"><p style="margin:-6px 0 10px;color:#58697A;font-size:12px">Once saved, the number is locked. Changing it later needs your Microsoft account password.</p>') +
         '<label>Email address <span style="color:#b3261e">*</span></label><input id="prMail"' + dis + ' type="email" maxlength="120" value="' + esc(p.email || acc.mail || '') + '" style="' + inp + '">' +
-        (needPw ? '<label>App password <span style="color:#b3261e">*</span></label><input id="prPw" type="password" autocomplete="new-password" maxlength="128" style="' + inp + '"><div id="prPwChk" style="margin-top:-6px">' + pwList('', p) + '</div><label>Repeat password <span style="color:#b3261e">*</span></label><input id="prPw2" type="password" autocomplete="new-password" maxlength="128" style="' + inp + '">'
+        (needPw ? '<label>Password <span style="color:#b3261e">*</span></label>' +
+            '<label style="display:flex;gap:8px;align-items:center;margin:4px 0;font-size:13.5px"><input type="radio" name="prMode" value="pw" checked> Create a password for this app</label>' +
+            '<label style="display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-size:13.5px"><input type="radio" name="prMode" value="acct"> Use the password of my ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + ' account</label>' +
+            '<div id="prPwBox"><input id="prPw" type="password" autocomplete="new-password" maxlength="128" placeholder="New password" style="' + inp + '"><div id="prPwChk" style="margin-top:-6px">' + pwList('', p) + '</div><label>Repeat password <span style="color:#b3261e">*</span></label><input id="prPw2" type="password" autocomplete="new-password" maxlength="128" style="' + inp + '"></div>'
+          : acctMode() ? '<p style="margin:0 0 10px;font-size:13px"><b>Password:</b> your ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + ' account password. <a href="#" data-p="pw">Use an app password instead</a></p>'
           : '<p style="margin:0 0 10px;font-size:13px"><b>App password:</b> set. <a href="#" data-p="pw">Change password</a></p>') +
         '<p style="margin:4px 0 10px;font-size:13px"><a href="#" data-p="biz"><b>Business details, logo and invoice settings</b></a>: your business address, logo, VAT number and how customers pay you, shown on quotes and invoices.</p>' +
         (setup ? '' : '<p style="margin:4px 0 10px;font-size:13px"></p>') + '<button class="btn" data-p="save"' + dis + '>' + (setup ? 'Create profile' : 'Save profile') + '</button><p id="prMsg" style="min-height:18px;margin:10px 0 0;color:#b3261e">' + esc(msg || '') + '</p></div>';
@@ -903,6 +907,7 @@
       else if (t && m) t.scrollIntoView({ block: 'start' });
     };
     ov.addEventListener('mousedown', function (e) { if (e.target === ov && !setup) ov.remove(); });
+    ov.addEventListener('change', function (e) { if (e.target.name === 'prMode') { var bx = $('prPwBox'); if (bx) bx.style.display = e.target.value === 'acct' ? 'none' : ''; } });
     ov.addEventListener('input', function (e) { if (e.target.id === 'prPw' || e.target.id === 'prName' || e.target.id === 'prMail') { var c = $('prPwChk'), pw = $('prPw'); if (c && pw) c.innerHTML = pwList(pw.value, { name: ($('prName') || {}).value, email: ($('prMail') || {}).value }); } });
     ov.addEventListener('click', async function (e) {
       var b = e.target.closest && e.target.closest('[data-p]'); if (!b) return; b = b.getAttribute('data-p');
@@ -918,7 +923,9 @@
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { say(mail ? 'That email address does not look right.' : 'Add your email address.', 'prMail'); return; }
         var ph = p.phone || '';
         if (!ph) { var raw = (($('prPhone') || {}).value || '').trim(); if (!raw) { say('Add your mobile number.', 'prPhone'); return; } ph = waNorm(raw); if (!ph) { say('That does not look like a phone number. Use the full number, for example 07700 900123.', 'prPhone'); return; } }
-        if (!pinData()) {
+        var md = ov.querySelector('input[name=prMode]:checked');
+        if (!lockable() && md && md.value === 'acct') { lset('cd.auth', 'acct'); markAct(); }
+        else if (!lockable()) {
           var pw1 = (($('prPw') || {}).value || ''), pw2 = (($('prPw2') || {}).value || '');
           if (!pwOk(pw1, { name: nm, email: mail })) { var miss = pwRules(pw1, { name: nm, email: mail }).filter(function (r) { return !r[0]; }).map(function (r) { return r[1].toLowerCase(); }); say('The password still needs: ' + miss.join('; ') + '.', 'prPw'); return; }
           if (pw1 !== pw2) { say('The two passwords do not match. Type the same password in both boxes.', 'prPw2'); return; }
@@ -927,7 +934,7 @@
         }
         var prof = { name: nm, role: (($('prRole') || {}).value || '').trim(), biz: (($('prBiz') || {}).value || '').trim(), reg: (($('prReg') || {}).value || '').trim(), phone: ph, email: mail };
         lset('cd.profile', JSON.stringify(prof));
-        try { localWrite('settings', 'profile', Object.assign({}, prof, { updatedAt: Date.now() }), 'set'); } catch (x) {}
+        profPush(); noAcct = false;
         if (setup) { ov.remove(); toast('Profile created. The app now locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.'); return; }
         draw('Profile saved.' + (ph ? ' Your number is now locked and is used in the backup section.' : ''));
       } else if (b === 'chg') {
@@ -1039,20 +1046,93 @@
     if (!o) { o = document.createElement('div'); o.id = 'mdSign'; o.style.cssText = 'position:fixed;inset:0;z-index:300;background:#EDF0F1;display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,"Segoe UI",sans-serif;color:#101C26'; document.body.appendChild(o); }
     o.innerHTML = html; return o;
   }
-  function showSignIn(msg) {
-    if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); msg = 'You were signed out after ' + idleLabel() + ' of inactivity. Sign in again to continue.'; } } catch (e) {} }
-    var msOk = !!CFG.clientId && !/PASTE/i.test(CFG.clientId), gOk = !!CFG.googleClientId && !/PASTE/i.test(CFG.googleClientId);
-    var bs = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:12px 14px;border-radius:10px;font:600 15px system-ui;cursor:pointer;text-align:left;margin-top:10px;';
-    var o = overlay('<div style="width:min(440px,100%);background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)">' +
-      '<div style="font-weight:700;font-size:20px;margin-bottom:6px">&#9670; ' + APPN + '</div>' +
-      '<p style="color:#58697A;margin:0 0 8px;font-size:14px;line-height:1.45">Choose where your records are kept. They are saved in your own account, in a folder named after your business, and nowhere else.</p>' +
-      (msOk ? '<button id="mdGo" style="' + bs + 'border:0;background:#0A6B50;color:#fff">Microsoft account<span style="font:400 13px system-ui;opacity:.9">' + ((CFG.tenant || 'consumers') === 'consumers' ? 'Personal Outlook, Hotmail or Live account' : 'Outlook, Hotmail or Microsoft 365') + '. Saved in OneDrive.</span></button>' : '') +
-      (gOk ? '<button id="mdGoG" style="' + bs + 'border:1px solid #2f4a40;background:#fff;color:#101C26">Google account<span style="font:400 13px system-ui;color:#58697A">Gmail or Google Workspace. Saved in Google Drive.</span></button>' : '') +
-      (!msOk && !gOk ? '<p style="color:#A3261F;font-size:14px">This copy has not been set up yet (no Microsoft or Google app ID).</p>' : '') +
-      '<p style="color:#58697A;font-size:12px;margin:12px 0 0">You can only use one account per device at a time. Logging out removes the records from this device; they stay in your account. <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>' +
-      '<div id="mdErr" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div></div>');
-    var b = o.querySelector('#mdGo'); if (b) b.onclick = function () { b.disabled = true; lset('cd.prov', 'ms'); startLogin(); };
-    var bg = o.querySelector('#mdGoG'); if (bg) bg.onclick = function () { bg.disabled = true; gStart(); };
+  /* ---------- landing page: Log in or Register (no server: the account is the user's own Microsoft or Google account) ---------- */
+  function sget(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function sset(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function provOk() { return { ms: !!CFG.clientId && !/PASTE/i.test(CFG.clientId), g: !!CFG.googleClientId && !/PASTE/i.test(CFG.googleClientId) }; }
+  var signPage = null;
+  function showSignIn(msg, page) {
+    if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); msg = 'You were logged out after ' + idleLabel() + ' of inactivity. Log in again to continue.'; } } catch (e) {} }
+    page = page || (sget('cd.reg') ? 'register' : msg ? 'login' : 'home'); signPage = page;
+    var ok = provOk(), card = 'width:min(460px,100%);max-height:96vh;overflow:auto;box-sizing:border-box;background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)';
+    var big = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:13px 16px;border-radius:10px;font:600 16px system-ui;cursor:pointer;text-align:left;margin-top:12px;box-sizing:border-box;';
+    var pri = big + 'border:0;background:#0A6B50;color:#fff', sec = big + 'border:1px solid #2f4a40;background:#fff;color:#101C26';
+    var sub = function (t, light) { return '<span style="font:400 13px system-ui;' + (light ? 'opacity:.9' : 'color:#58697A') + '">' + t + '</span>'; };
+    var head = '<div style="font-weight:700;font-size:20px;margin-bottom:6px">&#9670; ' + APPN + '</div>';
+    var foot = '<p style="color:#58697A;font-size:12px;margin:14px 0 0"><a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>';
+    var err = '<div id="mdErr" role="alert" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div>';
+    var back = '<a href="#" data-sp="home" style="color:#0A6B50;font-size:13px">&larr; Back</a>';
+    var msLbl = (CFG.tenant || 'consumers') === 'consumers' ? 'Outlook or Hotmail' : 'Outlook, Hotmail or Microsoft 365';
+    var html;
+    if (!ok.ms && !ok.g) html = '<div style="' + card + '">' + head + '<p style="color:#A3261F;font-size:14px">This copy has not been set up yet (no Microsoft or Google app ID).</p></div>';
+    else if (page === 'login') html = '<div style="' + card + '">' + back + '<h2 style="margin:10px 0 4px;font-size:21px">Log in</h2>' +
+      '<p style="color:#58697A;margin:0 0 4px;font-size:14px;line-height:1.45">Choose the email account you registered with.</p>' +
+      (ok.ms ? '<button id="mdGo" style="' + pri + '">Log in with ' + msLbl + sub('Microsoft account', 1) + '</button>' : '') +
+      (ok.g ? '<button id="mdGoG" style="' + (ok.ms ? sec : pri) + '">Log in with Gmail' + sub('Google account', !ok.ms) + '</button>' : '') +
+      '<p style="margin:16px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Register</a></p>' + err + foot + '</div>';
+    else if (page === 'register') {
+      var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:10px;border:1px solid #D4DBDF;border-radius:8px;font:15px system-ui;margin:4px 0 10px';
+      var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
+      html = '<form id="rgForm" novalidate style="' + card + '">' + back + '<h2 style="margin:10px 0 4px;font-size:21px">Register</h2>' +
+        '<p style="color:#58697A;margin:0 0 12px;font-size:14px;line-height:1.45">Create your account. Your records are saved in your own Outlook or Gmail account, never on our computers.</p>' +
+        '<p id="rgTop" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
+        '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
+        '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
+        '<label style="font-size:14px">Mobile number <span style="color:#b3261e">*</span><input id="rgPhone" type="tel" autocomplete="tel" placeholder="e.g. 07700 900123" value="' + esc(r.phoneRaw || '') + '" style="' + inp + '"></label>' +
+        '<fieldset style="border:1px solid #D4DBDF;border-radius:8px;padding:10px 12px;margin:2px 0 10px"><legend style="font-size:14px;padding:0 4px">Password <span style="color:#b3261e">*</span></legend>' +
+        '<label style="display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-size:14px"><input type="radio" name="rgMode" value="pw"' + (mode === 'pw' ? ' checked' : '') + ' style="margin-top:3px"><span>Create a password for this app</span></label>' +
+        '<label style="display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-size:14px"><input type="radio" name="rgMode" value="acct"' + (mode === 'acct' ? ' checked' : '') + ' style="margin-top:3px"><span>Use the password of my Outlook or Gmail account<br><span style="font-size:12.5px;color:#58697A">You type it on Microsoft\'s or Google\'s own page. This app never sees it.</span></span></label>' +
+        '<div id="rgPwBox"' + (mode === 'acct' ? ' style="display:none"' : '') + '><input id="rgPw" type="password" autocomplete="new-password" maxlength="128" placeholder="New password" style="' + inp + ';margin-top:8px"><div id="rgPwChk">' + pwList('', r) + '</div>' +
+        '<input id="rgPw2" type="password" autocomplete="new-password" maxlength="128" placeholder="Repeat password" style="' + inp + '"></div></fieldset>' +
+        '<p style="margin:6px 0 0;font-size:14px;font-weight:600">Where should your records be kept?</p>' +
+        (ok.ms ? '<button type="submit" data-rg="ms" style="' + (gm && ok.g ? sec : pri) + '">Register with ' + msLbl + sub('Saved in your OneDrive', !(gm && ok.g)) + '</button>' : '') +
+        (ok.g ? '<button type="submit" data-rg="google" style="' + (gm || !ok.ms ? pri : sec) + '">Register with Gmail' + sub('Saved in your Google Drive', gm || !ok.ms) + '</button>' : '') +
+        '<p style="margin:10px 0 0;color:#58697A;font-size:12.5px">Next, ' + (ok.ms && ok.g ? 'Microsoft or Google' : ok.ms ? 'Microsoft' : 'Google') + ' asks you to sign in and to let the app use its own folder in your account.</p>' +
+        '<p style="margin:14px 0 0;font-size:14px">Already registered? <a href="#" data-sp="login" style="color:#0A6B50;font-weight:600">Log in</a></p>' + err + foot + '</form>';
+    } else html = '<div style="' + card + '">' + head +
+      '<p style="color:#58697A;margin:0 0 6px;font-size:14px;line-height:1.45">Properties, tenants, rent, expenses and certificates in one place. Everything is saved in your own Outlook or Gmail account.</p>' +
+      '<button data-sp="login" style="' + pri + '">Log in' + sub('I already have an account', 1) + '</button>' +
+      '<button data-sp="register" style="' + sec + '">Register' + sub('New here? Create your account') + '</button>' + err + foot + '</div>';
+    var o = overlay(html);
+    o.onclick = function (e) {
+      var a = e.target.closest && e.target.closest('[data-sp]'); if (!a) return; e.preventDefault();
+      if (a.getAttribute('data-sp') === 'home') sset('cd.reg', null);
+      showSignIn('', a.getAttribute('data-sp'));
+    };
+    var b = o.querySelector('#mdGo'); if (b) b.onclick = function () { b.disabled = true; sset('cd.intent', 'login'); lset('cd.prov', 'ms'); startLogin(); };
+    var bg = o.querySelector('#mdGoG'); if (bg) bg.onclick = function () { bg.disabled = true; sset('cd.intent', 'login'); gStart(); };
+    var f = o.querySelector('#rgForm'); if (!f) return;
+    var val = function (id) { return ((o.querySelector('#' + id) || {}).value || '').trim(); };
+    var modeNow = function () { var c = o.querySelector('input[name=rgMode]:checked'); return c ? c.value : 'pw'; };
+    var say = function (m, fid) {
+      var t = o.querySelector('#rgTop'); t.textContent = m; t.style.display = m ? 'block' : 'none';
+      o.querySelectorAll('input').forEach(function (i) { i.style.borderColor = ''; });
+      var fe = o.querySelector('#rgFieldErr'); if (fe) fe.remove();
+      var fl = fid && o.querySelector('#' + fid);
+      if (fl && m) { fl.style.borderColor = '#b3261e'; fe = document.createElement('div'); fe.id = 'rgFieldErr'; fe.setAttribute('role', 'alert'); fe.style.cssText = 'margin:-6px 0 10px;color:#b3261e;font-size:13px;font-weight:600'; fe.textContent = m; fl.parentNode.insertBefore(fe, fl.nextSibling); try { fl.focus({ preventScroll: true }); } catch (x) {} fl.scrollIntoView({ block: 'center' }); }
+      else if (m) t.scrollIntoView({ block: 'start' });
+    };
+    f.addEventListener('input', function (e) { if (/^rg(Pw|Name|Mail)$/.test(e.target.id)) o.querySelector('#rgPwChk').innerHTML = pwList(val('rgPw') && o.querySelector('#rgPw').value, { name: val('rgName'), email: val('rgMail') }); });
+    f.addEventListener('change', function (e) { if (e.target.name === 'rgMode') o.querySelector('#rgPwBox').style.display = modeNow() === 'acct' ? 'none' : ''; });
+    f.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var which = (e.submitter && e.submitter.getAttribute('data-rg')) || (ok.ms ? 'ms' : 'google');
+      var nm = val('rgName'), mail = val('rgMail'), raw = val('rgPhone'), ph = waNorm(raw), mode = modeNow();
+      if (!nm) return say('Add your full name.', 'rgName');
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return say(mail ? 'That email address does not look right.' : 'Add your email address.', 'rgMail');
+      if (!raw) return say('Add your mobile number.', 'rgPhone');
+      if (!ph) return say('That does not look like a phone number. Use the full number, for example 07700 900123.', 'rgPhone');
+      var reg = { name: nm, email: mail, phone: ph, phoneRaw: raw, mode: mode, prov: which, t: Date.now() };
+      if (mode === 'pw') {
+        var p1 = o.querySelector('#rgPw').value, p2 = o.querySelector('#rgPw2').value;
+        if (!pwOk(p1, { name: nm, email: mail })) { var miss = pwRules(p1, { name: nm, email: mail }).filter(function (x) { return !x[0]; }).map(function (x) { return x[1].toLowerCase(); }); return say('The password still needs: ' + miss.join('; ') + '.', 'rgPw'); }
+        if (p1 !== p2) return say('The two passwords do not match. Type the same password in both boxes.', 'rgPw2');
+        try { var salt = crypto.getRandomValues(new Uint8Array(16)); reg.pin = { kind: 'pw', s: b64(salt), h: await pinHash(p1, salt) }; } catch (x) { return say('This browser cannot store a password. Try another browser.'); }
+      }
+      say(''); f.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+      sset('cd.reg', reg); sset('cd.intent', 'register');
+      if (which === 'google') gStart(); else { lset('cd.prov', 'ms'); startLogin(); }
+    });
   }
   function sessionExpired() { showSignIn('Your sign-in has expired. Please sign in again. Your unsaved changes are kept on this device.'); }
 
@@ -1170,21 +1250,40 @@
   function pwList(pw, p) { return '<ul style="list-style:none;padding:0;margin:2px 0 10px;font-size:12.5px">' + pwRules(pw, p).map(function (r) { return '<li style="color:' + (r[0] ? '#1b5e20' : '#8a4b00') + '">' + (r[0] ? '✓ ' : '○ ') + r[1] + '</li>'; }).join('') + '</ul>'; }
   window.CD_pwOk = pwOk;
   function pinData() { try { return JSON.parse(ls('cd.pin') || 'null'); } catch (e) { return null; } }
+  /* 'acct' = the user unlocks by signing in to Microsoft/Google again instead of an app password */
+  function acctMode() { return ls('cd.auth') === 'acct' && !pinData(); }
+  function lockable() { return !!pinData() || acctMode(); }
+  /* a scrambled copy of the app password goes into the user's own storage, so "Log in" works on any device */
+  function authBlob() { var d = pinData(); return d ? { auth: { mode: 'pw', s: d.s, h: d.h } } : acctMode() ? { auth: { mode: 'acct' } } : {}; }
+  function profPush() { var p = profGet(); if (!p.name) return; try { localWrite('settings', 'profile', Object.assign({}, p, authBlob(), { updatedAt: Date.now() }), 'set'); } catch (e) {} }
   function b64(buf) { var a = new Uint8Array(buf), s2 = ''; for (var i = 0; i < a.length; i++) s2 += String.fromCharCode(a[i]); return btoa(s2); }
   function unb64(t) { var s2 = atob(t), a = new Uint8Array(s2.length); for (var i = 0; i < s2.length; i++) a[i] = s2.charCodeAt(i); return a; }
   async function pinHash(pin, salt) {
     var k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
     return b64(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salt, iterations: 150000, hash: 'SHA-256' }, k, 256));
   }
-  async function pinSet(pin) { var salt = crypto.getRandomValues(new Uint8Array(16)); lset('cd.pin', JSON.stringify({ kind: 'pw', s: b64(salt), h: await pinHash(pin, salt) })); }
+  async function pinSet(pin) { var salt = crypto.getRandomValues(new Uint8Array(16)); lset('cd.pin', JSON.stringify({ kind: 'pw', s: b64(salt), h: await pinHash(pin, salt) })); lset('cd.auth', null); profPush(); }
   async function pinCheck(pin) { var d = pinData(); if (!d) return true; return (await pinHash(pin, unb64(d.s))) === d.h; }
-  function lockDue() { return !!pinData() && Date.now() - lastAct() >= LOCK_MS; }
-  function lockNow() {
-    if (locked || !pinData()) return;
+  function lockDue() { return lockable() && Date.now() - lastAct() >= LOCK_MS; }
+  function lockNow(note) {
+    if (locked || !lockable()) return;
     locked = true; lset('cd.locked', '1'); pinFails = 0;
     var ov = document.createElement('div'); ov.id = 'mdLock';
     ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:#0f1f1a;color:#fff;display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,sans-serif';
-    ov.innerHTML = '<form style="width:min(340px,100%);text-align:center" autocomplete="off"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px;font-size:22px">' + APPN + ' is locked</h2><p style="margin:0 0 16px;color:#b9c8c0;font-size:13px">Enter your app password to carry on.</p>' +
+    if (acctMode()) {
+      ov.innerHTML = '<div style="width:min(360px,100%);text-align:center"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px;font-size:22px">' + esc(note || APPN + ' is locked') + '</h2><p style="margin:0 0 16px;color:#b9c8c0;font-size:13px">Sign in to your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account again to carry on.</p>' +
+        '<button type="button" id="mdLockAcct" style="width:100%;padding:12px;font-size:16px;border:0;border-radius:8px;background:#2f8f6b;color:#fff;cursor:pointer">Unlock with ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + '</button><p style="margin:12px 0 0"><button type="button" id="mdLockOut" style="background:none;border:0;color:#b9c8c0;text-decoration:underline;cursor:pointer;font-size:13px">Log out</button></p></div>';
+      document.body.appendChild(ov);
+      var app0 = $('app'); if (app0) { try { app0.inert = true; } catch (e) {} }
+      $('mdLockAcct').addEventListener('click', function () {
+        this.disabled = true;
+        if (PROV === 'google') { lset('cd.gunlock', '1'); lset('cd.prov', 'google'); location.href = gUrl('renew', ((tok() || {}).account || {}).mail || ''); }
+        else { lset('cd.reauth', '1'); lset('cd.unlock', '1'); startLogin(true); }
+      });
+      $('mdLockOut').addEventListener('click', function () { signOut(); });
+      return;
+    }
+    ov.innerHTML = '<form style="width:min(340px,100%);text-align:center" autocomplete="off"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px;font-size:22px">' + esc(note || APPN + ' is locked') + '</h2><p style="margin:0 0 16px;color:#b9c8c0;font-size:13px">Enter your app password to carry on.</p>' +
       '<input id="mdLockPin" type="password" autocomplete="current-password" maxlength="128" aria-label="App password" style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;text-align:center;border-radius:8px;border:1px solid #3d5a4e;background:#fff;color:#101C26">' +
       '<button type="submit" id="mdLockGo" style="width:100%;margin-top:12px;padding:12px;font-size:16px;border:0;border-radius:8px;background:#2f8f6b;color:#fff;cursor:pointer">Unlock</button>' +
       '<p id="mdLockMsg" style="min-height:20px;margin:10px 0 0;color:#ffb4a8;font-size:13px"></p><button type="button" id="mdLockOut" style="background:none;border:0;color:#b9c8c0;text-decoration:underline;cursor:pointer;font-size:13px">Forgot your password? Log out</button></form>';
@@ -1215,7 +1314,7 @@
   }
   function checkLock() { if (!locked && tok() && lockDue()) lockNow(); }
   function startLockWatch() {
-    if (pinData() && (ls('cd.locked') === '1' || lockDue())) lockNow();
+    if (lockable() && (ls('cd.locked') === '1' || lockDue())) lockNow();
     setInterval(checkLock, Math.min(15000, LOCK_MS / 2));
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkLock(); });
     window.addEventListener('focus', checkLock); window.addEventListener('pageshow', checkLock);
@@ -1234,11 +1333,50 @@
     ov.addEventListener('click', function (e) { if ((e.target.closest && e.target.closest('[data-g]')) || e.target === ov) ov.remove(); });
   }
   function guideMaybe() { if (!tok() || ls('cd.guide')) return false; lset('cd.guide', '1'); openGuide(); return true; }
-  var pwWait = 0, setupSkipped = false;
+  var pwWait = 0, setupSkipped = false, noAcct = false;
+  function afterSignIn() {
+    var sp = (mem.settings.profile && mem.settings.profile.data) || null, reg = sget('cd.reg'), intent = sget('cd.intent');
+    sset('cd.reg', null); sset('cd.intent', null);
+    if (reg) {
+      if (sp && sp.name) { adopt(sp, true); return true; }
+      var p = profGet();
+      lset('cd.profile', JSON.stringify({ name: reg.name, role: p.role || '', biz: p.biz || '', reg: p.reg || '', phone: reg.phone, email: reg.email }));
+      if (reg.mode === 'pw' && reg.pin) { lset('cd.pin', JSON.stringify(reg.pin)); lset('cd.auth', null); }
+      else { lset('cd.pin', null); lset('cd.auth', 'acct'); }
+      markAct(); profPush();
+      toast('Welcome, ' + reg.name + '. Your account is ready.');
+      lset('cd.guide', '1'); setTimeout(openGuide, 600);
+      return true;
+    }
+    if (sp && sp.name && (!profGet().name || !lockable())) { adopt(sp, false); return true; }
+    if (!(sp && sp.name) && !profGet().name && intent === 'login') { noAcct = true; lset('cd.guide', '1'); openProfile(true); return true; }
+    /* keep the password the same on every device: take a change made on another device, or upload this device's one if none is saved yet */
+    if (profGet().name && sp && sp.auth) {
+      var d = pinData(), a = sp.auth;
+      if (a.mode === 'pw' && a.s && a.h && (!d || d.h !== a.h)) { lset('cd.pin', JSON.stringify({ kind: 'pw', s: a.s, h: a.h })); lset('cd.auth', null); }
+      else if (a.mode === 'acct' && (d || ls('cd.auth') !== 'acct')) { lset('cd.pin', null); lset('cd.auth', 'acct'); }
+    } else if (profGet().name && lockable()) profPush();
+    return false;
+  }
+  /* an account already exists in the user's storage: use its profile and its password on this device */
+  function adopt(sp, fromReg) {
+    lset('cd.profile', JSON.stringify({ name: sp.name || '', role: sp.role || '', biz: sp.biz || '', reg: sp.reg || '', phone: sp.phone || '', email: sp.email || '' }));
+    lset('cd.guide', '1');
+    var a = sp.auth || {};
+    if (a.mode === 'pw' && a.s && a.h) {
+      lset('cd.pin', JSON.stringify({ kind: 'pw', s: a.s, h: a.h })); lset('cd.auth', null);
+      lockNow(fromReg ? 'You already have an account' : 'Welcome back, ' + sp.name);
+      if (fromReg) { var m = $('mdLockMsg'); if (m) m.textContent = 'This email account is already registered. Enter the password you chose then.'; }
+      return;
+    }
+    if (a.mode === 'acct') { lset('cd.pin', null); lset('cd.auth', 'acct'); toast(fromReg ? 'You already have an account, so you are now logged in.' : 'Welcome back, ' + sp.name + '.'); return; }
+    openProfile(true);
+  }
   function pinWarnMaybe() {
     if (!tok() || setupSkipped) return;
-    if (!firstPullDone && pwWait++ < 10) { setTimeout(pinWarnMaybe, 1000); return; }
-    if (ls('cd.guide') && !$('mdProf') && (!pinData() || !profGet().name)) { openProfile(true); return; }
+    if (!firstPullDone && pwWait++ < ((sget('cd.reg') || sget('cd.intent')) ? 60 : 10)) { setTimeout(pinWarnMaybe, 1000); return; }
+    if (afterSignIn()) return;
+    if (ls('cd.guide') && !$('mdProf') && (!lockable() || !profGet().name)) { openProfile(true); return; }
     if (!ls('cd.guide')) { guideMaybe(); setTimeout(pinWarnMaybe, 1500); }
   }
   function openPin() {
@@ -1256,7 +1394,7 @@
         '<label>Repeat new password<input id="pnNew2" type="password" autocomplete="new-password" maxlength="128" style="' + inS + '"></label>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"><button class="btn" data-p="save">' + (has ? 'Change password' : 'Set password') + '</button>' + (has ? '<button class="btn ghost" data-p="lock">Lock now</button>' : '') + '</div>' +
         '<p id="pnMsg" style="min-height:18px;margin:12px 0 0;color:' + (good ? '#1b5e20' : '#b3261e') + '">' + esc(msg || '') + '</p>' +
-        '<p style="margin:8px 0 0;color:#58697A;font-size:12px">This password locks the app on this device. It is stored here only as a scrambled code, never in your online storage. If you forget it, log out and sign in again with Microsoft, then set a new one.</p></div>';
+        '<p style="margin:8px 0 0;color:#58697A;font-size:12px">You use this password to log in and to unlock the app. It is kept only as a one-way scrambled code, on this device and in your own ' + SNAME() + ', so it works on all your devices. The password itself is never stored or sent anywhere.</p></div>';
     }
     draw('');
     ov.addEventListener('input', function (e) { if (e.target.id === 'pnNew') { var c = $('pnChk'); if (c) c.innerHTML = pwList(e.target.value, profGet()); } });
@@ -1411,7 +1549,7 @@
         setTok(null); throw new Error('Sign in with ' + prev.split(':').slice(1).join(':') + ' to upload those changes first.');
       }
       await idbClearAll(); COLS.forEach(function (c) { mem[c] = {}; }); dirty = {};
-      ['cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel'].forEach(function (k) { lset(k, null); }); gcols = {};
+      ['cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.pin', 'cd.profile', 'cd.auth', 'cd.locked'].forEach(function (k) { lset(k, null); }); gcols = {};
     }
     lset('cd.owner', cur);
   }
@@ -1428,6 +1566,11 @@
       setTok({ access: gr.at, exp: Date.now() + gr.exp * 1000, prov: 'google', account: prevG });
       var gu = {}; try { var ur = await gfetch(GAPI + '/oauth2/v3/userinfo'); if (ur.ok) gu = await ur.json(); } catch (e) {}
       var t0 = tok(); t0.account = { name: gu.name || '', mail: gu.email || '' }; setTok(t0);
+      if (ls('cd.gunlock') === '1') {
+        lset('cd.gunlock', null);
+        if (prevG.mail && String(prevG.mail).toLowerCase() !== String(t0.account.mail).toLowerCase()) { setTok(null); throw new Error('That was a different Google account (' + t0.account.mail + '), so the app stayed locked. Log in with ' + prevG.mail + '.'); }
+        lset('cd.locked', null);
+      }
       await ownerCheck('google', t0.account.mail); markAct();
       if (wasG && prevG.mail && t0.account.mail && prevG.mail.toLowerCase() !== t0.account.mail.toLowerCase()) lset('cd.reauthOk', null);
       return;
@@ -1464,8 +1607,9 @@
     if (ls('cd.reauth') === '1') {
       lset('cd.reauth', null);
       var pm = String(prevAcc.mail || '').toLowerCase(), nm = String(meMail || '').toLowerCase();
-      if (pm && nm && pm !== nm) { setTok(null); lset('cd.reauthNext', null); throw new Error('That was a different Microsoft account from the one signed in here, so nothing was changed. Please sign in again.'); }
+      if (pm && nm && pm !== nm) { setTok(null); lset('cd.reauthNext', null); lset('cd.unlock', null); throw new Error('That was a different Microsoft account from the one signed in here, so nothing was changed. Please sign in again.'); }
       lset('cd.reauthOk', String(Date.now())); lset('cd.reopen', ls('cd.reauthNext')); lset('cd.reauthNext', null);
+      if (ls('cd.unlock') === '1') { lset('cd.unlock', null); lset('cd.locked', null); }
     }
   }
   /* ---------- the folder named after the business (created on first sign-in, found again on other devices) ---------- */
@@ -1568,6 +1712,7 @@
     try { await handleRedirect(); } catch (e) { showSignIn(e.message); return; }
     if (!tok()) { showSignIn(''); return; }
     if (isIdle()) { await autoSignOut(); return; }
+    var rg0 = sget('cd.reg'); if (rg0 && !profGet().name) lset('cd.profile', JSON.stringify({ name: rg0.name, role: '', biz: '', reg: '', phone: rg0.phone, email: rg0.email }));
     if (FOLDER() === null || (PROV === 'google' && !ls('cd.gfid'))) {
       try { await ensureWorkspace(); }
       catch (e) {
