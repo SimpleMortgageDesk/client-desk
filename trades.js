@@ -375,7 +375,7 @@
       { k: 'licenceExpiry', l: 'Licence expires' }, { k: 'insuranceRenewal', l: 'Insurance renewal' },
       { k: 'btlFixedUntil', l: 'Mortgage deal ends', ref: 'btlLender', refL: '' }],
     value: { k: 'rent', l: 'Rent roll' }, addr: 'propertyAddress', sub: 'type', subRef: 'agent',
-    cols: [['tenants', 'Tenants'], ['rentSum', 'Rent a month'], ['rentSt', 'Rent status'], ['occ', 'Status'], ['type', 'Type'], ['epcRating', 'EPC'], ['review', 'Next key date'], ['task', 'Next task due']],
+    cols: [['tenants', 'Tenants'], ['rentSum', 'Rent a month'], ['rentSt', 'Rent status'], ['occ', 'Status'], ['legal', 'Legal to let'], ['type', 'Type'], ['epcRating', 'EPC'], ['review', 'Next key date'], ['task', 'Next task due']],
     strip: [['rentSum', 'Rent a month'], ['occ', 'Status'], ['next', 'Next key date']],
     apptTypes: ['Viewing', 'Check-in', 'Inspection', 'Gas safety check', 'Repair visit', 'Check-out', 'Other'],
     apptSubject: 'Property appointment', taskHint: 'book gas safety check', reviewWord: 'Due',
@@ -412,9 +412,9 @@
     if (t.tenancyFields) { t.tByKey = {}; t.tenancyFields.forEach(function (f) { t.tByKey[f.k] = f; }); }
   });
 
-  /* TRIAL LOCK: the app is fixed to this one trade. The picker and "Your trade" in Settings are hidden.
-     Set ONLY to '' to bring back every trade. Nothing is deleted either way. */
-  var ONLY = 'landlord';
+  /* TRADE LOCK: set ONLY to a trade id (for example 'landlord') to fix the app to that one trade and hide the picker.
+     '' = every trade is offered: users choose when they register and can change it in Settings. */
+  var ONLY = '';
   if (!T[ONLY]) ONLY = '';
   var cur = null;
   try { cur = localStorage.getItem('cd.trade'); } catch (e) {}

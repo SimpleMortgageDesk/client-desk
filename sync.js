@@ -6,6 +6,8 @@
   var CFG = window.MD_CONFIG || {};
   var APPN = CFG.appName || 'Client Desk', APPF = APPN.replace(/[^A-Za-z0-9]+/g, '-');
   var TR = function () { return (window.CD_T && window.CD_T()) || { noun: ['Record', 'Records'], fields: [], id: 'general' }; };
+  /* a registration in progress chose a kind of work: use it before the app draws anything */
+  try { var reg0 = JSON.parse(sessionStorage.getItem('cd.reg') || 'null'); if (reg0 && reg0.trade && window.CD_tradeSet) window.CD_tradeSet(reg0.trade); } catch (e) {}
   var BASE_SCOPES = 'Files.ReadWrite.AppFolder User.Read offline_access';
   var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
   var lset = function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
@@ -1084,6 +1086,7 @@
         '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Mobile number <span style="color:#b3261e">*</span><input id="rgPhone" type="tel" autocomplete="tel" placeholder="e.g. 07700 900123" value="' + esc(r.phoneRaw || '') + '" style="' + inp + '"></label>' +
+        (function () { var TT = window.CD_TRADES || { order: [], all: {} }; if (TT.only || !TT.order.length) return ''; return '<label style="font-size:14px">What kind of work do you do? <span style="color:#b3261e">*</span><select id="rgTrade" style="' + inp + ';background:#fff">' + '<option value="">Choose…</option>' + TT.order.map(function (id) { return '<option value="' + id + '"' + (r.trade === id ? ' selected' : '') + '>' + esc(TT.all[id].label) + '</option>'; }).join('') + '</select></label><p style="margin:-6px 0 10px;color:#58697A;font-size:12.5px">This sets the fields, reminders and documents in the app. You can change it later in Settings.</p>'; })() +
         '<fieldset style="border:1px solid #D4DBDF;border-radius:8px;padding:10px 12px;margin:2px 0 10px"><legend style="font-size:14px;padding:0 4px">Password <span style="color:#b3261e">*</span></legend>' +
         '<label style="display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-size:14px"><input type="radio" name="rgMode" value="pw"' + (mode === 'pw' ? ' checked' : '') + ' style="margin-top:3px"><span>Create a password for this app</span></label>' +
         '<label style="display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-size:14px"><input type="radio" name="rgMode" value="acct"' + (mode === 'acct' ? ' checked' : '') + ' style="margin-top:3px"><span>Use the password of my Outlook or Gmail account<br><span style="font-size:12.5px;color:#58697A">You type it on Microsoft\'s or Google\'s own page. This app never sees it.</span></span></label>' +
@@ -1111,7 +1114,7 @@
     var modeNow = function () { var c = o.querySelector('input[name=rgMode]:checked'); return c ? c.value : 'pw'; };
     var say = function (m, fid) {
       var t = o.querySelector('#rgTop'); t.textContent = m; t.style.display = m ? 'block' : 'none';
-      o.querySelectorAll('input').forEach(function (i) { i.style.borderColor = ''; });
+      o.querySelectorAll('input,select').forEach(function (i) { i.style.borderColor = ''; });
       var fe = o.querySelector('#rgFieldErr'); if (fe) fe.remove();
       var fl = fid && o.querySelector('#' + fid);
       if (fl && m) { fl.style.borderColor = '#b3261e'; fe = document.createElement('div'); fe.id = 'rgFieldErr'; fe.setAttribute('role', 'alert'); fe.style.cssText = 'margin:-6px 0 10px;color:#b3261e;font-size:13px;font-weight:600'; fe.textContent = m; fl.parentNode.insertBefore(fe, fl.nextSibling); try { fl.focus({ preventScroll: true }); } catch (x) {} fl.scrollIntoView({ block: 'center' }); }
@@ -1127,7 +1130,9 @@
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return say(mail ? 'That email address does not look right.' : 'Add your email address.', 'rgMail');
       if (!raw) return say('Add your mobile number.', 'rgPhone');
       if (!ph) return say('That does not look like a phone number. Use the full number, for example 07700 900123.', 'rgPhone');
-      var reg = { name: nm, email: mail, phone: ph, phoneRaw: raw, mode: mode, prov: which, t: Date.now() };
+      var tsel = o.querySelector('#rgTrade'), trade = tsel ? tsel.value : '';
+      if (tsel && !trade) return say('Choose the kind of work you do.', 'rgTrade');
+      var reg = { name: nm, email: mail, phone: ph, phoneRaw: raw, mode: mode, prov: which, trade: trade, t: Date.now() };
       if (mode === 'pw') {
         var p1 = o.querySelector('#rgPw').value, p2 = o.querySelector('#rgPw2').value;
         if (!pwOk(p1, { name: nm, email: mail })) { var miss = pwRules(p1, { name: nm, email: mail }).filter(function (x) { return !x[0]; }).map(function (x) { return x[1].toLowerCase(); }); return say('The password still needs: ' + miss.join('; ') + '.', 'rgPw'); }
@@ -1405,6 +1410,7 @@
       if (reg.mode === 'pw' && reg.pin) { lset('cd.pin', JSON.stringify(reg.pin)); lset('cd.auth', null); }
       else { lset('cd.pin', null); lset('cd.auth', 'acct'); }
       markAct(); profPush();
+      if (reg.trade) { try { localWrite('settings', 'trade', { trade: reg.trade, updatedAt: Date.now() }, 'set'); } catch (e) {} }
       toast('Welcome, ' + reg.name + '. Your account is ready.');
       lset('cd.guide', '1'); setTimeout(openGuide, 600);
       return true;
