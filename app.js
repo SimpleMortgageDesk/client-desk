@@ -201,7 +201,7 @@ function caseEvents(c){
   return ev;
 }
 function allEvents(){
-  var out=[];cases.forEach(function(c){if(c.stage!=='lost')out=out.concat(caseEvents(c))});
+  var out=[];cases.forEach(function(c){if(c.stage!=='lost')out=out.concat(caseEvents(c))});if(T.tenancyMode)out=out.concat(homeEvents());
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
 }
 function reviewEvents(){return allEvents().filter(function(e){return e.kind==='review'})}
@@ -330,7 +330,7 @@ function casesHTML(){
   var llSum=T.tenancyMode?(function(){var let_=cases.filter(function(c){return c.stage!=='lost'&&tnCurrent(c).length}).length,roll=cases.reduce(function(a,c){return a+rentSum(c)},0);return '<div class="stats"><div class="stat"><b>'+cases.length+'</b><span>Properties</span></div><div class="stat"><b>'+let_+'</b><span>Let</span></div><div class="stat"><b>'+(cases.length-let_)+'</b><span>Vacant</span></div><div class="stat"><b>'+money(Math.round(roll*100)/100)+'</b><span>Rent a month</span></div></div>'})():'';
   var h='<div class="pagehead"><h1>'+(T.tenancyMode?'Properties':'All '+NS())+'</h1>'+llSum+'<button class="btn ghost" data-act="export">Export CSV</button></div>'+
     '<div class="filters">'+(T.tenancyMode?'':'<select id="stageSel" aria-label="Filter by stage">'+opts+'</select> ')+'<select id="sortSel" aria-label="Sort clients">'+[['updated','Sort: recently updated'],['first','Sort: first name A–Z'],['review','Sort: next '+T.reviewWord.toLowerCase()+' date'],['task','Sort: next task due date'],['clientno','Sort: client number']].map(function(o){return '<option value="'+o[0]+'"'+(sortBy===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'+lenderSelHTML()+revSelHTML()+'<details class="colpick"><summary class="btn ghost">Columns</summary><div class="colbox">'+CASE_COLS.map(function(c){return '<label><input type="checkbox" data-colk="'+c[0]+'"'+(colOn(c[0])?' checked':'')+'> '+c[1]+'</label>'}).join('')+'</div></details>'+((stageFilter||lenderFilter||revFilter)?' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>':'')+'</div>';
-  if(!cases.length)return h+emptyHTML();
+  if(!cases.length)return h+emptyHTML()+(T.tenancyMode?homeCard():'');
   var shown=CASE_COLS.filter(function(x){return colOn(x[0])});
   h+='<div class="tw"><table><thead><tr><th>'+esc(T.tenancyMode?'Property':T.person[0]==='Applicant'||T.person[0]==='Contact'?'Client':T.person[0])+'</th>'+shown.map(function(x){return '<th>'+esc(x[1])+'</th>'}).join('')+'</tr></thead><tbody>';
   if(!list.length)h+='<tr><td colspan="'+(shown.length+1)+'" class="muted">No '+NS()+' match.</td></tr>';
@@ -352,7 +352,7 @@ function casesHTML(){
       return '<td>'+esc(fmtField(c,k))+sub+'</td>';
     }).join('')+'</tr>';
   });
-  return h+'</tbody></table></div>';
+  return h+'</tbody></table></div>'+(T.tenancyMode?homeCard():'');
 }
 
 /* ---------- reminders ---------- */
@@ -530,7 +530,7 @@ function openDrawer(id,draft){
   var first=$('#drawer [data-a="name"]');if(first&&!id)first.focus();
   ntDraft=(id&&c.noteDraft)||'';prDraft=(id&&c.protDraft)||'';lastND=ntDraft;lastPD=prDraft;renderLive();
   if(T.tenancyMode&&id)rhRender();
-  if(T.tenancyMode)mcRender();
+  if(T.tenancyMode){mcRender();tnLockAll()}
   lastAuto=id?JSON.stringify(collectForm()):null;
   newBase=id?null:JSON.stringify(collectForm());
 }
@@ -1409,12 +1409,14 @@ document.addEventListener('click',function(e){
     try{localStorage.setItem('cd.ui.secHidden',JSON.stringify(secHidden))}catch(x){}return}
   var t=e.target;
   var rdn=t.closest('[data-remdone]');
+  if(rdn&&rdn.getAttribute('data-remdone').indexOf('__home|')===0){e.stopPropagation();var hp=rdn.getAttribute('data-remdone').split('|'),nh=Object.assign({},HOME||{});nh.remDone=Object.assign({},nh.remDone||{});nh.remDone[hp[1]]=hp[2];homeWrite(nh);toast('Reminder hidden. It comes back if you change that date.');return}
   if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast('Reminder hidden. It comes back if you change that date.')}return}
   var tpb=t.closest('[data-trade]');if(tpb){saveTrade(tpb.getAttribute('data-trade'));var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+T.label);return}
   if(t.closest('[data-tpclose]')){var ov2=$('#tpOv');if(ov2)ov2.remove();return}
   var adv=t.closest('[data-adv]');
   if(adv){e.stopPropagation();patch(adv.dataset.adv,{stage:adv.dataset.to});return}
   var o=t.closest('[data-open]');
+  if(o&&o.dataset.open==='__home'){e.preventDefault();homeOpen();return}
   if(o){e.preventDefault();openDrawer(o.dataset.open);return}
   if(t.closest('.brand')){nbFlush();view=T.landing||'tasks';render();window.scrollTo(0,0);return}
   if(t.closest&&t.closest('[data-sideacct]')){var sb=document.getElementById('settingsBtn');if(sb)sb.click();return}
@@ -1764,8 +1766,8 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ---------- business details, quotes, invoices and tenancy agreements ---------- */
-var BIZ={};
-function bizSnap(s){var d=s.docs.filter(function(x){return x.id==='business'})[0];BIZ=d?d.data():{};if(view==='invoices')render();if(T.tenancyMode)renderSide()}
+var BIZ={},HOME=null;
+function bizSnap(s){var d=s.docs.filter(function(x){return x.id==='business'})[0];BIZ=d?d.data():{};var hd=s.docs.filter(function(x){return x.id==='home'})[0],nh=hd?hd.data():null;if(JSON.stringify(nh)!==JSON.stringify(HOME)){HOME=nh;if(view==='cases')render();renderRem();renderNav()}if(view==='invoices')render();if(T.tenancyMode)renderSide()}
 function bizName(){var p=profA();return BIZ.name||p.biz||p.name||''}
 function okLogo(u){return /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(String(u||''))}
 function vatOn(){return BIZ.vatReg==='yes'}
@@ -1774,6 +1776,71 @@ function gbp(n){n=r2(n);return (n<0?'-£':'£')+Math.abs(n).toLocaleString('en-G
 function nl2br(s){return esc(s).replace(/\n/g,'<br>')}
 function overlay(id,html,wide){var o=$('#'+id);if(!o){o=document.createElement('div');o.id=id;o.className='mkov';document.body.appendChild(o)}o.innerHTML='<div class="mkpanel dpanel'+(wide?' dwide':'')+'" role="dialog">'+html+'</div>';return o}
 function closeOv(id){var o=$('#'+id);if(o)o.remove()}
+/* ---------- My home: the landlord's own residential property (settings/home). Kept apart from rental properties, rent totals and the accountant report. ---------- */
+var HOME_F=[
+  ['Your home',[['addr1','Address line one','text'],['postcode','Postcode','text'],['ownership','Ownership','sel',['','Owned with a mortgage','Owned outright','Shared ownership','Renting']],['ptype','Type','sel',['','House','Flat','Bungalow','Maisonette','Other']],['bedrooms','Bedrooms','num'],['purchaseDate','Bought on','date'],['purchasePrice','Price paid','money'],['value','Estimated value now','money'],['valueDate','Value checked on','date']]],
+  ['Mortgage',[['lender','Lender','text'],['balance','Mortgage balance','money'],['rate','Interest rate (% a year)','num'],['payment','Monthly payment','money'],['method','Payment method','sel',['','Repayment','Interest only','Part and part']],['dealType','Type of deal','sel',['','Fixed rate','Tracker','Discount','Variable (SVR)']],['dealEnd','Deal ends','date'],['ercEnd','Early repayment charge until','date'],['termEnd','Mortgage term ends','date']]],
+  ['Insurance and bills',[['insurer','Home insurer','text'],['insRenewal','Insurance renewal','date'],['energy','Energy supplier','text'],['energyEnd','Energy deal ends','date'],['councilBand','Council tax band','sel',['','A','B','C','D','E','F','G','H','I']]]],
+  ['Safety and upkeep',[['boiler','Boiler last serviced','date'],['boilerDue','Next boiler service (12 months)','date',null,{from:'boiler',m:12}],['eicr','Electrical check done','date'],['eicrDue','Next electrical check (every 10 years)','date',null,{from:'eicr',m:120}],['epc','EPC rating','sel',['','A','B','C','D','E','F','G']]]]
+];
+function homeF(k){var f=null;HOME_F.forEach(function(g){g[1].forEach(function(x){if(x[0]===k)f=x})});return f}
+function homeV(h,k){h=h||{};if(h[k])return h[k];var f=homeF(k);if(f&&f[4]&&h[f[4].from])return addMonths(h[f[4].from],f[4].m);return ''}
+function homeEvents(){
+  var h=HOME;if(!h||!h.addr1)return [];var out=[],who='My home · '+h.addr1;
+  function add(k,date,label){if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return;if(h.remDone&&h.remDone[k]===date)return;out.push({date:date,label:label,kind:'review',id:'__home',who:who,key:k})}
+  var de=homeV(h,'dealEnd');if(de){add('dealReview',addMonths(de,-6),'Review your mortgage deal (it ends '+fd(de)+')');add('dealEnd',de,'Mortgage deal ends')}
+  add('insRenewal',homeV(h,'insRenewal'),'Home insurance renewal');add('energyEnd',homeV(h,'energyEnd'),'Energy deal ends');
+  add('boilerDue',homeV(h,'boilerDue'),'Boiler service due');add('eicrDue',homeV(h,'eicrDue'),'Electrical check due');
+  return out;
+}
+function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases')render();renderRem();renderNav()}
+function homeCard(){
+  var h=HOME;
+  if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div><h2>My home</h2><p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills and safety checks. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
+  var bal=+h.balance||0,val=+h.value||0,ltv=bal&&val?Math.round(bal/val*1000)/10:null,eq=val?val-bal:null;
+  var chip=function(d,l){return d?'<span class="chip '+tone(d)+'">'+esc(l)+' '+fd(d)+'</span>':''};
+  var fact=function(l,v){return v?'<div class="hf"><span>'+esc(l)+'</span><b>'+v+'</b></div>':''};
+  return '<section class="homecard"><div class="hch"><div><h2>My home</h2><div class="hadr">'+esc(h.addr1)+(h.postcode?', '+esc(h.postcode):'')+'</div><div class="muted" style="font-size:13px">'+esc([h.ownership,h.ptype,h.bedrooms?h.bedrooms+' bed':''].filter(Boolean).join(' · '))+'</div></div><button type="button" class="btn ghost" id="homeEdit">View and edit</button></div>'+
+    '<div class="hfacts">'+fact('Estimated value',val?money(val):'')+fact('Mortgage balance',bal?money(bal):'')+fact('Equity',eq!=null&&bal?money(eq):'')+fact('Loan to value',ltv!=null?ltv+'%':'')+fact('Lender',esc(h.lender||''))+fact('Rate',h.rate?esc(h.rate)+'%'+(h.dealType?' '+esc(String(h.dealType).toLowerCase()):''):'')+fact('Monthly payment',h.payment?money(h.payment):'')+'</div>'+
+    '<div class="hchips">'+chip(homeV(h,'dealEnd'),'Deal ends')+chip(homeV(h,'insRenewal'),'Insurance renewal')+chip(homeV(h,'boilerDue'),'Boiler service')+chip(homeV(h,'energyEnd'),'Energy deal ends')+'</div></section>';
+}
+function homeOpen(){
+  var h=HOME||{};
+  var fld=function(x){var k=x[0],l=x[1],t=x[2],v=h[k]==null?'':h[k];
+    if(t==='sel')return '<label class="f">'+esc(l)+'<select id="hm-'+k+'">'+x[3].map(function(o){return '<option value="'+esc(o)+'"'+(o===v?' selected':'')+'>'+(o===''?'Choose…':esc(o))+'</option>'}).join('')+'</select></label>';
+    if(x[4])return '<label class="f">'+esc(l)+'<input id="hm-'+k+'" type="date" data-hfrom="'+x[4].from+'" data-hm="'+x[4].m+'" data-auto="'+(v?'0':'1')+'" value="'+esc(homeV(h,k))+'"></label>';
+    var inp='<input id="hm-'+k+'" type="'+(t==='date'?'date':t==='text'?'text':'number" step="any" inputmode="decimal')+'" value="'+esc(v)+'">';
+    return '<label class="f">'+esc(l)+(t==='money'?'<span class="ig"><i>£</i>'+inp+'</span>':inp)+'</label>'};
+  overlay('hmOv','<div class="dhd"><h2>My home</h2><button type="button" class="btn ghost" data-hmclose="1">Close</button></div>'+
+   '<p class="muted" style="margin:4px 0 12px">Your own home, kept apart from your rental properties. It is saved in your own '+esc(window.CD_files?window.CD_files.where():'storage')+'. Do not add account numbers or bank details.</p>'+
+   HOME_F.map(function(g){return '<fieldset><legend>'+esc(g[0])+'</legend><div class="grid">'+g[1].map(fld).join('')+'</div></fieldset>'}).join('')+
+   '<fieldset><legend>Notes</legend><label class="f wide">Notes<textarea id="hm-notes" rows="3">'+esc(h.notes||'')+'</textarea></label></fieldset>'+
+   '<p id="hmMsg" class="muted" role="alert"></p><div class="add" style="justify-content:flex-end">'+(HOME&&HOME.addr1?'<button type="button" class="btn ghost danger" data-hmdel="1" style="margin-right:auto">Remove my home</button>':'')+'<button type="button" class="btn ghost" data-hmclose="1">Cancel</button><button type="button" class="btn" data-hmsave="1">Save</button></div>',true);
+}
+function homeSave(){
+  var d=Object.assign({},HOME||{}),m=$('#hmMsg');delete d.removedAt;
+  HOME_F.forEach(function(g){g[1].forEach(function(x){
+    var e=$('#hm-'+x[0]);if(!e)return;var v=e.value.trim();
+    if(x[4]){var src=(($('#hm-'+x[4].from)||{}).value||'');if(e.getAttribute('data-auto')==='1'||(src&&v===addMonths(src,x[4].m))){d[x[0]]='';return}}
+    d[x[0]]=(x[2]==='money'||x[2]==='num')?(v===''?'':num(v)):v;
+  })});
+  d.notes=($('#hm-notes')||{}).value||'';
+  if(d.postcode)d.postcode=pcFmt(d.postcode);
+  if(!String(d.addr1||'').trim()){if(m){m.textContent='Add address line one.';m.style.color='#b3261e'}var a=$('#hm-addr1');if(a){a.focus();a.scrollIntoView({block:'center'})}return}
+  homeWrite(d);closeOv('hmOv');toast('My home saved');
+}
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;
+  if(t.closest('#homeAdd')||t.closest('#homeEdit')){homeOpen();return}
+  if(t.closest('[data-hmclose]')){closeOv('hmOv');return}
+  if(t.closest('[data-hmsave]')){homeSave();return}
+  var dl=t.closest('[data-hmdel]');if(dl){if(!dl.classList.contains('armed')){dl.classList.add('armed');dl.textContent='Press again to remove';return}homeWrite({removedAt:Date.now()});closeOv('hmOv');toast('My home removed');return}
+});
+document.addEventListener('input',function(e){var t=e.target;if(!t||!t.id||t.id.indexOf('hm-')!==0)return;
+  if(t.hasAttribute('data-hfrom'))t.setAttribute('data-auto',t.value?'0':'1');
+  document.querySelectorAll('#hmOv [data-hfrom="'+t.id.slice(3)+'"]').forEach(function(dep){if(dep.getAttribute('data-auto')!=='1')return;dep.value=t.value&&/^\d{4}-\d{2}-\d{2}$/.test(t.value)?addMonths(t.value,+dep.getAttribute('data-hm')):''});
+});
+
 
 /* --- business details panel (saved to OneDrive, same on every device) --- */
 var bizDraftLogo=null;
@@ -2328,12 +2395,12 @@ function tnPerson(p){p=p||{};return '<div class="tnp"><label class="f">Name<inpu
 function tnCard(tn,isNew,others){
   var ended=(tn.status||'current')==='ended',nm=tnNames(tn),rent=tfv(tn,'rent'),st=tfv(tn,'tenancyStart');
   var sum=(nm||'New tenant')+(rent!==''?' · '+money(rent)+(tfv(tn,'rentFreq')?' '+String(tfv(tn,'rentFreq')).toLowerCase():''):'')+(st?' · from '+fd(st):'')+(ended&&tfv(tn,'moveOut')?' to '+fd(tfv(tn,'moveOut')):'');
-  return '<details class="tncard'+(ended?' ended':'')+(isNew?' isnew':'')+'" data-tn="'+esc(tn.id)+'"'+(isNew?' data-new="1"':'')+(ended?'':' open')+'><summary><b>'+esc(isNew?'New tenant':sum)+'</b> <span class="chip '+(ended?'':'ok')+'">'+(isNew?'Not saved yet':ended?'Previous tenant':'Current')+'</span></summary>'+
+  return '<details class="tncard'+(ended?' ended':'')+(isNew?' isnew':' locked')+'" data-tn="'+esc(tn.id)+'"'+(isNew?' data-new="1"':'')+(ended?'':' open')+'><summary><b>'+esc(isNew?'Create tenant':sum)+'</b> <span class="chip '+(ended?'':'ok')+'">'+(isNew?'Not saved yet':ended?'Previous tenant':'Current')+'</span><span class="chip tnlk">Locked</span></summary>'+
    (isNew&&others?'<label class="tnmove"><input type="checkbox" data-tnmove="1" checked> Move '+esc(others)+' to Previous tenants when this tenant is saved</label>':'')+
    tnCoHtml(tn)+'<div class="tnpeople">'+((tn.people&&tn.people.length)?tn.people:[{}]).map(tnPerson).join('')+'</div><button type="button" class="btn ghost sm" data-tnaddp="1">'+(tnCorp(tn)?'Add another contact':'Add joint tenant')+'</button>'+
    (function(){var F=T.tenancyFields||[],cut=F.map(function(f){return f.k}).indexOf('rentDay')+1;if(cut<1)cut=F.length;var g=function(l){return '<div class="grid" style="margin-top:10px">'+l.map(function(f){return tfHtml(f,tn)}).join('')+'</div>'};return g(F.slice(0,cut))+rlBox(tn,currentCase()||{})+(F.length>cut?g(F.slice(cut)):'')})()+
    '<div class="tnacts">'+(isNew?'':'<button type="button" class="btn ghost sm" data-tnag="'+esc(tn.id)+'">'+tnAgLabel(tn)+'</button>')+'<span class="sp"></span>'+
-   (isNew?'<button type="button" class="btn ghost sm" data-tncancel="1">Cancel</button>':'<button type="button" class="btn ghost sm danger" data-tnrm="1">Delete tenant</button>')+
+   (isNew?'<button type="button" class="btn ghost sm" data-tncancel="1">Cancel</button>':'<button type="button" class="btn ghost sm danger" data-tnrm="1">Delete tenant</button><button type="button" class="btn ghost sm" data-tnedit="1">Edit</button>')+
    '<button type="button" class="btn sm" data-tnsave="1">Save tenant</button></div></details>';
 }
 /* ---------- property folder and uploaded documents (landlord) ---------- */
@@ -2432,17 +2499,24 @@ function tnFsHtml(c){
   var all=tnList(c),cur=all.filter(function(t){return (t.status||'current')!=='ended'}),prev=all.filter(function(t){return (t.status||'current')==='ended'}).sort(function(a,b){return String(tfv(b,'moveOut')||tfv(b,'tenancyStart')||'').localeCompare(String(tfv(a,'moveOut')||tfv(a,'tenancyStart')||''))});
   var sum=cur.length?cur.map(tnNames).filter(Boolean).join(', '):'Vacant';
   return '<fieldset id="tnFs"><legend>Tenants <span class="lgsum">'+esc(sum)+'</span></legend>'+
-   '<div class="tnbar"><span class="tnh">Current tenant'+(cur.length>1?'s':'')+'</span><button type="button" class="btn sm" id="addTn">Add tenant</button></div>'+
+   '<div class="tnbar"><span class="tnh">Current tenant'+(cur.length>1?'s':'')+'</span><button type="button" class="btn sm" id="addTn">Create tenant</button></div>'+
    '<div id="tns">'+cur.map(function(t){return tnCard(t)}).join('')+'</div>'+
-   (cur.length?'':'<p class="muted" id="tnEmpty" style="margin:0 0 8px">No current tenant. Press Add tenant.</p>')+
+   (cur.length?'':'<p class="muted" id="tnEmpty" style="margin:0 0 8px">No current tenant. Press Create tenant to add one.</p>')+
    '<details class="tnprev" id="tnPrev"><summary><span class="tnh">Previous tenants</span> <span class="chip">'+prev.length+'</span></summary><div id="tnsPrev">'+(prev.length?prev.map(function(t){return tnCard(t)}).join(''):'<p class="muted" style="margin:6px 0">No previous tenants yet.</p>')+'</div></details></fieldset>';
 }
+/* a saved tenant is locked (read only) until Edit is pressed; rent payments stay usable */
+function tnLock(card,on){
+  card.classList.toggle('locked',!!on);
+  card.querySelectorAll('[data-tf],[data-tp],[data-td],[data-tnmove]').forEach(function(i){i.disabled=!!on});
+  var lk=card.querySelector('.tnlk');if(lk)lk.textContent=on?'Locked':'Editing';
+}
+function tnLockAll(){document.querySelectorAll('#tnFs .tncard.locked').forEach(function(cd){tnLock(cd,true)})}
 function tnRedraw(){
   var fs=$('#tnFs'),c=currentCase();if(!fs||!c)return;
   var wasPrev=($('#tnPrev')||{}).open,closed=fs.classList.contains('col-closed');
   var tmp=document.createElement('div');tmp.innerHTML=tnFsHtml(c);var nf=tmp.firstChild;fs.parentNode.replaceChild(nf,fs);
   if(wasPrev)$('#tnPrev').open=true;
-  colOpen['tenants']=!closed;decorateSecs();
+  colOpen['tenants']=!closed;decorateSecs();tnLockAll();
   if(typeof rhRender==='function')rhRender();updStrip();
 }
 function tnSaveNow(msg){
@@ -2478,7 +2552,8 @@ document.addEventListener('click',function(e){
     box.insertAdjacentHTML('afterbegin',tnCard({id:'t'+uid(),status:'current',people:[{}]},true,oth.join(' and ')));var fs0=$('#tnFs');if(fs0&&fs0.classList.contains('col-closed')){var cb0=fs0.querySelector('[data-coltoggle]');if(cb0)cb0.click()}var f=box.querySelector('.tncard [data-tp="name"]');if(f){f.focus();f.scrollIntoView({block:'center'})}return}
   if((b=t.closest('[data-tnsave]'))){var sc=b.closest('.tncard');if(sc.hasAttribute('data-new')){var hasNm=Array.prototype.some.call(sc.querySelectorAll('[data-tp="name"],[data-tf="company"]'),function(i){return i.value.trim()});if(!hasNm){toast('Add the tenant\'s name first.');var nf=sc.querySelector('[data-tp="name"]');if(nf)nf.focus();return}}
     var mv=sc.hasAttribute('data-new')&&sc.querySelector('[data-tnmove]')&&sc.querySelector('[data-tnmove]').checked;tnSaveNow(mv?'Tenant saved. The previous tenant moved to Previous tenants.':'Tenant saved');return}
-  if((b=t.closest('[data-tncancel]'))){b.closest('.tncard').remove();if(!document.querySelector('#tns .tncard'))$('#tns').insertAdjacentHTML('afterend','<p class="muted" id="tnEmpty" style="margin:0 0 8px">No current tenant. Press Add tenant.</p>');updStrip();return}
+  if((b=t.closest('[data-tnedit]'))){var ec=b.closest('.tncard');ec.open=true;tnLock(ec,false);var f1=ec.querySelector('[data-tp="name"]');if(f1)f1.focus();return}
+  if((b=t.closest('[data-tncancel]'))){b.closest('.tncard').remove();if(!document.querySelector('#tns .tncard'))$('#tns').insertAdjacentHTML('afterend','<p class="muted" id="tnEmpty" style="margin:0 0 8px">No current tenant. Press Create tenant to add one.</p>');updStrip();return}
   if((b=t.closest('[data-tnaddd]'))){var cdd=b.closest('.tncard'),bx=cdd.querySelector('.tndirs');if(bx.querySelectorAll('.tnd').length<4){bx.insertAdjacentHTML('beforeend',tnDir(''));var li=bx.querySelectorAll('[data-td]');li[li.length-1].focus()}tnCoSync(cdd);return}
   if((b=t.closest('[data-tnrmd]'))){var cdr=b.closest('.tncard'),bx2=cdr.querySelector('.tndirs');if(bx2.querySelectorAll('.tnd').length>1)b.closest('.tnd').remove();else b.closest('.tnd').querySelector('input').value='';tnCoSync(cdr);return}
   if((b=t.closest('[data-tnaddp]'))){var cd=b.closest('.tncard');cd.querySelector('.tnpeople').insertAdjacentHTML('beforeend',tnPerson({}));return}

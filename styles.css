@@ -645,3 +645,24 @@ header.top .in{padding-block:12px}}
 .tnprev>summary::before{content:'▸';color:var(--muted)}.tnprev[open]>summary::before{content:'▾'}
 .tnprev .tncard{margin-top:8px}
 .llmain>fieldset+fieldset{margin-top:12px}
+
+/* locked tenants and My home (LATEST28) */
+.tncard .tnlk{display:none}
+.tncard.locked .tnlk,.tncard:not(.locked):not(.isnew) .tnlk{display:inline-flex;background:#EDF0F1;color:var(--muted)}
+.tncard.locked [data-tnsave]{display:none}
+.tncard:not(.locked) [data-tnedit]{display:none}
+.tncard.locked [data-tnaddp],.tncard.locked [data-tnrmp],.tncard.locked [data-tnaddd],.tncard.locked [data-tnrmd]{display:none}
+.tncard.locked input[data-tf]:disabled,.tncard.locked input[data-tp]:disabled,.tncard.locked select[data-tf]:disabled,.tncard.locked [data-td]:disabled{background:transparent;border-color:transparent;color:var(--ink);opacity:1;-webkit-text-fill-color:var(--ink);box-shadow:none;cursor:default}
+.tncard.locked select[data-tf]:disabled{appearance:none;-webkit-appearance:none}
+.tncard.locked .ig:has(input:disabled){background:transparent;border-color:transparent}
+.tncard:not(.locked):not(.isnew){border-color:var(--accent)}
+.homecard{margin-top:22px;background:var(--surface,#fff);border:1px solid var(--line);border-radius:14px;padding:18px 20px;border-left:5px solid var(--accent)}
+.homecard.empty{border-left-color:var(--line);background:var(--surface2,#F4F7F8)}
+.homecard .hch{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.homecard h2{margin:0 0 4px;font-size:18px}
+.homecard .hadr{font-weight:700;font-size:15px}
+.homecard p{margin:0;max-width:640px}
+.hfacts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.hf{background:var(--surface2,#F4F7F8);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column}
+.hf span{font-size:12px;color:var(--muted)}.hf b{font-size:15px}
+.hchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
