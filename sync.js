@@ -1046,7 +1046,7 @@
     var o = overlay('<div style="width:min(440px,100%);background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)">' +
       '<div style="font-weight:700;font-size:20px;margin-bottom:6px">&#9670; ' + APPN + '</div>' +
       '<p style="color:#58697A;margin:0 0 8px;font-size:14px;line-height:1.45">Choose where your records are kept. They are saved in your own account, in a folder named after your business, and nowhere else.</p>' +
-      (msOk ? '<button id="mdGo" style="' + bs + 'border:0;background:#0A6B50;color:#fff">Microsoft account<span style="font:400 13px system-ui;opacity:.9">Outlook, Hotmail or Microsoft 365. Saved in OneDrive.</span></button>' : '') +
+      (msOk ? '<button id="mdGo" style="' + bs + 'border:0;background:#0A6B50;color:#fff">Microsoft account<span style="font:400 13px system-ui;opacity:.9">' + ((CFG.tenant || 'consumers') === 'consumers' ? 'Personal Outlook, Hotmail or Live account' : 'Outlook, Hotmail or Microsoft 365') + '. Saved in OneDrive.</span></button>' : '') +
       (gOk ? '<button id="mdGoG" style="' + bs + 'border:1px solid #2f4a40;background:#fff;color:#101C26">Google account<span style="font:400 13px system-ui;color:#58697A">Gmail or Google Workspace. Saved in Google Drive.</span></button>' : '') +
       (!msOk && !gOk ? '<p style="color:#A3261F;font-size:14px">This copy has not been set up yet (no Microsoft or Google app ID).</p>' : '') +
       '<p style="color:#58697A;font-size:12px;margin:12px 0 0">You can only use one account per device at a time. Logging out removes the records from this device; they stay in your account. <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>' +
@@ -1589,6 +1589,54 @@
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flush(); else pull(); });
     window.addEventListener('pagehide', function () { flush(); });
   }
+  /* ---------- automatic updates: every copy of the app moves to the newest version ----------
+     version.json on the site says which version is live. When it differs from this copy, a bar
+     appears and the app reloads itself at a safe moment (nothing open, nothing being typed).
+     Changes waiting to upload are kept in the device store, so a reload never loses them. */
+  (function () {
+    if (window.CD_DEMO || location.protocol === 'file:') return;
+    var lastAct = 0, target = null, bar = null;
+    ['keydown', 'input', 'pointerdown', 'change'].forEach(function (ev) { document.addEventListener(ev, function () { lastAct = Date.now(); }, true); });
+    try { if (/[?&]u=/.test(location.search)) history.replaceState(null, '', location.pathname + location.search.replace(/[?&]u=\d+/, '').replace(/^&/, '?') + location.hash); } catch (e) {}
+    function busy() {
+      var d = document.getElementById('drawer'); if (d && !d.hidden) return true;
+      if (Date.now() - lastAct < 120000) return true;
+      var a = document.activeElement; if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && !(a.closest && a.closest('#mdLock'))) return true;
+      var kids = document.body.children;
+      for (var i = 0; i < kids.length; i++) {
+        var k = kids[i]; if (k.id === 'mdLock' || k.id === 'app' || k.hidden) continue;
+        var cs = getComputedStyle(k); if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') continue;
+        if (k.querySelector('input,textarea,select')) return true;
+      }
+      return false;
+    }
+    async function go() {
+      try { sessionStorage.setItem('cd.upd', JSON.stringify({ b: target, t: Date.now() })); } catch (e) {}
+      try { await Promise.race([flush(), sleep(5000)]); } catch (e) {}
+      location.replace(location.pathname + '?u=' + Date.now() + location.hash);
+    }
+    function showBar() {
+      if (bar) return;
+      bar = document.createElement('div'); bar.id = 'cdUpd'; bar.setAttribute('role', 'status');
+      bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:2147483000;background:#0A6B50;color:#fff;font:14px system-ui,sans-serif;padding:8px 12px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 2px 10px rgba(0,0,0,.2)';
+      bar.innerHTML = '<span>A new version of the app is ready. It will update itself when you finish what you are doing.</span><button type="button" style="background:#fff;color:#0A6B50;border:0;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer">Update now</button>';
+      bar.querySelector('button').addEventListener('click', function () { this.disabled = true; this.textContent = 'Updating…'; go(); });
+      document.body.appendChild(bar);
+    }
+    async function check() {
+      if (!navigator.onLine) return;
+      var v; try { var r = await fetch('version.json', { cache: 'no-store' }); if (!r.ok) return; v = await r.json(); } catch (e) { return; }
+      if (!v || !v.build || v.build === window.MD_BUILD) return;
+      try { var last = JSON.parse(sessionStorage.getItem('cd.upd') || 'null'); if (last && last.b === v.build && Date.now() - last.t < 600000) return; } catch (e) {}
+      target = v.build; showBar(); tryNow();
+    }
+    function tryNow() { if (target && document.visibilityState === 'visible' && !busy()) go(); }
+    window.CD_checkUpdate = check;
+    setTimeout(check, 8000);
+    setInterval(function () { if (document.visibilityState === 'visible') { if (target) tryNow(); else check(); } }, 15 * 60000);
+    setInterval(function () { if (target) tryNow(); }, 30000);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { lastAct = 0; if (target) setTimeout(tryNow, 1500); else setTimeout(check, 1500); } });
+  })();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') { window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); }); }
   boot();
 })();
