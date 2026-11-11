@@ -1191,11 +1191,7 @@
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Mobile number <span style="color:#b3261e">*</span><input id="rgPhone" type="tel" autocomplete="tel" placeholder="e.g. 07700 900123" value="' + esc(r.phoneRaw || '') + '" style="' + inp + '"></label>' +
         (function () { var TT = window.CD_TRADES || { order: [], all: {} }; if (TT.only || !TT.order.length) return ''; return '<label style="font-size:14px">What kind of work do you do? <span style="color:#b3261e">*</span><select id="rgTrade" style="' + inp + ';background:#fff">' + '<option value="">Choose…</option>' + TT.order.map(function (id) { var op = !window.CD_tradeOpen || window.CD_tradeOpen(id), one = TT.open && TT.open.length === 1 && TT.open[0] === id; return '<option value="' + id + '"' + (op ? ((r.trade === id || (one && !r.trade)) ? ' selected' : '') : ' disabled') + '>' + esc(TT.all[id].label) + (op ? '' : ' (coming soon)') + '</option>'; }).join('') + '</select></label><p style="margin:-6px 0 10px;color:#58697A;font-size:12.5px">This sets the fields, reminders and documents in the app. You can change it later in Settings.</p>'; })() +
-        '<fieldset style="border:1px solid #D4DBDF;border-radius:8px;padding:10px 12px;margin:2px 0 10px"><legend style="font-size:14px;padding:0 4px">Password <span style="color:#b3261e">*</span></legend>' +
-        '<label style="display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-size:14px"><input type="radio" name="rgMode" value="pw"' + (mode === 'pw' ? ' checked' : '') + ' style="margin-top:3px"><span>Create a password for this app</span></label>' +
-        '<label style="display:flex;gap:8px;align-items:flex-start;margin:4px 0;font-size:14px"><input type="radio" name="rgMode" value="acct"' + (mode === 'acct' ? ' checked' : '') + ' style="margin-top:3px"><span>Use the password of my Outlook or Gmail account<br><span style="font-size:12.5px;color:#58697A">You type it on Microsoft\'s or Google\'s own page. This app never sees it.</span></span></label>' +
-        '<div id="rgPwBox"' + (mode === 'acct' ? ' style="display:none"' : '') + '><input id="rgPw" type="password" autocomplete="new-password" maxlength="128" placeholder="New password" style="' + inp + ';margin-top:8px"><div id="rgPwChk">' + pwList('', r) + '</div>' +
-        '<input id="rgPw2" type="password" autocomplete="new-password" maxlength="128" placeholder="Repeat password" style="' + inp + '"></div></fieldset>' +
+        '<p style="margin:2px 0 12px;padding:9px 11px;background:#EEF6F2;border-radius:8px;font-size:13.5px;color:#234">No new password to remember. You sign in with your ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, on ' + (ok.g ? 'Microsoft\'s or Google\'s' : 'Microsoft\'s') + ' own page. This app never sees that password.</p>' +
         '<p style="margin:6px 0 0;font-size:14px;font-weight:600">Where should your records be kept?</p>' +
         (ok.ms ? '<button type="submit" data-rg="ms" style="' + (gm && ok.g ? sec : pri) + '">Register with ' + msLbl + sub('Saved in your OneDrive', !(gm && ok.g)) + '</button>' : '') +
         (ok.g ? '<button type="submit" data-rg="google" style="' + (gm || !ok.ms ? pri : sec) + '">Register with Gmail' + sub('Saved in your Google Drive', gm || !ok.ms) + '</button>' : '') +
@@ -1217,7 +1213,7 @@
     var bg = o.querySelector('#mdGoG'); if (bg) bg.onclick = function () { bg.disabled = true; sset('cd.intent', 'login'); gStart(); };
     var f = o.querySelector('#rgForm'); if (!f) return;
     var val = function (id) { return ((o.querySelector('#' + id) || {}).value || '').trim(); };
-    var modeNow = function () { var c = o.querySelector('input[name=rgMode]:checked'); return c ? c.value : 'pw'; };
+    var modeNow = function () { return 'acct'; };
     var say = function (m, fid) {
       var t = o.querySelector('#rgTop'); t.textContent = m; t.style.display = m ? 'block' : 'none';
       o.querySelectorAll('input,select').forEach(function (i) { i.style.borderColor = ''; });
@@ -1226,8 +1222,8 @@
       if (fl && m) { fl.style.borderColor = '#b3261e'; fe = document.createElement('div'); fe.id = 'rgFieldErr'; fe.setAttribute('role', 'alert'); fe.style.cssText = 'margin:-6px 0 10px;color:#b3261e;font-size:13px;font-weight:600'; fe.textContent = m; fl.parentNode.insertBefore(fe, fl.nextSibling); try { fl.focus({ preventScroll: true }); } catch (x) {} fl.scrollIntoView({ block: 'center' }); }
       else if (m) t.scrollIntoView({ block: 'start' });
     };
-    f.addEventListener('input', function (e) { if (/^rg(Pw|Name|Mail)$/.test(e.target.id)) o.querySelector('#rgPwChk').innerHTML = pwList(val('rgPw') && o.querySelector('#rgPw').value, { name: val('rgName'), email: val('rgMail') }); });
-    f.addEventListener('change', function (e) { if (e.target.name === 'rgMode') o.querySelector('#rgPwBox').style.display = modeNow() === 'acct' ? 'none' : ''; });
+    f.addEventListener('input', function (e) { if (o.querySelector('#rgPwChk') && /^rg(Pw|Name|Mail)$/.test(e.target.id)) o.querySelector('#rgPwChk').innerHTML = pwList(val('rgPw') && o.querySelector('#rgPw').value, { name: val('rgName'), email: val('rgMail') }); });
+    f.addEventListener('change', function (e) { if (e.target.name === 'rgMode' && o.querySelector('#rgPwBox')) o.querySelector('#rgPwBox').style.display = modeNow() === 'acct' ? 'none' : ''; });
     f.addEventListener('submit', async function (e) {
       e.preventDefault();
       var which = (e.submitter && e.submitter.getAttribute('data-rg')) || (ok.ms ? 'ms' : 'google');
@@ -1504,7 +1500,7 @@
     var ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;z-index:260;background:rgba(8,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px';
     ov.innerHTML = '<div style="background:#fff;color:#101C26;width:min(520px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)"><h2 style="margin:0 0 10px;font-size:20px">Quick guide</h2>' +
-      (TR().id === 'landlord' ? '<ul style="margin:0 0 12px;padding-left:20px"><li><b>Properties</b> (home page): press <b>Add property</b>, then add the tenants, rent and certificates. Everything saves by itself to your own OneDrive or Google Drive.</li><li><b>Rent</b>: mark each rent as due or paid at the top of the property page, and create a rent invoice from there.</li><li><b>Expenses</b>: add them on the property page. <b>Generate documents</b> (left menu) makes the income and expenses report for your accountant.</li><li><b>Reminders</b>: gas safety, EICR, EPC, deposit protection, insurance and overdue rent.</li><li><b>Settings</b>: app password, backup to PDF/CSV, restore.</li></ul>' : '') +
+      (TR().id === 'landlord' ? '<ul style="margin:0 0 12px;padding-left:20px"><li><b>Properties</b> (home page): press <b>Add property</b>, then add the tenants, rent and certificates. Everything saves by itself to your own OneDrive or Google Drive.</li><li><b>Rent</b>: mark each rent as due or paid at the top of the property page, and create a rent invoice from there.</li><li><b>Expenses</b>: add them on the property page. <b>Reports and agreements</b> (left menu) makes the income and expenses report for your accountant.</li><li><b>Reminders</b>: gas safety, EICR, EPC, deposit protection, insurance and overdue rent.</li><li><b>Settings</b>: app password, backup to PDF/CSV, restore.</li></ul>' : '') +
       '<ul style="margin:0 0 12px;padding-left:20px' + (TR().id === 'landlord' ? ';display:none' : '') + '"><li><b>Tasks</b> (home page): tick things off. Tap a task to change its date or edit it.</li><li><b>Add client</b> opens a new client. Everything saves by itself to your OneDrive.</li><li><b>Tools</b> (left bar): Notebook, Marketing and Settings, plus tools for your trade.</li><li><b>Reminders</b> (right of the home page): key dates coming up, such as services, deadlines and renewals.</li><li><b>Settings</b>: change your app password, sync, back up to PDF/CSV, restore, calendar reminders.</li></ul>' +
       '<p style="margin:0 0 6px"><b>Please do not record</b> NI numbers, bank or sort-code details, passport numbers, income and expenditure, health or lifestyle answers, immigration share codes or benefit amounts.</p>' +
       '<p style="margin:0 0 14px;color:#58697A">Keep your own Microsoft login private, and save your Microsoft recovery code somewhere safe.</p><button class="btn" data-g="1">Got it</button></div>';
@@ -1671,6 +1667,16 @@
     folder: async function (name) {
       if (window.CD_DEMO) return { name: name, id: 'demo', url: '' };
       return propDir(name, true);
+    },
+    /* moves one uploaded file to the recycle bin of the user's OneDrive or Google Drive (it can be restored from there).
+       A file that is already gone counts as done. */
+    trash: async function (id) {
+      if (window.CD_DEMO || !id) return true;
+      var r = PROV === 'google'
+        ? await gfetch('/drive/v3/files/' + encodeURIComponent(id) + '?fields=id', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) })
+        : await gfetch('/me/drive/items/' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!r.ok && r.status !== 404) throw httpErr(r);
+      return true;
     },
     /* uploads one file into the property folder; returns {id, name, url, folder} */
     upload: async function (folder, fname, file) {
