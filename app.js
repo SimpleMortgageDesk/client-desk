@@ -424,7 +424,28 @@ function stripVal(c,k){if(k==='rentSum'){var rs=rentSum(c);return rs?money(Math.
 function stripHtml(c){return '<div class="strip">'+T.strip.map(function(s,i){return '<div><b data-strip="'+i+'">'+esc(stripVal(c,s[0]))+'</b><span>'+esc(s[1])+'</span></div>'}).join('')+'</div>'}
 function updStrip(){if(!$('#caseForm'))return;var c=Object.assign({},currentCase()||{},collectForm());T.strip.forEach(function(s,i){var b=document.querySelector('[data-strip="'+i+'"]');if(b)b.textContent=stripVal(c,s[0])});if(T.tenancyMode)lgRefresh(c)}
 function typeOpts(cur){var l=TYPES.slice();if(cur&&l.indexOf(cur)<0)l.push(cur);return l.map(function(t){return [t,t]})}
+/* "Does the property have a mortgage?" (landlord): the mortgage fields show only when the answer is Yes.
+   A property saved before this question existed counts as Yes when any mortgage detail is filled in. */
+function mortKeys(){var out=[];(T.sections||[]).forEach(function(s){s.fields.forEach(function(f){if(f.mort)out.push(f.k)})});return out}
+function mortVal(c){if(c&&c.hasMortgage)return c.hasMortgage;return mortKeys().some(function(k){return c&&c[k]})?'Yes':''}
 function fieldHtml(f,c){
+  if(f.k==='hasMortgage'){var c2=Object.assign({},c);c2.hasMortgage=mortVal(c);return fieldHtml0(f,c2)}
+  var h=fieldHtml0(f,c);
+  if(f.mort)h=h.replace('<label class="f','<label data-mort="1"'+(mortVal(c)==='Yes'?'':' style="display:none"')+' class="f');
+  return h;
+}
+document.addEventListener('change',function(e){
+  var t=e.target;if(!t||t.id!=='f-hasMortgage'||!t.closest('#caseForm'))return;
+  var els=[].slice.call(document.querySelectorAll('#caseForm [data-mort]')),ins=els.map(function(l){return l.querySelector('[data-f]')}).filter(Boolean);
+  if(t.value==='No'&&ins.some(function(i){return i.value})){
+    if(!confirm('Choosing No clears the mortgage details saved for this property. Continue?')){t.value='Yes';t.dispatchEvent(new Event('input',{bubbles:true}));return}
+    ins.forEach(function(i){i.value=''});
+    t.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  els.forEach(function(l){l.style.display=t.value==='Yes'?'':'none'});
+  if(t.value==='Yes'&&ins[0])ins[0].focus();
+});
+function fieldHtml0(f,c){
   var v=c[f.k],wc=f.w?' wide':'';
   if(f.t==='sel'){var opts=(f.o||[]).map(function(x){return Array.isArray(x)?x:[x,x===''?'Choose…':x]});if(v&&!opts.some(function(o){return o[0]===v}))opts.push([v,v]);return sel(f.k,esc(f.l),v==null?'':v,opts).replace('<label class="f">','<label class="f'+wc+'">')}
   if(f.t==='area')return '<label class="f wide">'+esc(f.l)+'<textarea id="f-'+f.k+'" data-f="'+f.k+'" rows="3">'+esc(v||'')+'</textarea></label>';
