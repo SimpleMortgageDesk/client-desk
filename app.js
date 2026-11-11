@@ -243,11 +243,13 @@ function visible(){
 }
 
 /* ---------- render shell ---------- */
-function renderNav(){updTrayBtn();
+/* landlords: Notebook and Book appointment sit under More, in the top menu (phone) and the side menu (computer) */
+var navMore=false;
+function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
   var items=toolItems([['clients',CL()],['cases',T.tenancyMode?T.noun[1]:'All '+NS()],['pipeline','Pipeline'],['tasks','Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
-  var tools={invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1};
-  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['gendocs','Generate documents'],['notebook','Notebook'],['bookappt','Book appointment'],['myhome','My home'],['acctset','Settings']]);
+  var tools={invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
+  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My home'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
@@ -555,7 +557,7 @@ function openDrawer(id,draft){
   d.innerHTML='<div class="bk" data-close></div><div class="panel" role="dialog" aria-modal="true" aria-label="'+esc(T.noun[0])+'">'+
   '<div class="dh"><div style="min-width:0"><div class="eyebrow">'+(id?esc(T.noun[0]):draft&&draft._from?'New '+N1()+' for an existing client. Add the details, then it saves automatically':'New '+N1())+'</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 id="dTitle" style="margin:0">'+esc(id?names(c):(T.tenancyMode?'Add a property':'Add a client'))+'</h2></div>'+(id?'<div id="nextAppt" class="muted" style="font-size:12px;margin-top:4px">'+apNextHtml(id)+'</div>':'')+(id&&c.oneDriveLink?'<div class="pl" style="margin-top:4px">'+odLink(c.oneDriveLink)+'</div>':'')+
   stripHtml(c)+(T.tenancyMode&&id?'<div id="rentHead"></div>':'')+'</div>'+
-  '<div class="dhb" style="display:flex;gap:8px;flex-wrap:nowrap;justify-content:flex-end;align-items:center;flex:none">'+(id?(T.tenancyMode?'<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Expenses</button>':'<button type="button" class="btn" id="bookBtn">Book appointment</button>'):'')+(id&&!T.tenancyMode?'<button type="button" class="btn" id="dupBtn" title="Same client, another '+esc(N1())+'">New '+esc(N1())+' for this client</button>':'')+(T.tenancyMode?'<button type="button" class="btn" id="saveCloseBtn">Save</button>':'<button class="btn ghost" data-close aria-label="Close">Close</button>')+'</div></div>'+
+  '<div class="dhb" style="display:flex;gap:8px;flex-wrap:nowrap;justify-content:flex-end;align-items:center;flex:none">'+(id?(T.tenancyMode?'<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Expenses</button>':'<button type="button" class="btn" id="bookBtn">Book appointment</button>'):'')+(id&&!T.tenancyMode?'<button type="button" class="btn" id="dupBtn" title="Same client, another '+esc(N1())+'">New '+esc(N1())+' for this client</button>':'')+'<button type="button" class="btn" id="saveCloseBtn">Done</button></div></div>'+
   '<form id="caseForm" class="db" autocomplete="off">'+
    (T.tenancyMode?llBody(c):(!id&&!draft?pickClient():'')+'<fieldset id="peopleFs"><legend>'+esc(T.peopleTitle)+'</legend><div class="appsplit"><div class="appleft"><div id="apps">'+(c.applicants&&c.applicants.length?c.applicants:[{}]).map(appRow).join('')+'</div><button type="button" class="btn ghost sm" id="addApp">Add '+esc(T.person[0].toLowerCase())+'</button><div class="grid" style="margin-top:10px">'+fld('clientNo','Client number',c.clientNo)+'</div></div><aside class="lkpane"><div class="lkt" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span id="lkTitle">Connected clients (0)</span><button type="button" class="btn ghost sm secbtn" id="lkToggle">Show</button></div><div id="linksBox" style="display:none"></div></aside></div></fieldset>'+
    (T.securities?'<fieldset class="secfs"><legend>Security addresses (buy to let and other properties)</legend><p class="muted" style="font-size:12px;margin:0 0 8px">Add the address of each property the mortgage is secured on.</p><div id="secs">'+(c.securities||[]).map(secRow).join('')+'</div><button type="button" class="btn ghost sm" id="addSec">Add security address</button></fieldset>':'')+
@@ -564,7 +566,7 @@ function openDrawer(id,draft){
    '<div id="live"></div>'+
    (T.tenancyMode?'':'<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="'+esc(c.oneDriveLink)+'"><span class="pl" id="odl">'+odLink(c.oneDriveLink)+'</span></label></fieldset>')+
   '</form>'+
-  '<div class="df"><div>'+(id?'<button type="button" class="btn danger" id="delBtn">Delete '+esc(N1())+'</button><span class="muted" id="autoMsg" style="font-size:12px;margin-left:10px">Auto-save on (every 5 seconds)</span>':'')+'</div><div style="display:flex;gap:8px"><button type="button" class="btn ghost" data-close>Cancel</button><button type="button" class="btn" id="saveBtn">Save '+esc(N1())+'</button></div></div></div>';
+  '<div class="df"><div>'+(id?'<button type="button" class="btn danger" id="delBtn">Delete '+esc(N1())+'</button>':'')+'</div><span class="muted" id="autoMsg" role="status" style="font-size:12.5px">'+(id?'&#10003; Saved. Changes save by themselves.':'Saves by itself once the '+(T.tenancyMode?'address':'name')+' is in.')+'</span></div></div>';
   colOpen={};if(T.tenancyMode){if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=1}else if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=true;lkOpen=false;curLinks=((c&&c.links)||[]).map(function(l){return {id:l.id,cid:l.cid,rel:l.rel}});renderLive();renderLinks();
   var first=$('#drawer [data-a="name"]');if(first&&!id)first.focus();
   ntDraft=(id&&c.noteDraft)||'';prDraft=(id&&c.protDraft)||'';lastND=ntDraft;lastPD=prDraft;renderLive();
@@ -1188,10 +1190,43 @@ function collectForm(){
   return o;
 }
 function hasIdent(o){return T.tenancyMode?!!String(o.propertyAddress||'').trim():o.applicants.length>0}
+/* ---------- quick add (landlord): four boxes make the property; everything else can be added later ---------- */
+function qaOpen(){
+  overlay('qaOv','<div class="dhd"><h2>Add a property</h2><button type="button" class="btn ghost" data-qaclose="1">Close</button></div>'+
+   '<p class="muted" style="margin:6px 0 12px">Just the basics to start. Certificates, mortgage, deposit and documents can be added later, when you open the property.</p>'+
+   '<form id="qaForm" autocomplete="off" novalidate><div class="grid">'+
+   '<label class="f wide">Address line one (required)<input id="qa-addr" maxlength="120" placeholder="e.g. 1 Example Road"></label>'+
+   '<label class="f">Postcode<input id="qa-pc" maxlength="10"></label>'+
+   '<label class="f">Rent a month<span class="ig"><i>£</i><input id="qa-rent" type="number" step="any" min="0" inputmode="decimal"></span></label>'+
+   '<label class="f wide">Tenant name (leave empty if the property is not let yet)<input id="qa-tn" maxlength="80"></label></div>'+
+   '<p id="qaMsg" role="alert" style="margin:0 0 8px;color:#b3261e;font-size:13px;font-weight:600"></p>'+
+   '<div class="add" style="justify-content:flex-end;margin:0"><button type="button" class="btn ghost" data-qamore="1">Add full details now</button><button type="submit" class="btn" id="qaGo">Add property</button></div></form>');
+  var a=$('#qa-addr');if(a)a.focus();
+}
+function qaRead(){var v=function(k){return String(($('#qa-'+k)||{}).value||'').trim()};return {addr:v('addr'),pc:pcFmt(v('pc')),rent:num(v('rent')),tn:v('tn')}}
+function qaData(q){
+  var d={propertyAddress:q.addr,postcode:q.pc,type:T.types[0],stage:q.tn?'let':T.defaultStage,clientNo:nextClientNo(),tenancies:[]};
+  if(q.tn||q.rent)d.tenancies.push({id:'t'+uid(),status:'current',tenantType:'private',people:q.tn?[{name:q.tn}]:[],rent:q.rent||'',rentFreq:'Monthly'});
+  return d;
+}
+function qaSave(){
+  var q=qaRead(),m=$('#qaMsg'),go=$('#qaGo');
+  if(!q.addr){if(m)m.textContent='Add address line one of the property.';var a=$('#qa-addr');if(a)a.focus();return}
+  if(!col){if(m)m.textContent='Saving is not available. Sign in to store your properties.';return}
+  if(go)go.disabled=true;
+  var d=qaData(q),ref=col.doc();d.createdAt=Date.now();d.updatedAt=d.createdAt;d.tasks=[];d.notes=[];
+  write(ref.id,function(){return ref.set(d)}).then(function(){closeOv('qaOv');toast('Property added. Open it any time to add certificates, mortgage and documents.')},function(){if(go)go.disabled=false;if(m)m.textContent='Could not save the property. Check you are online, then try again.'});
+}
+document.addEventListener('submit',function(e){if(e.target&&e.target.id==='qaForm'){e.preventDefault();qaSave()}});
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;
+  if(t.closest('[data-qaclose]')||t.id==='qaOv'){closeOv('qaOv');return}
+  if(t.closest('[data-qamore]')){var q=qaRead();closeOv('qaOv');openDrawer(null,{propertyAddress:q.addr,postcode:q.pc});return}
+});
 function saveCase(){
   var data=collectForm();
-  if(!hasIdent(data)){toast(T.tenancyMode?'Add address line one of the property':'Add at least one name');if(T.tenancyMode)paNeed();return}
-  var btn=$('#saveBtn');btn.disabled=true;
+  if(!hasIdent(data)){if(!openId&&JSON.stringify(data)===newBase){closeDrawer();return}toast(T.tenancyMode?'Add address line one of the property':'Add at least one name');if(T.tenancyMode)paNeed();return}
+  var btn=$('#saveCloseBtn');if(btn)btn.disabled=true;
   var p;
   if(openId){p=patch(openId,data)}
   else{
@@ -1241,7 +1276,7 @@ var sideLater=false;
 function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
-  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My home</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-gnopen="1">Generate documents</button><button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button><button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
+  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My home</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
   var items=toolItems([['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   s.innerHTML='<div id="sideTools"><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
@@ -1462,9 +1497,10 @@ document.addEventListener('click',function(e){
   var nv=t.closest('#nav button,#nav2 button,#sideTools button[data-v]');
   if(nv&&nv.dataset.v==='bookappt'){apOpen(null,iso(TODAY));return}
   if(nv&&nv.dataset.v==='gendocs'){gnOpen();return}
+  if(nv&&nv.dataset.v==='more'){navMore=!navMore;renderNav();renderSide();return}
   if(nv&&nv.dataset.v==='acctset'){var sb=$('#settingsBtn');if(sb)sb.click();return}
   if(nv){nbFlush();view=nv.dataset.v;render();return}
-  if(t.closest('#newBtn')||t.closest('[data-act="new"]')){openDrawer(null);return}
+  if(t.closest('#newBtn')||t.closest('[data-act="new"]')){if(T.tenancyMode)qaOpen();else openDrawer(null);return}
   if(t.closest('[data-act="export"]')){exportCsv();return}
   if(t.closest('#backupBtn')){backupAll();return}
   if(t.closest('#trayBtn')){if(trayOpen)closeTray();else openTray();return}
@@ -1721,7 +1757,7 @@ function draftSave(){
   var a=$('#ntText'),b=$('#prText'),o={};
   if(a&&a.value!==lastND){lastND=a.value;ntDraft=a.value;o.noteDraft=a.value}
   if(b&&b.value!==lastPD){lastPD=b.value;prDraft=b.value;o.protDraft=b.value}
-  if(Object.keys(o).length)patch(openId,o).then(function(){var m=$('#autoMsg');if(m)m.textContent='Auto-saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
+  if(Object.keys(o).length)patch(openId,o).then(function(){var m=$('#autoMsg');if(m)m.textContent='\u2713 Saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
 }
 var creatingNew=false;
 function autoSave(){
@@ -1735,7 +1771,7 @@ function autoSave(){
         var nref=col.doc();nd.createdAt=Date.now();nd.updatedAt=nd.createdAt;nd.tasks=[];nd.notes=pendingNotes;
         write(nref.id,function(){return nref.set(nd)}).then(function(){
           creatingNew=false;
-          if(!openId&&dn&&!dn.hidden&&$('#caseForm')){openId=nref.id;var cf=$('#f-clientNo');if(cf&&!cf.value)cf.value=nd.clientNo;lastAuto=JSON.stringify(collectForm());var m=$('#autoMsg');if(m)m.textContent='Auto-saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+          if(!openId&&dn&&!dn.hidden&&$('#caseForm')){openId=nref.id;var cf=$('#f-clientNo');if(cf&&!cf.value)cf.value=nd.clientNo;lastAuto=JSON.stringify(collectForm());var m=$('#autoMsg');if(m)m.textContent='\u2713 Saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
         },function(){creatingNew=false});
       }
     }
@@ -1749,7 +1785,7 @@ function autoSave(){
   var key=JSON.stringify(data);
   if(key===lastAuto)return;
   lastAuto=key;
-  patch(openId,data).then(function(){var m=$('#autoMsg');if(m)m.textContent='Auto-saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
+  patch(openId,data).then(function(){var m=$('#autoMsg');if(m)m.textContent='\u2713 Saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
 }
 setInterval(autoSave,5000);
 document.addEventListener('mousedown',function(e){var t=e.target;if(t&&t.closest&&t.closest('#nbBar')&&!t.closest('select')&&!t.closest('input'))e.preventDefault()},true);
@@ -3157,7 +3193,7 @@ function gnCsv(rows){
 function gnHas(r){return gnData(r[0],r[1]).some(function(p){return p.rent.length||p.ex.length})}
 function gnOpen(){
   var pre=gnHas(gnRange('lasttax'))||!gnHas(gnRange('thistax'))?'lasttax':'thistax',r=gnRange(pre),props=cases.filter(function(c){return c.stage!=='lost'}).sort(function(a,b){return names(a).localeCompare(names(b))});
-  overlay('gnOv','<div class="dhd"><h2>Generate documents</h2><button type="button" class="btn ghost" data-gnclose="1">Close</button></div>'+
+  overlay('gnOv','<div class="dhd"><h2>Reports and agreements</h2><button type="button" class="btn ghost" data-gnclose="1">Close</button></div>'+
    '<h3 style="margin:6px 0 4px;font-size:16px">Rent and expenses report</h3>'+
    '<p class="muted" style="margin:4px 0 10px">A report of rent received, expenses and mortgage payments for your accountant. Choose the dates and properties, then download it as a PDF or a spreadsheet (CSV), or email it.</p>'+
    '<div id="gnAcc" class="gnacc"></div>'+
