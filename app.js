@@ -2579,7 +2579,7 @@ document.addEventListener('click',function(e){
   if((b=t.closest('[data-dcdel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Confirm delete';return}var cd=cases.filter(function(x){return x.id===dcCase})[0];if(cd)patch(cd.id,{docs:docsOf(cd).filter(function(x){return x.id!==dcDoc.id})});closeOv('dcOv');toast('Deleted');setTimeout(function(){if(openId)renderLive();if(view==='invoices')render()},60);return}
   if((b=t.closest('[data-ivf]'))){ivFilter=b.getAttribute('data-ivf');render();return}
   if((b=t.closest('[data-taopen]'))){taOpen(b.getAttribute('data-taopen'));return}
-  if(t.closest('[data-taclose]')||t.id==='taOv'){closeOv('taOv');return}
+  if(t.closest('[data-taclose]')||t.id==='taOv'){closeOv('taOv');if($('#gnOv'))setTimeout(gnAgSync,150);return}
   if(t.closest('[data-cladd]')){var pk=$('#clPick'),ct=CL_TERMS[+pk.value]||CL_TERMS[0],bx=$('#clTerms');bx.insertAdjacentHTML('beforeend',clTermRow({t:ct[1]?ct[0]:'',x:ct[1]}));var nr=bx.lastElementChild;nr.scrollIntoView({block:'nearest'});nr.querySelector(ct[1]?'textarea':'input').focus();taPreview();return}
   if((b=t.closest('[data-clrm]'))){b.closest('.clterm').remove();taPreview();return}
   if(t.closest('[data-tasave]')){taSave();return}
@@ -3140,20 +3140,50 @@ function gnHas(r){return gnData(r[0],r[1]).some(function(p){return p.rent.length
 function gnOpen(){
   var pre=gnHas(gnRange('lasttax'))||!gnHas(gnRange('thistax'))?'lasttax':'thistax',r=gnRange(pre),props=cases.filter(function(c){return c.stage!=='lost'}).sort(function(a,b){return names(a).localeCompare(names(b))});
   overlay('gnOv','<div class="dhd"><h2>Generate documents</h2><button type="button" class="btn ghost" data-gnclose="1">Close</button></div>'+
+   gnAgHtml(props)+
+   '<h3 style="margin:18px 0 4px;font-size:16px">Rent and expenses report</h3>'+
    '<p class="muted" style="margin:4px 0 10px">A report of rent received, expenses and mortgage payments for your accountant. Choose the dates and properties, then download it as a PDF or a spreadsheet (CSV), or email it.</p>'+
    '<div id="gnAcc" class="gnacc"></div>'+
    '<div class="chips" style="margin:0 0 8px">'+[['lasttax','Last tax year'],['thistax','This tax year so far'],['lastcal','Last calendar year'],['thiscal','This calendar year']].map(function(x){return '<button type="button" data-gnr="'+x[0]+'" aria-pressed="'+(x[0]===pre)+'">'+x[1]+'</button>'}).join('')+'</div>'+
    '<div class="grid"><label class="f">From<input id="gn-from" type="date" value="'+r[0]+'"></label><label class="f">To<input id="gn-to" type="date" value="'+r[1]+'"></label></div>'+
-   '<div class="tacbs"><b>Properties:</b>'+props.map(function(c){return '<label class="tacb"><input type="checkbox" data-gnp="'+esc(c.id)+'" checked> '+esc(names(c))+'</label>'}).join('')+'</div>'+
+   '<div class="grid"><label class="f wide">Report for<select id="gn-mode"><option value="all">All properties, in one report</option><option value="each">All properties, a separate report for each</option>'+props.map(function(c){return '<option value="p:'+esc(c.id)+'">'+esc(names(c))+' only</option>'}).join('')+'</select></label></div>'+
+   '<div class="tacbs" id="gnPick"><b>Properties:</b>'+props.map(function(c){return '<label class="tacb"><input type="checkbox" data-gnp="'+esc(c.id)+'" checked> '+esc(names(c))+'</label>'}).join('')+'</div>'+
    '<div class="add" style="margin:10px 0"><button type="button" class="btn ghost" data-gnout="pdf">Download PDF</button><button type="button" class="btn ghost" data-gnout="csv">Download spreadsheet (CSV)</button><button type="button" class="btn ghost" data-gnout="share">Share PDF (phone)</button><button type="button" class="btn" data-gnout="mail">Email to my accountant</button><button type="button" class="btn ghost" data-gnout="print">Print</button></div>'+
    '<div id="gnPrev" class="dcprev" style="position:static;max-height:none"></div>',true);
-  gnAccRender();gnPreview();
+  gnAccRender();gnAgSync();gnPreview();
 }
-function gnRead(){var from=($('#gn-from')||{}).value,to=($('#gn-to')||{}).value,ids=Array.prototype.filter.call(document.querySelectorAll('[data-gnp]'),function(i){return i.checked}).map(function(i){return i.getAttribute('data-gnp')});return {from:from,to:to,ids:ids,rows:gnData(from,to,ids)}}
+function gnRead(){var from=($('#gn-from')||{}).value,to=($('#gn-to')||{}).value,mode=($('#gn-mode')||{}).value||'all',ids=mode.indexOf('p:')===0?[mode.slice(2)]:Array.prototype.filter.call(document.querySelectorAll('[data-gnp]'),function(i){return i.checked}).map(function(i){return i.getAttribute('data-gnp')});var rows=gnData(from,to,ids);return {from:from,to:to,ids:ids,rows:rows,mode:mode,each:mode==='each',one:mode!=='all'&&rows.length===1?rows[0].c:null}}
+/* the reports to make: one for everything, or one for each property */
+function gnParts(g){return g.each?g.rows.map(function(r){return {rows:[r],c:r.c}}):[{rows:g.rows,c:g.one}]}
+function gnModeSync(){var m=($('#gn-mode')||{}).value||'all',pk=$('#gnPick');if(pk)pk.style.display=m.indexOf('p:')===0?'none':''}
+/* ---------- tenancy and lease agreements, chosen by property (in Generate documents) ----------
+   Tenancy agreement: the tenant is a person (assured periodic tenancy). Lease agreement: the tenant is a company (company let, fixed term). */
+function gnAgHtml(props){
+  return '<fieldset style="margin:6px 0 0"><legend>Tenancy and lease agreements</legend>'+
+   '<p class="muted" style="margin:0 0 8px;font-size:12.5px">Choose the kind of agreement and the property. A tenancy agreement is for a tenant who is a person. A lease agreement is for a tenant that is a company, for a fixed term of up to 3 years.</p>'+
+   (props.length?'<div class="grid"><label class="f">Agreement<select id="gn-agkind"><option value="tenancy">Tenancy agreement</option><option value="lease">Lease agreement (company tenant)</option></select></label>'+
+   '<label class="f">Property<select id="gn-agprop">'+props.map(function(c){return '<option value="'+esc(c.id)+'">'+esc(names(c))+'</option>'}).join('')+'</select></label>'+
+   '<label class="f wide">Tenant<select id="gn-agtn"></select></label></div>'+
+   '<p class="muted" id="gnAgMsg" style="margin:0 0 8px;font-size:12.5px"></p>'+
+   '<div class="add" style="margin:0"><button type="button" class="btn" id="gnAgGo">Create agreement</button></div>':'<p class="muted" style="margin:0">Add a property first.</p>')+'</fieldset>';
+}
+function gnAgSync(){
+  var k=$('#gn-agkind'),p=$('#gn-agprop'),s=$('#gn-agtn'),m=$('#gnAgMsg'),go=$('#gnAgGo');if(!k||!p||!s)return;
+  var lease=k.value==='lease',c=cases.filter(function(x){return x.id===p.value})[0],keep=s.value;
+  var tns=tnList(c).filter(function(t){return tnCorp(t)===lease}).sort(function(a,b){return ((a.status||'current')==='current'?0:1)-((b.status||'current')==='current'?0:1)});
+  var opts=tns.map(function(t){var has=t.agreement&&((t.agreement.kind==='company')===lease);return '<option value="'+esc(t.id)+'">'+esc((tnNames(t)||'Tenant with no name yet')+((t.status||'current')==='current'?'':' (previous tenant)')+(has?' · agreement saved':''))+'</option>'});
+  if(!lease)opts.push('<option value="">No tenant yet: start a blank agreement for this property</option>');
+  s.innerHTML=opts.join('');if(keep&&tns.some(function(t){return t.id===keep}))s.value=keep;
+  var none=lease&&!tns.length;s.disabled=none;if(go)go.disabled=none;
+  if(none)s.innerHTML='<option value="">No company tenant on this property</option>';
+  if(m)m.textContent=none?'This property has no company tenant. Open the property, add the tenant and set Type of tenant to Corporate tenant, then come back here.':'';
+  var t0=tns.filter(function(t){return t.id===s.value})[0],saved=t0?(t0.agreement&&((t0.agreement.kind==='company')===lease)):(!lease&&c&&c.tenancyDoc);
+  if(go)go.textContent=(saved?'Open ':'Create ')+(lease?'lease agreement':'tenancy agreement');
+}
 function gnPreview(){var g=gnRead(),p=$('#gnPrev');if(!p)return;if(!g.from||!g.to||g.from>g.to){p.innerHTML='<p class="muted" style="padding:10px">Choose a start date before the end date.</p>';return}
   var out=[];g.rows.forEach(function(r){(r.c.expenses||[]).forEach(function(e){if(e.date&&(e.date<g.from||e.date>g.to))out.push(e.date)})});out.sort();
-  p.innerHTML=(out.length?'<div class="gnwarn">'+out.length+' expense'+(out.length===1?' is':'s are')+' dated outside these dates ('+fd(out[0])+(out.length>1?' to '+fd(out[out.length-1]):'')+'), so '+(out.length===1?'it is':'they are')+' not in this report. Change the dates to include '+(out.length===1?'it':'them')+'.</div>':'')+gnHtml(g.rows,g.from,g.to)}
-function gnFile(g,ext){return 'Rent-and-expenses-'+g.from+'-to-'+g.to+'.'+ext}
+  p.innerHTML=(out.length?'<div class="gnwarn">'+out.length+' expense'+(out.length===1?' is':'s are')+' dated outside these dates ('+fd(out[0])+(out.length>1?' to '+fd(out[out.length-1]):'')+'), so '+(out.length===1?'it is':'they are')+' not in this report. Change the dates to include '+(out.length===1?'it':'them')+'.</div>':'')+gnParts(g).map(function(x){return gnHtml(x.rows,g.from,g.to)}).join('<hr style="margin:18px 0;border:0;border-top:2px dashed #D4DBDF">')}
+function gnFile(g,ext,c){return 'Rent-and-expenses-'+(c?pfClean(names(c),50).replace(/[\s,]+/g,'-')+'-':'')+g.from+'-to-'+g.to+'.'+ext}
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;var b;
   if(t.id==='expBtn'){if(!openId){toast('Add the property address first. It saves itself, then try again.');return}patch(openId,collectForm());lastAuto=JSON.stringify(collectForm());expOpen(openId);return}
@@ -3168,15 +3198,18 @@ document.addEventListener('click',function(e){
   if((b=t.closest('[data-gnout]'))){
     var g=gnRead(),how=b.getAttribute('data-gnout');if(!g.from||!g.to||g.from>g.to){toast('Choose a start date before the end date');return}
     var acc=ACC().email;
-    if(how==='csv'){var blob=new Blob([gnCsv(g.rows)],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=gnFile(g,'csv');document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},4000);toast('Spreadsheet saved.'+(window.CD_DEMO?' (In the Claude demo, downloads are blocked.)':''));return}
-    if(how==='print'){printHtml(gnHtml(g.rows,g.from,g.to));return}
-    if(how==='pdf'||how==='share'){fileOut(gnPdf(g.rows,g.from,g.to),gnFile(g,'pdf'),how==='pdf'?'dl':'share');return}
+    var parts=gnParts(g);if(!parts.length||!g.rows.length){toast('Choose at least one property');return}
+    if(g.each&&(how==='share'||how==='mail')){toast('To email or share, choose all properties in one report, or one property. Download gives a separate file for each property.');return}
+    if(how==='csv'){parts.forEach(function(x,n){setTimeout(function(){var blob=new Blob([gnCsv(x.rows)],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=gnFile(g,'csv',x.c);document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},4000)},n*500)});toast((parts.length>1?parts.length+' spreadsheets saved, one for each property.':'Spreadsheet saved.')+(window.CD_DEMO?' (In the Claude demo, downloads are blocked.)':''));return}
+    if(how==='print'){printHtml(parts.map(function(x){return gnHtml(x.rows,g.from,g.to)}).join('<div style="page-break-after:always"></div>'));return}
+    if(how==='pdf'){parts.forEach(function(x,n){setTimeout(function(){fileOut(gnPdf(x.rows,g.from,g.to),gnFile(g,'pdf',x.c),'dl')},n*500)});if(parts.length>1)toast(parts.length+' PDFs, one for each property. If only one arrives, allow multiple downloads in your browser.');return}
+    if(how==='share'){fileOut(gnPdf(g.rows,g.from,g.to),gnFile(g,'pdf',g.one),'share');return}
     if(how==='mail'){
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(acc)){toast('Add your accountant’s email address first');accOpen(true);return}
       var tt=gnTotals(g.rows),txt='Hello'+(ACC().name?' '+ACC().name:'')+',\n\nPlease find attached my rent received and expenses from '+fd(g.from)+' to '+fd(g.to)+'.\n\nRent received: '+gbp(tt.rt)+'\nExpenses: '+gbp(tt.et)+(tt.mt?'\nMortgage payments: '+gbp(tt.mt):'')+'\n\nThank you,\n'+(profA().name||bizName()||'');
       if(!(window.CD_mail&&window.CD_mail.on())){window.location.href='mailto:'+acc+'?subject='+encodeURIComponent('Rent and expenses '+fd(g.from)+' to '+fd(g.to))+'&body='+encodeURIComponent(txt.replace(/\n/g,'\r\n')+'\r\n\r\n(Please attach the PDF you downloaded.)');return}
       b.disabled=true;b.textContent='Sending…';
-      window.CD_mail.send({to:[acc],subject:'Rent and expenses '+fd(g.from)+' to '+fd(g.to),text:txt,name:gnFile(g,'pdf'),bytes:gnPdf(g.rows,g.from,g.to)}).then(function(){b.disabled=false;b.textContent='Email to my accountant';toast('Report emailed to '+acc+(window.CD_DEMO?' (demo: nothing was really sent)':''))},function(err){b.disabled=false;b.textContent='Email to my accountant';toast(err&&err.perm?'Permission to send email was removed. Turn emailing on again in Settings.':'Could not send the email. Try again.')});
+      window.CD_mail.send({to:[acc],subject:'Rent and expenses '+fd(g.from)+' to '+fd(g.to),text:txt,name:gnFile(g,'pdf',g.one),bytes:gnPdf(g.rows,g.from,g.to)}).then(function(){b.disabled=false;b.textContent='Email to my accountant';toast('Report emailed to '+acc+(window.CD_DEMO?' (demo: nothing was really sent)':''))},function(err){b.disabled=false;b.textContent='Email to my accountant';toast(err&&err.perm?'Permission to send email was removed. Turn emailing on again in Settings.':'Could not send the email. Try again.')});
       return;
     }
   }
@@ -3187,7 +3220,8 @@ document.addEventListener('click',function(e){
   if(t.id==='saveCloseBtn'){saveCase();return}
 });
 document.addEventListener('input',function(e){var t=e.target;if(t&&t.closest&&t.closest('#gnOv')&&(t.id==='gn-from'||t.id==='gn-to'))gnPreview()});
-document.addEventListener('change',function(e){var t=e.target;if(t&&t.closest&&t.closest('#gnOv'))gnPreview()});
+document.addEventListener('change',function(e){var t=e.target;if(t&&t.closest&&t.closest('#gnOv')){if(/^gn-ag/.test(t.id||'')){gnAgSync();return}gnModeSync();gnPreview()}});
+document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('#gnAgGo'):null;if(!t)return;e.preventDefault();var p=$('#gn-agprop'),s=$('#gn-agtn');if(p&&p.value)taOpen(p.value,(s&&s.value)||null)});
 
 /* rent not paid by its due date: add a task to contact the tenant; tick it off when the rent is marked paid */
 var rtBusy=false;
