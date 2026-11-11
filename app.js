@@ -249,7 +249,7 @@ function renderNav(){updTrayBtn();
   var tools={invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1};
   if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['gendocs','Generate documents'],['notebook','Notebook'],['bookappt','Book appointment'],['myhome','My home'],['acctset','Settings']]);
   var mk=function(list){return list.map(function(i){
-    return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
+    return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
   var hideRem=sideVisible();$('#nav').innerHTML=mk(items.filter(function(i){return !tools[i[0]]&&!(hideRem&&i[0]==='reminders')}));var n2=$('#nav2');if(n2)n2.innerHTML=mk(items.filter(function(i){return tools[i[0]]}));
 }
@@ -1241,7 +1241,7 @@ var sideLater=false;
 function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
-  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'>My home</button><button type="button" class="sbtn" data-gnopen="1">Generate documents</button><button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button><button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
+  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My home</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-gnopen="1">Generate documents</button><button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button><button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
   var items=toolItems([['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   s.innerHTML='<div id="sideTools"><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
@@ -2044,7 +2044,10 @@ function homeEvents(){
   add('boilerDue',homeV(h,'boilerDue'),'Boiler service due',2);add('eicrDue',homeV(h,'eicrDue'),'Electrical check due',2);
   return out;
 }
-function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases'||view==='myhome')render();renderRem();renderNav()}
+/* the home address, in small type, under the My home tab */
+function homeLine(){var h=HOME;return h&&h.addr1?[String(h.addr1).trim(),String(h.postcode||'').trim()].filter(Boolean).join(', '):''}
+function homeSmall(top){var a=homeLine();return a?'<small title="'+esc(a)+'" style="display:block;font-size:11px;font-weight:400;line-height:1.3;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:'+(top?'170px':'100%')+'">'+esc(a)+'</small>':''}
+function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases'||view==='myhome')render();renderRem();renderNav();renderSide()}
 function homeCard(pg){
   var h=HOME,hd=pg?'':'<h2>My home</h2>';
   if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div>'+hd+'<p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills and safety checks. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
@@ -3088,14 +3091,20 @@ function gnData(from,to,ids){
 }
 function gnTotals(rows){var cats={};rows.forEach(function(p){p.ex.forEach(function(e){cats[e.cat||'Other']=r2((cats[e.cat||'Other']||0)+(+e.amount||0))})});
   var s=function(f){return r2(rows.reduce(function(a,p){return a+f(p)},0))},rt=s(function(p){return p.rt}),et=s(function(p){return p.et}),mt=s(function(p){return p.mo.tot}),me=s(function(p){return p.mo.est});
-  return {rt:rt,et:et,mt:mt,me:me,cats:cats,left:r2(rt-et-mt)}}
+  return {rt:rt,et:et,mt:mt,me:me,cats:cats,left:r2(rt-et-mt),net:r2(rt-et-me)}}
+/* the summary at the top of the report: the four totals, then one line for each property */
+var GN_NET='Net rental income (rent less expenses and mortgage interest)';
+function gnSumRows(tt){return [['Total rent received',tt.rt],['Total mortgage interest paid'+(tt.me?' (estimated)':''),tt.me],['Total expenses',tt.et],[GN_NET,tt.net]]}
+function gnNet(p){return r2(p.rt-p.et-p.mo.est)}
 var MORT_NOTE='Mortgage payments are worked out from the monthly payment on each property. Only the interest part of a mortgage counts for tax (as a basic-rate tax credit for individual landlords); capital repayments do not. The interest figure is an estimate from the balance and rate: use your lender’s annual statement for the exact amount.';
 function mLabel(mo){return [mo.method==='interest-only'?'Interest only':mo.method==='repayment'?'Repayment':'',mo.lender,mo.rate?mo.rate+'%':''].filter(Boolean).join(' · ')}
 function gnHtml(rows,from,to){
   var tt=gnTotals(rows),fin=tt.cats['Mortgage interest and finance costs']||0,a=ACC();
   return '<div class="dpage">'+(okLogo(BIZ.logo)?'<img class="dlogo" src="'+BIZ.logo+'" alt="" style="max-height:50px">':'')+'<div class="dbig" style="margin-top:6px">Rent received and expenses</div><div class="muted">'+esc(bizName()||profA().name||'')+' · '+fd(from)+' to '+fd(to)+'</div>'+
    (a.name?'<div style="margin-top:6px;font-size:12px">Prepared for: <b>'+esc(a.name)+'</b>'+(a.address?', '+esc(a.address.replace(/\n/g,', ')):'')+'</div>':'')+
-   '<table class="dsum" style="margin:12px 0 0 0;min-width:320px"><tr><td>Rent received</td><td>'+gbp(tt.rt)+'</td></tr><tr><td>Expenses</td><td>'+gbp(tt.et)+'</td></tr>'+(tt.mt?'<tr><td>Rent less expenses</td><td>'+gbp(r2(tt.rt-tt.et))+'</td></tr>':'')+(tt.mt?'<tr><td>Mortgage payments</td><td>'+gbp(tt.mt)+'</td></tr><tr><td>Interest part of mortgage payments (estimated)</td><td>'+gbp(tt.me)+'</td></tr>':'')+'<tr class="dgt"><td>'+(tt.mt?'Left after expenses and mortgage payments':'Rent less expenses')+'</td><td>'+gbp(tt.mt?tt.left:r2(tt.rt-tt.et))+'</td></tr></table>'+
+   '<h4 style="margin:14px 0 4px;color:#2F4A40">Summary</h4><table class="dsum" style="margin:0;min-width:320px">'+gnSumRows(tt).map(function(r,n){return '<tr'+(n===3?' class="dgt"':'')+'><td>'+esc(r[0])+'</td><td>'+gbp(r[1])+'</td></tr>'}).join('')+'</table>'+
+   (tt.mt?'<p class="muted" style="font-size:11px;margin:6px 0 0">Total mortgage payments, interest and capital together: '+gbp(tt.mt)+'. Left after expenses and mortgage payments: '+gbp(tt.left)+'.</p>':'')+
+   (rows.length>1?'<h4 style="margin:14px 0 4px;color:#2F4A40">Summary by property</h4><table class="dtab"><thead><tr><th>Property</th><th>Rent received</th><th>Mortgage interest</th><th>Expenses</th><th>Net income</th></tr></thead><tbody>'+rows.map(function(p){return '<tr><td>'+esc(names(p.c))+'</td><td>'+gbp(p.rt)+'</td><td>'+gbp(p.mo.est)+'</td><td>'+gbp(p.et)+'</td><td>'+gbp(gnNet(p))+'</td></tr>'}).join('')+'<tr><td><b>Total, '+rows.length+' properties</b></td><td><b>'+gbp(tt.rt)+'</b></td><td><b>'+gbp(tt.me)+'</b></td><td><b>'+gbp(tt.et)+'</b></td><td><b>'+gbp(tt.net)+'</b></td></tr></tbody></table>':'')+
    (tt.mt?'<p class="muted" style="font-size:11px">'+esc(MORT_NOTE)+(fin?' You have also entered '+gbp(fin)+' of mortgage interest as an expense, so check it is not counted twice.':'')+'</p>':fin?'<p class="muted" style="font-size:11px">Includes '+gbp(fin)+' of mortgage interest and finance costs. For individual landlords these get tax relief as a basic-rate tax credit rather than as an expense, so your accountant will treat them separately.</p>':'')+
    (Object.keys(tt.cats).length?'<h4 style="margin:14px 0 4px;color:#2F4A40">Expenses by category</h4><table class="dkv">'+Object.keys(tt.cats).sort().map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+gbp(tt.cats[k])+'</td></tr>'}).join('')+'</table>':'')+
    rows.map(function(p){return '<h4 style="margin:18px 0 4px;color:#2F4A40">'+esc(names(p.c))+'</h4>'+
@@ -3110,8 +3119,15 @@ function gnPdf(rows,from,to){
   P.t(40,P.y,'Rent received and expenses',18,true,'l',A);P.y+=24;P.t(40,P.y,(bizName()||profA().name||'')+'  ·  '+fd(from)+' to '+fd(to),10,false,'l',G);P.y+=16;
   if(a.name){wrapT('Prepared for: '+a.name+(a.address?', '+a.address.replace(/\n/g,', '):''),515,9.5).forEach(function(l){P.t(40,P.y,l,9.5);P.y+=12})}
   P.y+=8;
-  var sum=[['Rent received',tt.rt],['Expenses',tt.et],['Rent less expenses',r2(tt.rt-tt.et)]];if(tt.mt)sum.push(['Mortgage payments',tt.mt],['Interest part of mortgage payments (estimated)',tt.me],['Left after expenses and mortgage payments',tt.left]);
-  sum.forEach(function(r,i){var last=i===sum.length-1;P.t(40,P.y,r[0],10,last);P.t(360,P.y,gbp(r[1]),10,last,'r');P.y+=15});
+  P.t(40,P.y,'Summary',11,true,'l',A);P.y+=16;
+  gnSumRows(tt).forEach(function(r,i){var last=i===3;P.t(40,P.y,r[0],10,last);P.t(420,P.y,gbp(r[1]),10,last,'r');P.y+=15});
+  if(tt.mt){wrapT('Total mortgage payments, interest and capital together: '+gbp(tt.mt)+'. Left after expenses and mortgage payments: '+gbp(tt.left)+'.',515,8.5).forEach(function(l){P.t(40,P.y,l,8.5,false,'l',G);P.y+=11})}
+  if(rows.length>1){
+    var SX=[325,405,470,549],shd=function(p){p.rect(40,p.y,515,16,[0.93,0.95,0.94]);p.t(46,p.y+4,'Property',8.5,true);['Rent received','Mortgage interest','Expenses','Net income'].forEach(function(h,i){p.t(SX[i],p.y+4,h,8.5,true,'r')});p.y+=20};
+    P.y+=8;P.need(60);P.t(40,P.y,'Summary by property',11,true,'l',A);P.y+=16;shd(P);
+    rows.forEach(function(p){var ls=wrapT(names(p.c),205,9),h=Math.max(1,ls.length)*11+3;P.need(h,shd);ls.forEach(function(l,i){P.t(46,P.y+i*11,l,9)});[p.rt,p.mo.est,p.et,gnNet(p)].forEach(function(v,i){P.t(SX[i],P.y,gbp(v),9,false,'r')});P.y+=h;P.line(40,P.y-2,555)});
+    P.need(16);P.t(46,P.y+2,'Total, '+rows.length+' properties',9.5,true);[tt.rt,tt.me,tt.et,tt.net].forEach(function(v,i){P.t(SX[i],P.y+2,gbp(v),9.5,true,'r')});P.y+=20;
+  }
   var fin=tt.cats['Mortgage interest and finance costs']||0,note=tt.mt?MORT_NOTE+(fin?' You have also entered '+gbp(fin)+' of mortgage interest as an expense, so check it is not counted twice.':''):fin?'Includes '+gbp(fin)+' of mortgage interest and finance costs. For individual landlords these get tax relief as a basic-rate tax credit rather than as an expense, so your accountant will treat them separately.':'';
   if(note){P.y+=4;wrapT(note,515,8.5).forEach(function(l){P.t(40,P.y,l,8.5,false,'l',G);P.y+=11})}
   var cats=Object.keys(tt.cats).sort();if(cats.length){P.y+=8;P.t(40,P.y,'Expenses by category',11,true,'l',A);P.y+=16;cats.forEach(function(k){P.need(14);P.t(40,P.y,k,9.5);P.t(400,P.y,gbp(tt.cats[k]),9.5,false,'r');P.y+=13})}
@@ -3133,6 +3149,8 @@ function gnPdf(rows,from,to){
 }
 function gnCsv(rows){
   var q=function(v){return '"'+csvCell(v).replace(/"/g,'""')+'"'},out=[['Property','Type','Date','Tenant or category','Detail','Amount','Interest part'].map(q).join(',')];
+  var tt=gnTotals(rows);gnSumRows(tt).forEach(function(r){out.push([rows.length>1?'All properties':names(rows[0]?rows[0].c:{}),'Summary','',r[0],'',r[1]].map(q).join(','))});
+  if(rows.length>1)rows.forEach(function(p){[['Rent received',p.rt],['Mortgage interest paid',p.mo.est],['Expenses',p.et],['Net rental income',gnNet(p)]].forEach(function(r){out.push([names(p.c),'Summary','',r[0],'',r[1]].map(q).join(','))})});
   rows.forEach(function(p){p.rent.forEach(function(r){out.push([names(p.c),'Rent received',r.date,r.who,'For rent due '+r.due,r.amount].map(q).join(','))});p.ex.forEach(function(e){out.push([names(p.c),'Expense',e.date,e.cat||'',[e.desc,e.to].filter(Boolean).join(' - '),e.amount].map(q).join(','))});p.mo.rows.forEach(function(r){out.push([names(p.c),'Mortgage payment',r.date,mLabel(p.mo),'',r.amount,r.i==null?'':r.i].map(q).join(','))})});
   return '﻿'+out.join('\r\n')+'\r\n';
 }
@@ -3140,8 +3158,7 @@ function gnHas(r){return gnData(r[0],r[1]).some(function(p){return p.rent.length
 function gnOpen(){
   var pre=gnHas(gnRange('lasttax'))||!gnHas(gnRange('thistax'))?'lasttax':'thistax',r=gnRange(pre),props=cases.filter(function(c){return c.stage!=='lost'}).sort(function(a,b){return names(a).localeCompare(names(b))});
   overlay('gnOv','<div class="dhd"><h2>Generate documents</h2><button type="button" class="btn ghost" data-gnclose="1">Close</button></div>'+
-   gnAgHtml(props)+
-   '<h3 style="margin:18px 0 4px;font-size:16px">Rent and expenses report</h3>'+
+   '<h3 style="margin:6px 0 4px;font-size:16px">Rent and expenses report</h3>'+
    '<p class="muted" style="margin:4px 0 10px">A report of rent received, expenses and mortgage payments for your accountant. Choose the dates and properties, then download it as a PDF or a spreadsheet (CSV), or email it.</p>'+
    '<div id="gnAcc" class="gnacc"></div>'+
    '<div class="chips" style="margin:0 0 8px">'+[['lasttax','Last tax year'],['thistax','This tax year so far'],['lastcal','Last calendar year'],['thiscal','This calendar year']].map(function(x){return '<button type="button" data-gnr="'+x[0]+'" aria-pressed="'+(x[0]===pre)+'">'+x[1]+'</button>'}).join('')+'</div>'+
@@ -3149,7 +3166,8 @@ function gnOpen(){
    '<div class="grid"><label class="f wide">Report for<select id="gn-mode"><option value="all">All properties, in one report</option><option value="each">All properties, a separate report for each</option>'+props.map(function(c){return '<option value="p:'+esc(c.id)+'">'+esc(names(c))+' only</option>'}).join('')+'</select></label></div>'+
    '<div class="tacbs" id="gnPick"><b>Properties:</b>'+props.map(function(c){return '<label class="tacb"><input type="checkbox" data-gnp="'+esc(c.id)+'" checked> '+esc(names(c))+'</label>'}).join('')+'</div>'+
    '<div class="add" style="margin:10px 0"><button type="button" class="btn ghost" data-gnout="pdf">Download PDF</button><button type="button" class="btn ghost" data-gnout="csv">Download spreadsheet (CSV)</button><button type="button" class="btn ghost" data-gnout="share">Share PDF (phone)</button><button type="button" class="btn" data-gnout="mail">Email to my accountant</button><button type="button" class="btn ghost" data-gnout="print">Print</button></div>'+
-   '<div id="gnPrev" class="dcprev" style="position:static;max-height:none"></div>',true);
+   '<div id="gnPrev" class="dcprev" style="position:static;max-height:460px;overflow:auto"></div>'+
+   '<div style="margin-top:18px">'+gnAgHtml(props)+'</div>',true);
   gnAccRender();gnAgSync();gnPreview();
 }
 function gnRead(){var from=($('#gn-from')||{}).value,to=($('#gn-to')||{}).value,mode=($('#gn-mode')||{}).value||'all',ids=mode.indexOf('p:')===0?[mode.slice(2)]:Array.prototype.filter.call(document.querySelectorAll('[data-gnp]'),function(i){return i.checked}).map(function(i){return i.getAttribute('data-gnp')});var rows=gnData(from,to,ids);return {from:from,to:to,ids:ids,rows:rows,mode:mode,each:mode==='each',one:mode!=='all'&&rows.length===1?rows[0].c:null}}
