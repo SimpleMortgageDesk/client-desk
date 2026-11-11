@@ -756,3 +756,32 @@ header.top .in{padding-block:12px}}
 .rlrow.rlc>:not(.rlsum){display:none}
 .rlrow.rlpaid:not(.rlc) .rlsum{margin-bottom:4px}
 @media(max-width:700px){.rlrow .rlsum{flex-wrap:nowrap;gap:10px}.rlrow .rlsum .rlm{min-width:0;white-space:nowrap}.rlrow .rlsum .rla{min-width:0}.rlrow .rlsum .rli{display:none}.rlrow .rlsum .rlx{font-size:0}.rlrow .rlsum .rlx::after{font-size:14px}}
+
+/* ---- phone: the whole menu in one row that swipes sideways (Settings last), and Export and Sort under the list ---- */
+.xpm{display:none}
+@media (max-width:759px){
+ #nav.onerow{position:relative;display:flex;flex-wrap:nowrap;gap:2px;flex:1 1 100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+ #nav.onerow::-webkit-scrollbar{display:none}
+ #nav.onerow button{flex:none;padding:9px 10px;font-size:14.5px}
+ #nav.onerow>button:first-child{margin-left:0}
+ #nav.onerow>button:last-child{margin-right:0}
+ #nav.onerow button small{display:none!important}
+ #nav.onerow~.tright #nav2,#nav.onerow~#nav2{display:none}
+ header.top:has(#nav.onerow) #settingsBtn{display:none}
+ .caseswrap{display:flex;flex-direction:column}
+ .caseswrap>*{order:4}
+ .caseswrap>.pagehead{order:1}
+ .caseswrap>.tw,.caseswrap>.empty{order:2}
+ .caseswrap>.filters{order:3;margin:14px 0 12px}
+ .caseswrap>.pagehead [data-act="export"]{display:none}
+ .xpm{display:inline-flex}
+}
+
+/* ---- property list: each row a different light colour, repeating every six rows ---- */
+.caseswrap .tw tbody tr.click:nth-child(6n+1)>td{background:#F1F6FD}
+.caseswrap .tw tbody tr.click:nth-child(6n+2)>td{background:#EEF8F4}
+.caseswrap .tw tbody tr.click:nth-child(6n+3)>td{background:#F6F2FC}
+.caseswrap .tw tbody tr.click:nth-child(6n+4)>td{background:#FDF5EC}
+.caseswrap .tw tbody tr.click:nth-child(6n+5)>td{background:#FCF1F5}
+.caseswrap .tw tbody tr.click:nth-child(6n+6)>td{background:#EFF7FA}
+.caseswrap .tw tbody tr.click:hover>td{filter:brightness(.97)}

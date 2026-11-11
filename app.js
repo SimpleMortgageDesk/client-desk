@@ -253,8 +253,14 @@ function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
-  var hideRem=sideVisible();$('#nav').innerHTML=mk(items.filter(function(i){return !tools[i[0]]&&!(hideRem&&i[0]==='reminders')}));var n2=$('#nav2');if(n2)n2.innerHTML=mk(items.filter(function(i){return tools[i[0]]}));
+  var hideRem=sideVisible(),n1=$('#nav'),n2=$('#nav2'),one=T.tenancyMode&&NAV_MQ&&NAV_MQ.matches;
+  /* landlords on a phone: every menu item in one row that swipes sideways, Settings last */
+  n1.classList.toggle('onerow',!!one);
+  if(one){var keep=n1.scrollLeft;n1.innerHTML=mk(items.filter(function(i){return !(hideRem&&i[0]==='reminders')}));if(n2)n2.innerHTML='';n1.scrollLeft=keep;var cur=n1.querySelector('[aria-current="page"]');if(cur&&(cur.offsetLeft<n1.scrollLeft||cur.offsetLeft+cur.offsetWidth>n1.scrollLeft+n1.clientWidth))n1.scrollLeft=Math.max(0,cur.offsetLeft-12);return}
+  n1.innerHTML=mk(items.filter(function(i){return !tools[i[0]]&&!(hideRem&&i[0]==='reminders')}));if(n2)n2.innerHTML=mk(items.filter(function(i){return tools[i[0]]}));
 }
+var NAV_MQ=window.matchMedia?window.matchMedia('(max-width:759px)'):null;
+if(NAV_MQ){var navMqFn=function(){if(T)renderNav()};if(NAV_MQ.addEventListener)NAV_MQ.addEventListener('change',navMqFn);else if(NAV_MQ.addListener)NAV_MQ.addListener(navMqFn)}
 
 function toolItems(l){return l.filter(function(i){return !(i[0]==='calculator'&&!T.calculator)&&!(i[0]==='birthdays'&&!T.dob)&&!(T.hideTabs&&T.hideTabs.indexOf(i[0])>-1)})}
 function gbp2(n){return '£'+n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}
@@ -348,8 +354,9 @@ function casesHTML(){
   var opts='<option value="">All stages</option>'+STAGES.concat([{id:'lost',label:'Closed lost'}]).map(function(s){return '<option value="'+s.id+'"'+(stageFilter===s.id?' selected':'')+'>'+s.label+'</option>'}).join('');
   var llSum=T.tenancyMode?(function(){var let_=cases.filter(function(c){return c.stage!=='lost'&&tnCurrent(c).length}).length,roll=cases.reduce(function(a,c){return a+rentSum(c)},0);return '<div class="stats"><div class="stat"><b>'+cases.length+'</b><span>Properties</span></div><div class="stat"><b>'+let_+'</b><span>Let</span></div><div class="stat"><b>'+(cases.length-let_)+'</b><span>Vacant</span></div><div class="stat"><b>'+money(Math.round(roll*100)/100)+'</b><span>Rent a month</span></div></div>'})():'';
   var h='<div class="pagehead"><h1>'+(T.tenancyMode?'Properties':'All '+NS())+'</h1>'+llSum+'<button class="btn ghost" data-act="export">Export CSV</button></div>'+
-    '<div class="filters">'+(T.tenancyMode?'':'<select id="stageSel" aria-label="Filter by stage">'+opts+'</select> ')+'<select id="sortSel" aria-label="Sort clients">'+[['updated','Sort: recently updated'],['first','Sort: first name A–Z'],['review','Sort: next '+T.reviewWord.toLowerCase()+' date'],['task','Sort: next task due date'],['clientno','Sort: client number']].map(function(o){return '<option value="'+o[0]+'"'+(sortBy===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'+lenderSelHTML()+revSelHTML()+'<details class="colpick"><summary class="btn ghost">Columns</summary><div class="colbox">'+CASE_COLS.map(function(c){return '<label><input type="checkbox" data-colk="'+c[0]+'"'+(colOn(c[0])?' checked':'')+'> '+c[1]+'</label>'}).join('')+'</div></details>'+((stageFilter||lenderFilter||revFilter)?' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>':'')+'</div>';
-  if(!cases.length)return h+emptyHTML()+mtdCard();
+    '<div class="filters"><button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>'+(T.tenancyMode?'':'<select id="stageSel" aria-label="Filter by stage">'+opts+'</select> ')+'<select id="sortSel" aria-label="Sort clients">'+[['updated','Sort: recently updated'],['first','Sort: first name A–Z'],['review','Sort: next '+T.reviewWord.toLowerCase()+' date'],['task','Sort: next task due date'],['clientno','Sort: client number']].map(function(o){return '<option value="'+o[0]+'"'+(sortBy===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'+lenderSelHTML()+revSelHTML()+'<details class="colpick"><summary class="btn ghost">Columns</summary><div class="colbox">'+CASE_COLS.map(function(c){return '<label><input type="checkbox" data-colk="'+c[0]+'"'+(colOn(c[0])?' checked':'')+'> '+c[1]+'</label>'}).join('')+'</div></details>'+((stageFilter||lenderFilter||revFilter)?' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>':'')+'</div>';
+  h='<div class="caseswrap">'+h;
+  if(!cases.length)return h+emptyHTML()+mtdCard()+'</div>';
   var shown=CASE_COLS.filter(function(x){return colOn(x[0])});
   h+='<div class="tw"><table><thead><tr><th>'+esc(T.tenancyMode?'Property':T.person[0]==='Applicant'||T.person[0]==='Contact'?'Client':T.person[0])+'</th>'+shown.map(function(x){return '<th>'+esc(x[1])+'</th>'}).join('')+'</tr></thead><tbody>';
   if(!list.length)h+='<tr><td colspan="'+(shown.length+1)+'" class="muted">No '+NS()+' match.</td></tr>';
@@ -372,7 +379,7 @@ function casesHTML(){
       return '<td>'+esc(fmtField(c,k))+sub+'</td>';
     }).join('')+'</tr>';
   });
-  return h+'</tbody></table></div>'+mtdCard();
+  return h+'</tbody></table></div>'+mtdCard()+'</div>';
 }
 
 /* ---------- reminders ---------- */
@@ -2739,7 +2746,7 @@ function dzInner(c,k,label){
 function dzSpan(c,f){return '<span class="pl dz" style="flex-wrap:wrap" data-dz="'+esc(f.k)+'" data-dzl="'+esc(f.doc)+'">'+dzInner(c,f.k,f.doc)+'</span>'}
 function dzFolderHtml(c){
   var f=c&&c.folder,w=window.CD_files?window.CD_files.where():'file storage';
-  if(f&&f.name)return '<p class="muted" style="margin:0 0 8px;font-size:12px">Folder in your '+esc(w)+': <b>Properties › '+esc(f.name)+'</b></p>'+(f.url?'<div class="pl" style="margin:0 0 10px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">Open property folder</a></div>':'');
+  if(f&&f.name)return '<p class="muted" style="margin:0 0 8px;font-size:12px">Folder in your '+esc(w)+': <b>Properties › '+esc(f.name)+'</b></p>'+(f.url?'<div class="pl" style="margin:0 0 6px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">Open property folder</a></div>':'')+'<p style="margin:0 0 10px;padding:7px 9px;background:#FBEFD2;color:#6b4700;border-radius:7px;font-size:12px"><b>Do not delete, move or rename folders in your '+esc(w)+'.</b> Your records and documents are kept there, and deleting them removes them from the app.</p>';
   return '<p class="muted" style="margin:0 0 8px;font-size:12px">A folder for this property is made in your '+esc(w)+' when the property is saved. It is named after the first line of the address.</p>';
 }
 function dzSide(c){return '<fieldset data-sec="docs"><legend>Property documents</legend><div id="dzFolder">'+dzFolderHtml(c)+'</div><div data-dz="other" data-dzl="document">'+dzInner(c,'other','document')+'</div><p class="muted" style="margin:8px 0 0;font-size:12px">Certificates can also be uploaded next to their dates. Files up to 50 MB.</p></fieldset>'}
