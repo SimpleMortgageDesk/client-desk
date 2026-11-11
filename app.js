@@ -2746,7 +2746,7 @@ function dzInner(c,k,label){
 function dzSpan(c,f){return '<span class="pl dz" style="flex-wrap:wrap" data-dz="'+esc(f.k)+'" data-dzl="'+esc(f.doc)+'">'+dzInner(c,f.k,f.doc)+'</span>'}
 function dzFolderHtml(c){
   var f=c&&c.folder,w=window.CD_files?window.CD_files.where():'file storage';
-  if(f&&f.name)return '<p class="muted" style="margin:0 0 8px;font-size:12px">Folder in your '+esc(w)+': <b>Properties › '+esc(f.name)+'</b></p>'+(f.url?'<div class="pl" style="margin:0 0 10px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">Open property folder</a></div>':'');
+  if(f&&f.name)return '<p class="muted" style="margin:0 0 8px;font-size:12px">Folder in your '+esc(w)+': <b>Properties › '+esc(f.name)+'</b></p>'+(f.url?'<div class="pl" style="margin:0 0 6px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">Open property folder</a></div>':'')+'<p style="margin:0 0 10px;padding:7px 9px;background:#FBEFD2;color:#6b4700;border-radius:7px;font-size:12px"><b>Do not delete, move or rename folders in your '+esc(w)+'.</b> Your records and documents are kept there, and deleting them removes them from the app.</p>';
   return '<p class="muted" style="margin:0 0 8px;font-size:12px">A folder for this property is made in your '+esc(w)+' when the property is saved. It is named after the first line of the address.</p>';
 }
 function dzSide(c){return '<fieldset data-sec="docs"><legend>Property documents</legend><div id="dzFolder">'+dzFolderHtml(c)+'</div><div data-dz="other" data-dzl="document">'+dzInner(c,'other','document')+'</div><p class="muted" style="margin:8px 0 0;font-size:12px">Certificates can also be uploaded next to their dates. Files up to 50 MB.</p></fieldset>'}

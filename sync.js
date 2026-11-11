@@ -358,9 +358,23 @@
     if (pulling || !tok()) return;
     pulling = true;
     try {
-      var todo = [], removed = {};
+      var todo = [], removed = {}, lists = [], nRemote = 0, nSynced = 0, nGone = 0;
+      for (var li = 0; li < COLS.length; li++) {
+        var rl = await listRemote(COLS[li]), sn = {}; lists.push(rl); nRemote += rl.length;
+        rl.forEach(function (it) { sn[it.id] = 1; });
+        Object.keys(mem[COLS[li]]).forEach(function (id) { var m = mem[COLS[li]][id]; if (!m.etag) return; nSynced++; if (!sn[id] && !dirty[COLS[li] + '/' + id]) nGone++; });
+      }
+      /* Safety check: when all (or nearly all) the saved records have vanished from the user's storage at once, the folder was
+         almost certainly deleted, moved or renamed by mistake. Keep the copy on this device and ask, instead of removing it. */
+      if (!wipeOk && nGone > 0 && (nRemote === 0 || (nGone >= 3 && nGone >= 0.8 * nSynced))) {
+        hideLoading(); pulling = false;
+        if (!firstPullDone) { firstPullDone = true; fpRes(); }
+        st.err = 'Records folder missing'; setState(); folderGoneAsk(nGone);
+        return;
+      }
+      wipeOk = false;
       for (var ci = 0; ci < COLS.length; ci++) {
-        var col = COLS[ci], remote = await listRemote(col), seen = {};
+        var col = COLS[ci], remote = lists[ci], seen = {};
         remote.forEach(function (it) {
           seen[it.id] = 1;
           var loc = mem[col][it.id];
@@ -386,11 +400,56 @@
       if (!firstPullDone) {
         firstPullDone = true; fpRes();
       }
+      if (nRemote > 0) folderReadme();
       st.offline = false; st.err = ''; st.last = Date.now();
     } catch (e) { hideLoading(); handleErr(e); fpRes(); }
     pulling = false; setState();
   }
 
+  /* ---------- the records folder has gone missing from OneDrive / Google Drive ---------- */
+  var wipeOk = false;
+  function folderPutBack() {
+    lset('cd.gcols', null); try { gcols = {}; } catch (e) {}
+    COLS.forEach(function (col) {
+      Object.keys(mem[col]).forEach(function (id) {
+        var m = mem[col][id], k = col + '/' + id; m.etag = null; m.itemId = null; persistDoc(col, id);
+        var nd = { k: k, col: col, id: id, kind: 'set', patch: {}, v: ++vctr }; dirty[k] = nd; idbPut('dirty', nd);
+      });
+    });
+    st.err = ''; setState(); scheduleFlush(0);
+  }
+  function folderGoneAsk(n) {
+    if ($('mdGone')) return;
+    var w = SNAME(), bin = PROV === 'google' ? 'Bin' : 'Recycle bin', o = document.createElement('div'); o.id = 'mdGone';
+    o.style.cssText = 'position:fixed;inset:0;z-index:260;background:rgba(8,14,18,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+    var b = 'display:block;width:100%;text-align:left;padding:12px 14px;border-radius:9px;font:600 15px system-ui,sans-serif;cursor:pointer;margin:0 0 10px;border:1.5px solid ';
+    var sm = '<span style="display:block;font-weight:400;font-size:13px;margin-top:2px">';
+    o.innerHTML = '<div role="alertdialog" aria-labelledby="mdGoneH" style="background:#fff;color:#101C26;width:min(520px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14.5px/1.45 system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
+      '<h2 id="mdGoneH" style="margin:0 0 8px;font-size:20px;color:#A3261F">Warning: your records folder is missing</h2>' +
+      '<p style="margin:0 0 8px">The ' + esc(APPN) + ' folder in your ' + esc(w) + ' has been deleted, moved or renamed. It held ' + n + ' saved item' + (n === 1 ? '' : 's') + ', including your properties and tenants.</p>' +
+      '<p style="margin:0 0 14px"><b>Nothing has been removed from this device yet.</b> Choose what to do:</p>' +
+      '<button type="button" data-g="back" style="' + b + '#0A6B50;background:#0A6B50;color:#fff">Put my records back in ' + esc(w) + sm + 'Uses the copy on this device to make the folder again. Uploaded documents, such as certificates, are not on this device: restore those from the ' + esc(w) + ' ' + bin + '.</span></button>' +
+      '<button type="button" data-g="again" style="' + b + '#0A6B50;background:#fff;color:#0A6B50">I have restored the folder. Check again' + sm + 'In ' + esc(w) + ', open the ' + bin + ', choose the deleted folder and press Restore. It is usually kept for about 30 days.</span></button>' +
+      '<button type="button" data-g="wipe" style="' + b + '#D4DBDF;background:#fff;color:#A3261F;margin-bottom:0">I meant to delete everything' + sm + 'Removes the records from this device as well. This cannot be undone.</span></button>' +
+      '<p id="mdGoneMsg" role="status" style="margin:10px 0 0;color:#58697A;font-size:13px"></p></div>';
+    document.body.appendChild(o);
+    o.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest('[data-g]'); if (!t) return;
+      var a = t.getAttribute('data-g'), msg = o.querySelector('#mdGoneMsg');
+      if (a === 'back') { o.remove(); folderPutBack(); toast('Putting your records back in ' + w + '…'); return; }
+      if (a === 'again') { o.remove(); st.err = ''; setState(); pull(); return; }
+      if (a === 'wipe') {
+        if (t.getAttribute('data-armed') !== '1') { t.setAttribute('data-armed', '1'); t.firstChild.nodeValue = 'Press again to delete everything'; msg.textContent = 'This removes every record from this device. Only do this if you really want to start again.'; return; }
+        o.remove(); wipeOk = true; st.err = ''; setState(); pull();
+      }
+    });
+  }
+  /* a note inside the user's own folder, so the warning is there when they look at the folder in OneDrive */
+  function folderReadme() {
+    if (PROV !== 'ms' || window.CD_DEMO || FOLDER() === null || ls('cd.readme') === '1') return;
+    var txt = 'IMPORTANT: DO NOT DELETE, MOVE OR RENAME THIS FOLDER\r\n\r\nThis folder holds all your ' + APPN + ' records: your properties, tenants, rent, expenses, notes and uploaded documents.\r\n\r\nIf you delete, move or rename it, your records will disappear from the app on every device.\r\n\r\nDeleted it by mistake? Open the OneDrive Recycle bin, choose the folder and press Restore. OneDrive usually keeps deleted items for about 30 days.\r\n';
+    gfetch(APP + ':/' + enc(base() + 'IMPORTANT - do not delete this folder.txt') + ':/content', { method: 'PUT', headers: { 'Content-Type': 'text/plain; charset=utf-8' }, body: txt }).then(function (r) { if (r.ok) lset('cd.readme', '1'); }, function () {});
+  }
   function showLoading(txt) {
     var o = $('mdLoad');
     if (!o) { o = document.createElement('div'); o.id = 'mdLoad'; o.style.cssText = 'position:fixed;inset:0;z-index:150;background:rgba(237,240,241,.96);display:flex;align-items:center;justify-content:center;font:16px system-ui,sans-serif;color:#101C26;text-align:center;padding:20px'; document.body.appendChild(o); }
