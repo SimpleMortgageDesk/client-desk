@@ -1799,31 +1799,66 @@ function closeOv(id){var o=$('#'+id);if(o)o.remove()}
 /* Legal to let (landlord): built from the dates already on the property and its current tenancies.
    'bad' only when a date or rating shows a real problem; 'warn' when something is not recorded or due soon. */
 function lgItems(c){
-  var out=[],add=function(l,st,note){out.push({l:l,st:st,note:note||''})};
+  var out=[],fk='',fd0='',add=function(l,st,note){out.push({l:l,st:st,note:note||'',k:fk,doc:fd0})},doc=function(k,d){fk=k;fd0=d};
   var dated=function(label,doneK,dueK,soon,missing){var d=fv(c,doneK),n=fv(c,dueK);if(!d){add(label,'warn',missing);return}if(n&&diff(n)<0){add(label,'bad','Overdue since '+fd(n));return}if(n&&diff(n)<=soon){add(label,'warn','Due '+fd(n));return}add(label,'ok',n?'Next due '+fd(n):'Done '+fd(d))};
+  doc('gsrDate','gas safety certificate');
   dated('Gas safety record','gsrDate','gsrDue',30,'Not recorded. Needed every 12 months if there are gas appliances.');
+  doc('eicrDate','EICR report');
   dated('Electrical safety report (EICR)','eicrDate','eicrDue',60,'Not recorded. Needed at least every 5 years.');
+  doc('epcDate','EPC certificate');
   var r=String(c.epcRating||''),ex=fv(c,'epcExpiry');
   if(!r)add('Energy certificate (EPC)','warn','No rating recorded. An EPC rated E or above is needed to let.');
   else if('FG'.indexOf(r)>-1)add('Energy certificate (EPC)','bad','Rated '+r+'. The minimum to let is E, unless an exemption is registered.');
   else add('Energy certificate (EPC)',ex&&diff(ex)<0?'warn':'ok','Rated '+r+(ex?(diff(ex)<0?'. Expired '+fd(ex)+': renew before the next tenancy':'. Valid until '+fd(ex)):''));
+  doc('alarmsChecked','alarm test record');
   add('Smoke and carbon monoxide alarms',c.alarmsChecked?'ok':'warn',c.alarmsChecked?'Tested '+fd(c.alarmsChecked):'Not recorded. Test them on the first day of every tenancy.');
+  doc('licenceExpiry','licence');
   var lic=c.licence,le=c.licenceExpiry;
   if(!lic)add('Council licence','warn','Not recorded. Check with the council whether a licence is needed.');
   else if(lic==='Applied')add('Council licence','warn','Applied for, not granted yet.');
   else if(lic!=='Not needed')add('Council licence ('+lic+')',le&&diff(le)<0?'bad':le&&diff(le)<=60?'warn':'ok',le?(diff(le)<0?'Expired '+fd(le):'Expires '+fd(le)):'Expiry date not recorded.');
   tnCurrent(c).forEach(function(tn){
-    var pre=' · '+(tnNames(tn)||'current tenant'),dep=+tfv(tn,'deposit')||0,sch=tfv(tn,'depositScheme');
+    var pre=' · '+(tnNames(tn)||'current tenant'),who=pfClean(tnNames(tn),40),tid=String(tn.id||'').replace(/[^A-Za-z0-9_-]/g,''),dep=+tfv(tn,'deposit')||0,sch=tfv(tn,'depositScheme');who=who?' '+who:'';
+    doc('dep-'+tid,'deposit protection certificate'+who);
     if(dep>0&&sch!=='Not taken'){var pr=tfv(tn,'depositProtected'),dd=tfv(tn,'depositDue');add('Deposit protected'+pre,pr?'ok':dd&&diff(dd)<0?'bad':'warn',pr?'Protected '+fd(pr)+(sch?' with '+sch:''):dd?'Protect by '+fd(dd)+' (30 days from receipt).':'Protect it within 30 days of receiving it.')}
+    doc('rtr-'+tid,'right to rent check'+who);
     var rr=tfv(tn,'rightToRent');add('Right to rent check'+pre,rr?'ok':'warn',rr?'Done '+fd(rr):'Not recorded. Check every adult occupier before the tenancy starts (England).');
+    doc('inf-'+tid,'tenancy information'+who);
     var inf=tfv(tn,'infoSheet');add('Written tenancy information given'+pre,inf?'ok':'warn',inf?'Given '+fd(inf):'Not recorded. Tenants must be given the required written information.');
   });
+  doc('insuranceRenewal','insurance certificate');
   if(c.insuranceRenewal)add('Landlord insurance (recommended)',diff(c.insuranceRenewal)<0?'warn':'ok',diff(c.insuranceRenewal)<0?'Renewal date passed '+fd(c.insuranceRenewal):'Renews '+fd(c.insuranceRenewal));
   return out;
 }
 function lgSum(c){var it=lgItems(c);return {bad:it.filter(function(x){return x.st==='bad'}).length,warn:it.filter(function(x){return x.st==='warn'}).length,n:it.length}}
 function lgChip(c){var s=lgSum(c);return s.bad?'<span class="chip bad">'+s.bad+' problem'+(s.bad>1?'s':'')+'</span>':s.warn?'<span class="chip warn">'+s.warn+' to check</span>':'<span class="chip ok">In order</span>'}
-function lgInner(c){return '<ul class="lglist">'+lgItems(c).map(function(x){return '<li class="lg-'+x.st+'"><i aria-hidden="true"></i><div><b>'+esc(x.l)+'</b><span>'+esc(x.note)+'</span></div></li>'}).join('')+'</ul><p class="muted" style="margin:8px 0 0;font-size:11.5px">A guide built from the dates you have entered, for England. It is not legal advice.</p>'}
+/* each item can hold one uploaded document, saved in the property's folder in the user's own OneDrive or Google Drive.
+   The same file shows next to the matching date field, because both use the same key. */
+var LG_DOC='display:flex;flex-direction:row;flex-wrap:wrap;gap:4px 14px;margin-top:5px;font-size:12px';
+function lgDocInner(c,k){
+  var fl=dzFiles(c,k).slice().reverse(),up='<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">Upload</button>';
+  if(!fl.length)return up;
+  var lk=function(f,t){return '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">'+esc(t)+'</a>'};
+  if(fl.length===1)return up+lk(fl[0],'Show');
+  return up+'<details style="flex:1 1 100%;order:2"><summary style="cursor:pointer;font-weight:600;color:var(--accent)">Show ('+fl.length+' documents)</summary><div style="display:flex;flex-direction:column;gap:4px;margin:6px 0 2px">'+fl.map(function(f){return lk(f,f.name)}).join('')+'</div></details>';
+}
+/* a second upload for the same item asks first: keep the old documents as well, or replace them */
+var lgPend=null;
+function lgAsk(k,file){
+  var c=currentCase(),n=dzFiles(c,k).length,w=window.CD_files.where(),bin=w==='Google Drive'?'Google Drive bin':w+' recycle bin';
+  lgPend={k:k,file:file};
+  overlay('lgAskOv','<h2>A document is already saved here</h2><p style="margin:0 0 14px">You are uploading <b>'+esc(file.name)+'</b>. What should happen to the '+(n>1?n+' documents':'document')+' already saved?</p>'+
+   '<div style="display:flex;flex-direction:column;gap:10px">'+
+   '<button type="button" class="btn" data-lgask="keep" style="text-align:left;white-space:normal">Keep old and add this one<br><span style="font-weight:400;font-size:12.5px">Both stay in the property folder. The new one is saved with its date in the name.</span></button>'+
+   '<button type="button" class="btn ghost" data-lgask="replace" style="text-align:left;white-space:normal">Replace the old '+(n>1?'documents':'document')+'<br><span style="font-weight:400;font-size:12.5px">The old '+(n>1?'ones move':'one moves')+' to your '+esc(bin)+'.</span></button>'+
+   '<button type="button" class="btn ghost" data-lgask="cancel">Cancel</button></div>');
+}
+document.addEventListener('click',function(e){
+  var t=e.target&&e.target.closest?e.target.closest('[data-lgask]'):null;if(!t)return;
+  e.preventDefault();var m=t.getAttribute('data-lgask'),p=lgPend;lgPend=null;closeOv('lgAskOv');
+  if(p&&m!=='cancel')dzSend(p.k,p.file,m);
+});
+function lgInner(c){return '<ul class="lglist">'+lgItems(c).map(function(x){return '<li class="lg-'+x.st+'"><i aria-hidden="true"></i><div><b>'+esc(x.l)+'</b><span>'+esc(x.note)+'</span>'+(x.k?'<div class="pl" style="'+LG_DOC+'" data-dz="'+esc(x.k)+'" data-dzl="'+esc(x.doc)+'" data-dzlg="1">'+lgDocInner(c,x.k)+'</div>':'')+'</div></li>'}).join('')+'</ul><p class="muted" style="margin:8px 0 0;font-size:11.5px">A guide built from the dates you have entered, for England. It is not legal advice.</p>'}
 function lgBox(c){return '<fieldset data-sec="legal" id="lgFs"><legend>Legal to let <span class="lgsum" id="lgChip">'+lgChip(c)+'</span></legend><div id="lgBody">'+lgInner(c)+'</div></fieldset>'}
 function lgRefresh(c){var b=$('#lgBody'),h=$('#lgChip');if(!b)return;b.innerHTML=lgInner(c);if(h)h.innerHTML=lgChip(c)}
 
@@ -2648,39 +2683,46 @@ function dzFolderHtml(c){
   return '<p class="muted" style="margin:0 0 8px;font-size:12px">A folder for this property is made in your '+esc(w)+' when the property is saved. It is named after the first line of the address.</p>';
 }
 function dzSide(c){return '<fieldset data-sec="docs"><legend>Property documents</legend><div id="dzFolder">'+dzFolderHtml(c)+'</div><div data-dz="other" data-dzl="document">'+dzInner(c,'other','document')+'</div><p class="muted" style="margin:8px 0 0;font-size:12px">Certificates can also be uploaded next to their dates. Files up to 50 MB.</p></fieldset>'}
-function dzRefresh(c){document.querySelectorAll('#caseForm [data-dz]').forEach(function(el){el.innerHTML=dzInner(c,el.getAttribute('data-dz'),el.getAttribute('data-dzl'))});var ff=$('#dzFolder');if(ff)ff.innerHTML=dzFolderHtml(c)}
+function dzRefresh(c){document.querySelectorAll('#caseForm [data-dz]').forEach(function(el){el.innerHTML=el.hasAttribute('data-dzlg')?lgDocInner(c,el.getAttribute('data-dz')):dzInner(c,el.getAttribute('data-dz'),el.getAttribute('data-dzl'))});var ff=$('#dzFolder');if(ff)ff.innerHTML=dzFolderHtml(c)}
 function dzErr(e){
   if(e&&e.renew)return 'Google Drive needs reconnecting. Press the yellow bar at the bottom, then upload again.';
   if(navigator.onLine===false||(e instanceof TypeError))return 'Could not reach your file storage. Check you are online, then upload again.';
   if(e&&e.status===507)return 'Your file storage is full.';
   return 'Could not upload the file ('+((e&&e.message)||'try again')+').';
 }
-function dzPick(k){
+function dzPick(k,lg){
   if(!openId){toast('Add the property address first. It saves itself, then try again.');return}
   if(!window.CD_files||!window.CD_files.can()){toast('Could not reach your file storage. Check you are online, then try again.');return}
   if(dzBusy){toast('Still uploading the last file. Try again in a moment.');return}
   var inp=document.createElement('input');inp.type='file';inp.id='dzFile';inp.accept='.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.xls,.xlsx,.txt,image/*,application/pdf';inp.style.display='none';
   var old=$('#dzFile');if(old)old.remove();document.body.appendChild(inp);
-  inp.addEventListener('change',function(){var file=inp.files&&inp.files[0];inp.remove();if(file)dzSend(k,file)});
+  inp.addEventListener('change',function(){var file=inp.files&&inp.files[0];inp.remove();if(!file)return;if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,file);else dzSend(k,file,lg?'keep':'')});
   inp.click();
 }
-function dzSend(k,file){
+function dzSend(k,file,mode){
   var id=openId,c=currentCase();if(!id||!c)return;
   if(!file.size){toast('That file is empty.');return}
   if(file.size>window.CD_files.max){toast('That file is over 50 MB. Choose a smaller file.');return}
   var el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document';
   var ext=(/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase(),dt=(($('#f-'+k)||{}).value)||iso(TODAY);
   var fname=k==='other'?(pfClean(file.name.slice(0,file.name.length-ext.length),100)||'Document')+ext:label.charAt(0).toUpperCase()+label.slice(1)+' '+dt+ext;
+  if(mode==='keep'&&k!=='other'&&dzFiles(c,k).some(function(f){return String(f.name).toLowerCase()===fname.toLowerCase()}))fname=fname.slice(0,fname.length-ext.length)+' (added '+iso(TODAY)+')'+ext;
   var folder=(c.folder&&c.folder.name)||pfName(c);
   dzBusy=true;pfTried[id]=1;toast('Uploading '+file.name+'…',true);
   window.CD_files.upload(folder,fname,file).then(function(res){
     dzBusy=false;
     var cur=cases.filter(function(x){return x.id===id})[0]||c;
-    var files=(cur.files||[]).filter(function(f){return k==='other'||f.k!==k});
+    var old=mode==='replace'?(cur.files||[]).filter(function(f){return f.k===k}):[];
+    var files=(cur.files||[]).filter(function(f){return k==='other'||mode==='keep'||f.k!==k});
     files.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:file.size,at:Date.now()});
     var up={files:files};if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
     patch(id,up);toast('Uploaded to Properties › '+folder);
     if(openId===id)dzRefresh(Object.assign({},cur,up));
+    if(old.length&&window.CD_files.trash){var w=window.CD_files.where(),bin=w==='Google Drive'?'Google Drive bin':w+' recycle bin';
+      Promise.all(old.map(function(f){return f.fid?window.CD_files.trash(f.fid).then(function(){return true},function(){return false}):Promise.resolve(false)})).then(function(rs){
+        var bad=rs.filter(function(x){return !x}).length;
+        toast(bad?'Uploaded. '+bad+' old document'+(bad>1?'s':'')+' could not be moved to the '+bin+'. Delete '+(bad>1?'them':'it')+' from the property folder yourself.':'Uploaded. The old document'+(old.length>1?'s are':' is')+' in your '+bin+'.');
+      })}
   },function(e){dzBusy=false;toast(dzErr(e))});
 }
 function dzRemove(fid){
@@ -2692,7 +2734,7 @@ function dzRemove(fid){
 document.addEventListener('click',function(e){
   var t=e.target&&e.target.closest?e.target.closest('[data-dzup],[data-dzrm]'):null;if(!t)return;
   e.preventDefault();
-  if(t.hasAttribute('data-dzup'))dzPick(t.getAttribute('data-dzup'));else dzRemove(t.getAttribute('data-dzrm'));
+  if(t.hasAttribute('data-dzup'))dzPick(t.getAttribute('data-dzup'),!!t.closest('[data-dzlg]'));else dzRemove(t.getAttribute('data-dzrm'));
 });
 /* makes the storage folder for every property that has an address and no folder yet (new and existing properties) */
 function pfSweep(){

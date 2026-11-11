@@ -1672,6 +1672,16 @@
       if (window.CD_DEMO) return { name: name, id: 'demo', url: '' };
       return propDir(name, true);
     },
+    /* moves one uploaded file to the recycle bin of the user's OneDrive or Google Drive (it can be restored from there).
+       A file that is already gone counts as done. */
+    trash: async function (id) {
+      if (window.CD_DEMO || !id) return true;
+      var r = PROV === 'google'
+        ? await gfetch('/drive/v3/files/' + encodeURIComponent(id) + '?fields=id', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) })
+        : await gfetch('/me/drive/items/' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!r.ok && r.status !== 404) throw httpErr(r);
+      return true;
+    },
     /* uploads one file into the property folder; returns {id, name, url, folder} */
     upload: async function (folder, fname, file) {
       if (window.CD_DEMO) return { id: 'demo' + Date.now(), name: fname, url: URL.createObjectURL(file), folder: { name: folder, id: 'demo', url: '' } };
