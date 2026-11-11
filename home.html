@@ -70,23 +70,23 @@ h1 em{font-style:normal;color:var(--acc)}
 .rem div{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:2px 0}
 /* trade slideshow (invented examples): borderless, soft, cross-fading */
 .show{min-width:0}
-.show .mock{display:grid;border:0;border-radius:22px;background:#fff;box-shadow:0 1px 2px rgba(16,28,38,.04),0 22px 50px -18px rgba(16,28,38,.18);font-size:13.5px}
+.show .mock{display:grid;border:0;border-radius:22px;background:transparent;box-shadow:none;overflow:visible;font-size:13.5px}
 .mock .slide{grid-area:1/1;min-width:0;opacity:0;visibility:hidden;transition:opacity .7s ease,visibility 0s linear .7s}
 .mock .slide.on{opacity:1;visibility:visible;transition:opacity .7s ease,visibility 0s}
-.trade{display:flex;align-items:center;gap:14px;padding:22px 24px 4px}
+.trade{display:flex;align-items:center;gap:14px;padding:0 0 4px}
 .trade .pic{width:46px;height:46px;flex:none;border-radius:13px;background:var(--tb);display:flex;align-items:center;justify-content:center}
 .trade .pic svg{width:30px;height:30px;fill:none;stroke:var(--tc);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .trade small{display:block;color:var(--muted);font-size:12.5px}
 .trade b{display:block;color:var(--ink);font-size:18px;line-height:1.2;letter-spacing:-.2px}
 .trade .tag{margin-left:auto;align-self:center;white-space:nowrap}
 .trade .tag.now{background:var(--soft);color:var(--acc)}
-.trade .tag.soon{background:var(--bg);color:var(--muted)}
+.trade .tag.soon{background:#E9EEEC;color:var(--muted)}
 .show .mock .bar{display:none}
-.show .mock .body{padding:16px 24px 24px}
+.show .mock .body{padding:16px 0 0}
 .show .stats{gap:10px;margin-bottom:8px}
-.show .stat{background:var(--bg);border-radius:12px;padding:11px 13px}
+.show .stat{background:#fff;border-radius:12px;padding:11px 13px}
 .show .row{border-top:0;padding:10px 0}
-.show .rem{margin-top:8px;background:var(--bg);border:0;border-radius:12px;padding:12px 14px}
+.show .rem{margin-top:8px;background:#fff;border:0;border-radius:12px;padding:12px 14px}
 .show .rem b{color:var(--acc);font-size:12px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
 .show .rem div{color:var(--muted)}
 .show .rem div span:first-child{color:var(--ink)}
@@ -100,7 +100,7 @@ h1 em{font-style:normal;color:var(--acc)}
 .ctrl .nav:hover{background:var(--soft);color:var(--acc)}
 .ctrl .play{font-size:9px;letter-spacing:-2px}
 .ctrl button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-@media (max-width:620px){.trade{padding:18px 18px 2px}.show .mock .body{padding:14px 18px 18px}.trade b{font-size:16px}.stat strong{font-size:16px}.ctrl .nav.prev,.ctrl .nav.next{display:none}}
+@media (max-width:620px){.trade b{font-size:16px}.stat strong{font-size:16px}.ctrl .nav.prev,.ctrl .nav.next{display:none}}
 @media (prefers-reduced-motion:reduce){.mock .slide,.mock .slide.on{transition:none}}
 /* sections */
 section{padding:72px 0}
