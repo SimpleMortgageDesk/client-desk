@@ -38,6 +38,13 @@ nav.links{display:flex;gap:22px;margin-left:12px}
 nav.links a{color:var(--muted);text-decoration:none;font-size:15px}
 nav.links a:hover{color:var(--ink)}
 header .acts{margin-left:auto;display:flex;gap:10px}
+/* trust bar: the main promise, straight under the menu */
+.trustbar{background:var(--soft);border-bottom:1px solid #c6e3d8;color:#0b5a44;font-size:14.5px}
+.trustbar .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 10px;padding:9px 0;text-align:center}
+.trustbar svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.trustbar i{font-style:normal;opacity:.55}
+.trustbar a{color:#0b5a44;font-weight:600;margin-left:6px;white-space:nowrap}
+@media (max-width:620px){.trustbar{font-size:13.5px}.trustbar .wrap{padding:8px 0}.trustbar span:first-of-type{flex:0 1 calc(100% - 30px);text-align:left}.trustbar i:first-of-type{display:none}}
 /* hero */
 .hero{padding:64px 0 56px}
 .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
@@ -189,6 +196,13 @@ footer .r{margin-left:auto}
     </div>
   </div>
 </header>
+<div class="trustbar" role="note">
+  <div class="wrap">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    <span><b>Your tenants' and clients' details never reach us</b></span><i aria-hidden="true">·</i><span>No adverts</span><i aria-hidden="true">·</i><span>Never sold or shared</span>
+    <a href="#privacy">How it works</a>
+  </div>
+</div>
 
 <main id="top">
 <div class="hero">
