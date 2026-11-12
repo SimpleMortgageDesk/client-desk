@@ -1395,6 +1395,7 @@
           row('App version', esc(window.MD_BUILD || 'unknown'), ''))
         +
         '<div class="cds-out"><div><b>Log out of this device</b><span>Removes your records from this device. They stay safe in your ' + SNAME() + '.</span></div><button type="button" class="cds-btn danger" data-a="out">Log out</button></div>' +
+        '<div class="cds-out"><div><b>Delete my account</b><span>Removes your details from our list and logs you out. You choose whether to delete your records from your ' + SNAME() + ' as well.</span></div><button type="button" class="cds-btn danger" data-a="delacct">Delete</button></div>' +
         '</div></div>';
     }
     render('');
@@ -1437,6 +1438,7 @@
       else if (a === 'pin') { ov.remove(); openPin(); }
       else if (a === 'guide') { e.preventDefault(); openGuide(); }
       else if (a === 'out') { ov.remove(); signOut(); }
+      else if (a === 'delacct') { ov.remove(); openAcctDelete(); }
     });
   }
   async function signOut() {
@@ -1568,6 +1570,16 @@
   }
   /* ---------- sign-up list (only when config signupUrl is set): the ACCOUNT HOLDER's own details, never their records ---------- */
   function suOn() { var u = CFG.signupUrl || ''; return (/^https:\/\//.test(u) || /^\/api\//.test(u)) && !/PASTE/i.test(u) && !/github\.io$/i.test(location.hostname); }
+  /* a key only this signed-in account's app can work out; it lets the person delete their own entry in the list later */
+  async function suKey() {
+    try {
+      var t = tok(), a = (t || {}).account || {}, id = a.id;
+      if (!id && PROV === 'ms') { var r = await gfetch('/me?$select=id'); if (r.ok) { id = (await r.json()).id || ''; if (id && tok()) { var t2 = tok(); t2.account = Object.assign({}, t2.account || {}, { id: id }); setTok(t2); } } }
+      if (!id) return '';
+      var dg = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(id + '|' + APPN + '|list'));
+      return Array.from(new Uint8Array(dg)).slice(0, 20).map(function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+    } catch (e) { return ''; }
+  }
   function suSend(kind) {
     try {
       if (!suOn() || !tok()) return;
@@ -1577,9 +1589,66 @@
       if (!email && !a.mail) return;
       var body = { event: kind, name: p.name || a.name || '', email: email, accountEmail: a.mail || a.email || '', mobile: p.phone || '', business: p.biz || '',
         trade: TR().label || '', account: PROV === 'google' ? 'Google' : 'Microsoft', app: APPN, build: window.MD_BUILD || '' };
-      fetch(CFG.signupUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), keepalive: true })
-        .then(function () { lset('cd.su', today); }).catch(function () {});
+      suKey().then(function (k) {
+        if (k) body.k = k;
+        return fetch(CFG.signupUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), keepalive: true });
+      }).then(function () { lset('cd.su', today); }).catch(function () {});
     } catch (e) {}
+  }
+  /* ---------- delete my account ---------- */
+  async function acctDeleteRun(alsoFiles) {
+    var out = { files: '', list: '' };
+    if (alsoFiles) {
+      try {
+        if (PROV === 'google') { var gid = ls('cd.gfid'); if (gid) { var gr = await gfetch('/drive/v3/files/' + encodeURIComponent(gid) + '?fields=id', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); out.files = gr.ok || gr.status === 404 ? 'ok' : 'fail'; } else out.files = 'ok'; }
+        else {
+          var f = FOLDER(), names = f ? [f] : COLS.concat([PDIR]), bad = 0;
+          for (var i = 0; i < names.length; i++) { var dr = await gfetch(APP + ':/' + enc(names[i]), { method: 'DELETE' }); if (!dr.ok && dr.status !== 404) bad++; }
+          out.files = bad ? 'fail' : 'ok';
+        }
+      } catch (e) { out.files = 'fail'; }
+      if (out.files === 'fail') return out;   /* stop here: nothing else has been removed yet */
+    }
+    if (suOn()) {
+      try {
+        var p = profGet(), a = (tok() || {}).account || {}, email = String(p.email || a.mail || a.email || '').trim(), k = await suKey();
+        if (email) {
+          var r = await fetch(CFG.signupUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ event: 'delete', email: email, accountEmail: a.mail || a.email || '', k: k }) });
+          out.list = r.status === 200 ? 'deleted' : r.status === 202 ? 'requested' : 'fail';
+        } else out.list = 'deleted';
+      } catch (e) { out.list = 'fail'; }
+    } else out.list = 'deleted';
+    return out;
+  }
+  function openAcctDelete() {
+    var w = SNAME(), bin = PROV === 'google' ? 'Bin' : 'Recycle bin', ov = document.createElement('div'); ov.id = 'mdDelAcct';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:255;background:rgba(8,14,18,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML = '<div role="dialog" aria-labelledby="mdDelH" style="background:#fff;color:#101C26;width:min(520px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14.5px/1.45 system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="mdDelH" style="margin:0;font-size:20px;color:#A3261F">Delete my account</h2><button type="button" class="btn ghost" data-d="close">Cancel</button></div>' +
+      '<p style="margin:12px 0 6px">This will:</p><ul style="margin:0 0 12px;padding-left:20px"><li>remove your name, email and mobile from our list of account holders</li><li>remove your records and settings from this device and log you out</li></ul>' +
+      '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;background:#F4F7F8;border-radius:8px"><input type="checkbox" id="mdDelFiles" style="margin-top:3px"><span><b>Also delete my records and documents from my ' + esc(w) + '</b><br><span style="color:#58697A;font-size:13px">They move to your ' + esc(w) + ' ' + bin + ' and can be restored from there for about 30 days. Leave this unticked to keep them.</span></span></label>' +
+      '<label style="display:block;margin:0 0 10px">Type <b>DELETE</b> to confirm<input id="mdDelTxt" autocomplete="off" style="display:block;width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #c9d3da;border-radius:6px;font-size:15px;margin-top:4px"></label>' +
+      '<button type="button" class="btn" data-d="go" style="background:#A3261F;border-color:#A3261F;color:#fff">Delete my account</button>' +
+      '<p id="mdDelMsg" role="alert" style="min-height:18px;margin:10px 0 0;color:#b3261e;font-size:13.5px"></p></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', async function (e) {
+      var b = e.target.closest && e.target.closest('[data-d]'); if (!b) return;
+      var msg = ov.querySelector('#mdDelMsg');
+      if (b.getAttribute('data-d') === 'close') { ov.remove(); return; }
+      if (String(ov.querySelector('#mdDelTxt').value).trim().toUpperCase() !== 'DELETE') { msg.textContent = 'Type DELETE in the box to confirm.'; return; }
+      if (navigator.onLine === false) { msg.textContent = 'You are offline. Connect to the internet, then try again.'; return; }
+      var files = ov.querySelector('#mdDelFiles').checked;
+      b.disabled = true; b.textContent = 'Deleting…'; msg.textContent = '';
+      var r = await acctDeleteRun(files);
+      if (r.files === 'fail') { b.disabled = false; b.textContent = 'Delete my account'; msg.textContent = 'Could not delete the records from your ' + w + ', so nothing has been removed. Check you are online and try again, or untick the box and delete the folder in ' + w + ' yourself.'; return; }
+      if (r.list === 'fail') { b.disabled = false; b.textContent = 'Delete my account'; msg.textContent = 'Could not reach us to remove your details from our list' + (files ? ' (your ' + w + ' records have been moved to the ' + bin + ')' : '') + '. Try again in a moment.'; return; }
+      alert((r.list === 'requested' ? 'We have received your request and will remove your details from our list within one month.' : 'Your details have been removed from our list.') + '\n\n' +
+        (files ? 'Your records are in your ' + w + ' ' + bin + '.' : 'Your records are still in your ' + w + '. You can delete that folder yourself at any time.') + '\n\n' +
+        'To finish, you can also remove ' + APPN + '\'s permission in your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account, under apps with access to your account.\n\nYou will now be logged out.');
+      dirty = {};
+      ['cd.profile', 'cd.pin', 'cd.auth', 'cd.locked', 'cd.guide', 'cd.readme', 'cd.su', 'cd.bkpw', 'cd.act'].forEach(function (k) { lset(k, null); });
+      await wipeAndReload(false);
+    });
   }
   function guideMaybe() { if (!tok() || ls('cd.guide')) return false; lset('cd.guide', '1'); openGuide(); return true; }
   var pwWait = 0, setupSkipped = false, noAcct = false;
@@ -1866,7 +1935,7 @@
     var meMail = '';
     try {
       var me = await (await gfetch('/me?$select=displayName,mail,userPrincipalName')).json();
-      var t = tok(); t.account = { name: me.displayName || '', mail: me.mail || me.userPrincipalName || '' }; t.prov = 'ms'; setTok(t); meMail = t.account.mail;
+      var t = tok(); t.account = { name: me.displayName || '', mail: me.mail || me.userPrincipalName || '', id: me.id || '' }; t.prov = 'ms'; setTok(t); meMail = t.account.mail;
     } catch (e) {}
     lset('cd.prov', 'ms'); PROV = 'ms';
     if (ls('cd.reauth') !== '1') await ownerCheck('ms', meMail);

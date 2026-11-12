@@ -6,7 +6,11 @@
    This address is open to the internet, so it protects the list three ways:
    1. Details already saved for an email are never overwritten from here: a call can only fill in blanks and record activity.
    2. Each sender is limited to PER_HOUR calls an hour. Senders are counted by a scrambled, short-lived code, not their IP address.
-   3. No more than NEW_PER_DAY new people can be added in one day. */
+   3. No more than NEW_PER_DAY new people can be added in one day.
+
+   Deleting (event "delete"): the app sends a key that only the signed-in account holder's app can work out.
+   If it matches the key saved for that email, the entry is deleted at once. If it cannot be checked, the entry is
+   only marked "asked to be deleted" for the owner to confirm on the admin page, so nobody can delete someone else. */
 const PER_HOUR = 30, NEW_PER_DAY = 300;
 let ready = false;
 export async function ensureTable(db) {
@@ -15,6 +19,8 @@ export async function ensureTable(db) {
     email TEXT PRIMARY KEY, name TEXT, account_email TEXT, mobile TEXT, business TEXT, trade TEXT, account TEXT,
     signed_up TEXT, first_seen TEXT, last_seen TEXT, days_active INTEGER DEFAULT 0, app_build TEXT)`).run();
   await db.prepare('CREATE TABLE IF NOT EXISTS hits (k TEXT PRIMARY KEY, hr TEXT, n INTEGER)').run();
+  /* added later: del_key lets a person delete their own entry; delete_requested marks a request we could not verify */
+  for (const col of ['del_key TEXT', 'delete_requested TEXT']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   ready = true;
 }
 /* true when this sender has made too many calls this hour */
@@ -48,6 +54,14 @@ export async function onRequestPost({ request, env }) {
   await ensureTable(env.DB);
   if (await tooMany(env.DB, request, now)) return say('too many requests', 429);
   const known = await env.DB.prepare('SELECT 1 AS x FROM users WHERE email = ?1').bind(email).first();
+  const key = /^[a-f0-9]{32,64}$/.test(String(d.k || '')) ? String(d.k) : '';
+  if (d.event === 'delete') {
+    if (!known) return say('deleted');
+    const row = await env.DB.prepare('SELECT del_key FROM users WHERE email = ?1').bind(email).first();
+    if (key && row && row.del_key && row.del_key === key) { await env.DB.prepare('DELETE FROM users WHERE email = ?1').bind(email).run(); return say('deleted'); }
+    await env.DB.prepare('UPDATE users SET delete_requested = ?2 WHERE email = ?1').bind(email, now).run();
+    return say('requested', 202);
+  }
   if (!known) {
     const c = await env.DB.prepare('SELECT COUNT(*) AS c FROM users WHERE substr(first_seen, 1, 10) = ?1').bind(now.slice(0, 10)).first();
     if (c && c.c >= NEW_PER_DAY) return say('too many requests', 429);
@@ -68,6 +82,7 @@ export async function onRequestPost({ request, env }) {
     .bind(email, clean(d.name, 100), clean(d.accountEmail, 160).toLowerCase(), clean(d.mobile, 30), clean(d.business, 120),
       clean(d.trade, 60), clean(d.account, 20), d.event === 'signup' ? now : null, now, clean(d.build, 40))
     .run();
+  if (key) await env.DB.prepare("UPDATE users SET del_key = ?2 WHERE email = ?1 AND (del_key IS NULL OR del_key = '')").bind(email, key).run();
   return say('ok');
 }
 export const onRequest = () => say('use POST', 405);
