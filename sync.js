@@ -1644,6 +1644,7 @@
         '<label>New password<input id="pnNew" type="password" autocomplete="new-password" maxlength="128" style="' + inS + '"></label><div id="pnChk">' + pwList('', profGet()) + '</div>' +
         '<label>Repeat new password<input id="pnNew2" type="password" autocomplete="new-password" maxlength="128" style="' + inS + '"></label>' +
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"><button class="btn" data-p="save">' + (has ? 'Change password' : 'Set password') + '</button>' + (has ? '<button class="btn ghost" data-p="lock">Lock now</button>' : '') + '</div>' +
+        (has ? '<div style="margin-top:16px;padding-top:14px;border-top:1px solid #E3E8EB"><b>Prefer one password?</b><p style="margin:4px 0 8px;color:#58697A;font-size:13px">Remove the app password and log in with your ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + ' account only. Type your current password above first. This applies to all your devices.</p><button class="btn ghost" data-p="remove">Remove app password</button></div>' : '') +
         '<p id="pnMsg" style="min-height:18px;margin:12px 0 0;color:' + (good ? '#1b5e20' : '#b3261e') + '">' + esc(msg || '') + '</p>' +
         '<p style="margin:8px 0 0;color:#58697A;font-size:12px">You use this password to log in and to unlock the app. It is kept only as a one-way scrambled code, on this device and in your own ' + SNAME() + ', so it works on all your devices. The password itself is never stored or sent anywhere.</p></div>';
     }
@@ -1656,6 +1657,10 @@
       if (a === 'lock') { ov.remove(); lockNow(); return; }
       var cur = $('pnCur'), has = !!pinData();
       if (has) { var okc = false; try { okc = await pinCheck(cur ? cur.value : ''); } catch (x) {} if (!okc) { draw('Current password is wrong.'); return; } }
+      if (a === 'remove') {
+        lset('cd.pin', null); lset('cd.auth', 'acct'); lset('cd.locked', null); profPush(); markAct(); ov.remove();
+        toast('App password removed. You now log in with your ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + ' account only.'); return;
+      }
       if (a === 'save') {
         var n1 = $('pnNew').value, n2 = $('pnNew2').value;
         if (!pwOk(n1, profGet())) { draw('The new password is not strong enough. See the checklist.'); return; }
