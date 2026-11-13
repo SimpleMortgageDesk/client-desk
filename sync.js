@@ -1356,7 +1356,7 @@
       '.cds-who{display:flex;flex-direction:column;min-width:0;flex:1}.cds-who b{font-size:16px}.cds-who span{opacity:.88;font-size:13px;overflow:hidden;text-overflow:ellipsis}.cds-who .cds-prov{opacity:.72;font-size:12.5px}' +
       '.cds-sync{display:flex;align-items:center;gap:7px;font-size:12.5px;background:rgba(255,255,255,.14);padding:6px 10px;border-radius:99px}.cds-dot{width:8px;height:8px;border-radius:50%;background:#7CE0B8}' +
       '.cds-msg{margin:10px 2px 0;min-height:0;color:#0A6B50;font-weight:600}.cds-msg:empty{display:none}' +
-      '.cds-grp{margin-top:20px}.cds-grp h3{margin:0 0 8px 2px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#58697A}' +
+      '.cds-grp{margin-top:20px}.cds-grp h3{margin:0 0 8px 2px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:#58697A;display:flex;align-items:center;justify-content:space-between;gap:10px}.cds-sec{padding:5px 14px;font-size:13px;text-transform:none;letter-spacing:0;font-weight:600}' +
       '.cds-card{background:#fff;border:1px solid #E1E6E9;border-radius:12px;overflow:hidden}' +
       '.cds-row{display:flex;align-items:center;gap:16px;padding:14px 16px;border-top:1px solid #EDF0F2}.cds-row:first-child{border-top:0}' +
       '.cds-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.cds-txt b{font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cds-txt span{color:#58697A;font-size:13px;line-height:1.45;overflow-wrap:anywhere}' +
@@ -1377,11 +1377,12 @@
     var ov = document.createElement('div'); ov.className = 'cds-ov';
     cdsCss(); document.body.appendChild(ov);
     var t = tok() || {};
+    var secOpen = {};
     function render(msg) {
       var acc = t.account || {}, P = profGet(), isG = PROV === 'google', mailOn = ls('cd.mail') === '1';
       var ini = String(P.name || acc.name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w.charAt(0).toUpperCase(); }).join('');
       var row = function (title, desc, act, extra) { return '<div class="cds-row"><div class="cds-txt"><b>' + title + '</b>' + (desc ? '<span>' + desc + '</span>' : '') + (extra || '') + '</div>' + (act ? '<div class="cds-act">' + act + '</div>' : '') + '</div>'; };
-      var grp = function (title, rows) { return '<section class="cds-grp"><h3>' + title + '</h3><div class="cds-card">' + rows + '</div></section>'; };
+      var grp = function (title, rows) { var o = !!secOpen[title]; return '<section class="cds-grp"><h3>' + title + '<button type="button" class="cds-btn cds-sec" data-a="sec" data-s="' + title + '" aria-expanded="' + o + '">' + (o ? 'Hide' : 'Show') + '</button></h3>' + (o ? '<div class="cds-card">' + rows + '</div>' : '') + '</section>'; };
       var btn = function (a, label, pri) { return '<button type="button" class="cds-btn' + (pri ? ' pri' : '') + '" data-a="' + a + '">' + label + '</button>'; };
       var on = function (yes, txt) { return '<i class="cds-badge ' + (yes ? 'on' : 'off') + '">' + (txt || (yes ? 'On' : 'Off')) + '</i>'; };
       var syncTxt = esc((($('syncState') || {}).textContent || '').trim()) || 'Ready';
@@ -1451,7 +1452,8 @@
       } catch (x) { say('That file could not be read as a backup.'); }
     });
     ov.addEventListener('click', async function (e) {
-      var a = e.target.closest && e.target.closest('[data-a]'); if (!a) return; a = a.getAttribute('data-a');
+      var a = e.target.closest && e.target.closest('[data-a]'); if (!a) return; var ael = a; a = a.getAttribute('data-a');
+      if (a === 'sec') { var sk = ael.getAttribute('data-s'); secOpen[sk] = !secOpen[sk]; var bd0 = ov.querySelector('.cds-body'), st0 = bd0 ? bd0.scrollTop : 0, mm = $('mdAccMsg'); render(mm ? mm.textContent : ''); var bd1 = ov.querySelector('.cds-body'); if (bd1) bd1.scrollTop = st0; return; }
       if (a === 'close') ov.remove();
       else if (a === 'backup') { var bb = $('backupBtn'); if (bb) bb.click(); }
       else if (a === 'sync') { say('Syncing…'); await flush(); await pull(); say(st.err || (st.offline ? 'Offline. Will retry.' : 'Up to date.')); }

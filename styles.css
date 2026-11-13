@@ -848,3 +848,6 @@ header.top .in{padding-block:12px}}
 .scbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .scbtns .btn{min-height:32px}
 @media (max-width:759px){.sclist img{width:64px;height:84px}}
+
+.homesplit.nocal #homeCal{max-height:none;height:auto}
+@media (min-width:1100px){.homesplit.nocal{grid-template-areas:"cal rem";grid-template-rows:auto;height:auto}.homesplit.nocal .hrem{height:calc(100vh - var(--hh,64px) - 56px)}}
