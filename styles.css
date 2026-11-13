@@ -787,12 +787,15 @@ header.top .in{padding-block:12px}}
 .caseswrap .tw tbody tr.click:hover>td{filter:brightness(.97)}
 
 /* ---- Reports and agreements: two tabs ---- */
-.gntabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:12px 0 14px}
-.gntabs button{flex:0 1 auto;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;padding:10px 14px;font:600 15px inherit;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0;white-space:normal;text-align:center}
-.gntabs button:hover{color:var(--ink);background:var(--surface2)}
-.gntabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
-.gntabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-@media (max-width:620px){.gntabs button{flex:1 1 0;padding:10px 8px;font-size:14px}}
+.gntabs{display:flex;gap:10px;border:0;margin:14px 0 16px}
+.gntabs button{flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:var(--surface);border:2px solid var(--line);padding:14px 18px;font-family:inherit;color:var(--ink);cursor:pointer;border-radius:14px;transition:background .15s,border-color .15s,box-shadow .15s,transform .15s}
+.gntabs button b{font:800 18px/1.2 inherit}
+.gntabs button small{font:500 13px/1.3 inherit;color:var(--muted)}
+.gntabs button:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(10,107,80,.15)}
+.gntabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:0 6px 18px rgba(10,107,80,.3)}
+.gntabs button[aria-selected="true"] small{color:var(--accent-ink);opacity:.9}
+.gntabs button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+@media (max-width:620px){.gntabs{gap:8px}.gntabs button{padding:12px 12px}.gntabs button b{font-size:16px}.gntabs button small{font-size:12px}}
 
 /* ---- Receipts and expenses ---- */
 .rcbox{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;background:var(--surface)}
@@ -836,3 +839,12 @@ header.top .in{padding-block:12px}}
 .bn-my{font-weight:400;opacity:.62}
 .bn-simple{font-weight:800}
 .bn-desk{font-weight:800;color:var(--accent,#0A6B50)}
+
+/* ---- page sheet (photos to one PDF) ---- */
+.sclist{list-style:none;margin:8px 0;padding:0;max-height:52vh;overflow:auto;border-top:1px solid var(--line)}
+.sclist li{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.sclist img{width:76px;height:100px;object-fit:contain;background:#eef1f2;border:1px solid var(--line);border-radius:6px;flex:none}
+.scrow{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1;font-size:13px}
+.scbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.scbtns .btn{min-height:32px}
+@media (max-width:759px){.sclist img{width:64px;height:84px}}
