@@ -2800,7 +2800,7 @@ function dzPick(k,lg,cam){
     var imgs=files.filter(scIsImg),after=function(f,c){if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,f,c);else dzSend(k,f,lg?'keep':'',c)};
     if(imgs.length){
       if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF or Word file on its own.');
-      scOpen({files:imgs,source:cam?'camera':'file',done:function(f){after(f,true)},fallback:function(f){after(f,false)}});
+      scOpen({files:imgs,source:cam?'camera':'file',ask:k==='other'?'Document name':'',hint:'For example: Boiler service 2026',done:function(f,th,named){after(f,!named)},fallback:function(f){after(f,false)}});
     }else if(files.length>1)toast('Choose one PDF or Word file at a time.');
     else after(files[0],false);
   });
@@ -3276,16 +3276,19 @@ function scRowHtml(pg,i,n,dis){
    (i<n-1?'<button type="button" class="btn ghost sm"'+dis+' data-scact="down">Later</button>':'')+
    '<button type="button" class="btn ghost sm"'+dis+' data-scact="rm">Remove</button></div></div></li>';
 }
+var scName='';
 function scDraw(msg){
   var n=scPages.length,touch=dzTouch(),dis=scWork?' disabled':'';
   overlay('scOv','<div class="dhd"><h2>Save as one PDF</h2></div>'+
    '<p class="muted" style="margin:4px 0 10px">Each photo becomes a page. The app finds the document in each photo and crops it. Add more pages for a longer document, then save.</p>'+
+   (scOpts&&scOpts.ask?'<label class="f" style="margin:0 0 10px">'+esc(scOpts.ask)+' <span class="muted">(optional, becomes the file name)</span><input id="scName" type="text" maxlength="80" autocomplete="off" placeholder="'+esc(scOpts.hint||'')+'" value="'+esc(scName)+'"'+(scSaving?' disabled':'')+'></label>':'')+
    (msg?'<p class="rcmsg" role="status"><span class="rcspin" aria-hidden="true"></span>'+esc(msg)+'</p>':'')+
    (n?'<ul class="sclist">'+scPages.map(function(p,i){return scRowHtml(p,i,n,dis)}).join('')+'</ul>':'')+
    '<div class="add" style="margin:8px 0">'+(touch?'<button type="button" class="btn ghost"'+dis+' data-scadd="camera">Take another photo</button><button type="button" class="btn ghost"'+dis+' data-scadd="file">Add from files</button>':'<button type="button" class="btn ghost"'+dis+' data-scadd="file">Add more photos</button>')+'</div>'+
    '<div class="add" style="justify-content:flex-end;margin:6px 0 0"><button type="button" class="btn ghost" data-sccancel="1"'+(scSaving?' disabled':'')+'>Cancel</button><button type="button" class="btn" data-scsave="1"'+(n&&!scWork?'':' disabled')+'>Save as PDF'+(n?' · '+n+' page'+(n===1?'':'s'):'')+'</button></div>');
 }
-function scOpen(o){scTok++;scOpts=o;scPages=[];scSaving=false;scAdd(o.files,true)}
+document.addEventListener('input',function(e){if(e.target&&e.target.id==='scName')scName=e.target.value});
+function scOpen(o){scTok++;scOpts=o;scName=o.name||'';scPages=[];scSaving=false;scAdd(o.files,true)}
 function scAdd(files,first){
   var tok=scTok,list=files.slice(0,Math.max(0,20-scPages.length)),bad=0,last=null,only=!!first&&list.length===1;
   if(files.length>list.length)toast('A PDF can have up to 20 pages.');
@@ -3319,7 +3322,7 @@ function scSave(){
       var c=scMake(pg,2400);
       return new Promise(function(res,rej){c.toBlob(function(b){if(!b){rej(new Error('jpeg'));return}b.arrayBuffer().then(function(ab){parts.push({w:c.width,h:c.height,jpeg:new Uint8Array(ab)});c.width=c.height=1;res()},rej)},'image/jpeg',0.82)});
     })});
-    chain.then(function(){var f=new File([scPdf(parts)],'Scan.pdf',{type:'application/pdf'}),th=pages[0].thumb;scReset();o.done(f,th)})
+    chain.then(function(){var nm=o.ask?pfClean(scName,80):'',f=new File([scPdf(parts)],(nm||'Scan')+'.pdf',{type:'application/pdf'}),th=pages[0].thumb;scReset();o.done(f,th,!!nm)})
       .catch(function(){scWork=false;scSaving=false;scDraw();toast('Could not make the PDF. Try again.')});
   },60);
 }
@@ -3394,20 +3397,20 @@ function rcPick(mode){
     var imgs=files.filter(scIsImg);
     if(imgs.length){
       if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF on its own.');
-      scOpen({files:imgs,source:mode==='camera'?'camera':'file',done:function(f,th){rcSend(subj,f,th)},fallback:function(f){rcSend(subj,f)}});
+      scOpen({files:imgs,source:mode==='camera'?'camera':'file',ask:'Receipt name',hint:'For example: Boiler repair',name:(($('#ex-desc')||{}).value||'').trim(),done:function(f,th,named){rcSend(subj,f,th,named)},fallback:function(f){rcSend(subj,f)}});
     }else if(files.length>1)toast('Choose one PDF at a time.');
     else rcSend(subj,files[0]);
   });
   inp.click();
 }
-function rcSend(caseId,file,thumb){
+function rcSend(caseId,file,thumb,named){
   var c=exSubj(caseId);if(!c)return;
   if(!file.size){rcMsg='That file is empty.';rcDraw();return}
   rcBusy=true;rcMsg='Preparing the photo…';rcDraw();
   rcPrep(file).then(function(p){
     var blob=p.blob,ext=p.ext||((/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase())||'.jpg';
     if(blob.size>window.CD_files.max)throw {big:true};
-    var d=new Date(),z=function(n){return String(n).padStart(2,'0')},dt=(($('#ex-date')||{}).value)||iso(TODAY),fname='Receipt '+dt+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+ext,home=caseId===HOME_ID,folder=(c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c));
+    var d=new Date(),z=function(n){return String(n).padStart(2,'0')},dt=(($('#ex-date')||{}).value)||iso(TODAY),fname=named?'Receipt '+dt+' '+pfClean(file.name.replace(/\.[A-Za-z0-9]{1,8}$/,''),60)+' '+z(d.getHours())+z(d.getMinutes())+ext:'Receipt '+dt+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+ext,home=caseId===HOME_ID,folder=(c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c));
     rcMsg='Saving to your '+window.CD_files.where()+'…';rcDraw();
     return window.CD_files.upload(folder,fname,blob,'Receipts',home?'Home':undefined).then(function(res){return {res:res,blob:blob}});
   }).then(function(o){
@@ -3419,6 +3422,7 @@ function rcSend(caseId,file,thumb){
     var cur=exSubj(caseId)||c,up={receipts:(cur.receipts||[]).concat([rec])};
     if(o.res.folder&&o.res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=o.res.folder;
     exPatch(caseId,up);rcDraw(Object.assign({},cur,up));
+    if(named){var dsc=$('#ex-desc');if(dsc&&!dsc.value)dsc.value=file.name.replace(/\.[A-Za-z0-9]{1,8}$/,'')}
     toast('Receipt saved. Add the amount, then press Add expense.');var a=$('#ex-amt');if(a)a.focus();
   }).catch(function(e){rcBusy=false;rcMsg=e&&e.big?'That file is over 50 MB. Choose a smaller one.':dzErr(e);rcDraw()});
 }
