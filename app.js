@@ -3201,7 +3201,8 @@ function gnHas(r){return gnData(r[0],r[1]).some(function(p){return p.rent.length
 function gnOpen(){
   var pre=gnHas(gnRange('lasttax'))||!gnHas(gnRange('thistax'))?'lasttax':'thistax',r=gnRange(pre),props=cases.filter(function(c){return c.stage!=='lost'}).sort(function(a,b){return names(a).localeCompare(names(b))});
   overlay('gnOv','<div class="dhd"><h2>Reports and agreements</h2><button type="button" class="btn ghost" data-gnclose="1">Close</button></div>'+
-   '<h3 style="margin:6px 0 4px;font-size:16px">Rent and expenses report</h3>'+
+   '<div class="gntabs" role="tablist" aria-label="Reports and agreements"><button type="button" role="tab" id="gnt-rep" aria-controls="gnp-rep" aria-selected="true" data-gntab="rep">Rent and expense reports</button><button type="button" role="tab" id="gnt-ag" aria-controls="gnp-ag" aria-selected="false" tabindex="-1" data-gntab="ag">Tenancy agreement</button></div>'+
+   '<div id="gnp-rep" role="tabpanel" aria-labelledby="gnt-rep">'+
    '<p class="muted" style="margin:4px 0 10px">A report of rent received, expenses and mortgage payments for your accountant. Choose the dates and properties, then download it as a PDF or a spreadsheet (CSV), or email it.</p>'+
    '<div id="gnAcc" class="gnacc"></div>'+
    '<div class="chips" style="margin:0 0 8px">'+[['lasttax','Last tax year'],['thistax','This tax year so far'],['lastcal','Last calendar year'],['thiscal','This calendar year']].map(function(x){return '<button type="button" data-gnr="'+x[0]+'" aria-pressed="'+(x[0]===pre)+'">'+x[1]+'</button>'}).join('')+'</div>'+
@@ -3210,9 +3211,21 @@ function gnOpen(){
    '<div class="tacbs" id="gnPick"><b>Properties:</b>'+props.map(function(c){return '<label class="tacb"><input type="checkbox" data-gnp="'+esc(c.id)+'" checked> '+esc(names(c))+'</label>'}).join('')+'</div>'+
    '<div class="add" style="margin:10px 0"><button type="button" class="btn ghost" data-gnout="pdf">Download PDF</button><button type="button" class="btn ghost" data-gnout="csv">Download spreadsheet (CSV)</button><button type="button" class="btn ghost" data-gnout="share">Share PDF (phone)</button><button type="button" class="btn" data-gnout="mail">Email to my accountant</button><button type="button" class="btn ghost" data-gnout="print">Print</button></div>'+
    '<div id="gnPrev" class="dcprev" style="position:static;max-height:460px;overflow:auto"></div>'+
-   '<div style="margin-top:18px">'+gnAgHtml(props)+'</div>',true);
+   '</div>'+
+   '<div id="gnp-ag" role="tabpanel" aria-labelledby="gnt-ag" hidden>'+gnAgHtml(props)+'</div>',true);
   gnAccRender();gnAgSync();gnPreview();
 }
+/* the two tabs of Reports and agreements */
+function gnShowTab(k,focus){
+  ['rep','ag'].forEach(function(x){var b=$('#gnt-'+x),p=$('#gnp-'+x);if(!b||!p)return;var on=x===k;b.setAttribute('aria-selected',on?'true':'false');b.tabIndex=on?0:-1;p.hidden=!on;if(on&&focus)b.focus()});
+  if(k==='ag')gnAgSync()
+}
+document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('[data-gntab]'):null;if(b&&b.closest('#gnOv')){e.preventDefault();gnShowTab(b.getAttribute('data-gntab'))}});
+document.addEventListener('keydown',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('[data-gntab]'):null;if(!b||!b.closest('#gnOv'))return;
+  var k=e.key,cur=b.getAttribute('data-gntab'),nx=k==='ArrowRight'||k==='ArrowLeft'?(cur==='rep'?'ag':'rep'):k==='Home'?'rep':k==='End'?'ag':null;
+  if(nx){e.preventDefault();gnShowTab(nx,true)}
+});
 function gnRead(){var from=($('#gn-from')||{}).value,to=($('#gn-to')||{}).value,mode=($('#gn-mode')||{}).value||'all',ids=mode.indexOf('p:')===0?[mode.slice(2)]:Array.prototype.filter.call(document.querySelectorAll('[data-gnp]'),function(i){return i.checked}).map(function(i){return i.getAttribute('data-gnp')});var rows=gnData(from,to,ids);return {from:from,to:to,ids:ids,rows:rows,mode:mode,each:mode==='each',one:mode!=='all'&&rows.length===1?rows[0].c:null}}
 /* the reports to make: one for everything, or one for each property */
 function gnParts(g){return g.each?g.rows.map(function(r){return {rows:[r],c:r.c}}):[{rows:g.rows,c:g.one}]}
