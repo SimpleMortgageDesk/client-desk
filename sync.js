@@ -61,12 +61,12 @@
   function rand(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return b64url(a); }
   function form(o) { return Object.keys(o).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(o[k]); }).join('&'); }
 
-  async function startLogin(reauth) {
+  async function startLogin(reauth, hint) {
     if (window.CD_DEMO_LOGIN) return window.CD_DEMO_LOGIN('ms');
     var v = rand(48), st = rand(16);
     var h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
     try { localStorage.setItem('cd.pkce', JSON.stringify({ v: v, st: st })); } catch (e) {}
-    location.href = AUTH + 'authorize?' + form(Object.assign({ client_id: CFG.clientId, response_type: 'code', redirect_uri: REDIRECT, response_mode: 'query', scope: scopes(), state: st, code_challenge: b64url(h), code_challenge_method: 'S256', prompt: reauth ? 'login' : 'select_account' }, reauth && ((tok() || {}).account || {}).mail ? { login_hint: tok().account.mail } : {}));
+    location.href = AUTH + 'authorize?' + form(Object.assign({ client_id: CFG.clientId, response_type: 'code', redirect_uri: REDIRECT, response_mode: 'query', scope: scopes(), state: st, code_challenge: b64url(h), code_challenge_method: 'S256', prompt: reauth ? 'login' : 'select_account' }, hint ? { login_hint: hint } : {}, reauth && ((tok() || {}).account || {}).mail ? { login_hint: tok().account.mail } : {}));
   }
   async function tokenRequest(params) {
     var r = await fetch(AUTH + 'token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form(Object.assign({ client_id: CFG.clientId, scope: scopes() }, params)) });
@@ -82,9 +82,9 @@
     return GAUTH + '?' + form(Object.assign({ client_id: CFG.googleClientId || '', redirect_uri: REDIRECT, response_type: 'token', scope: GSCOPE, state: s, include_granted_scopes: 'true' },
       mode === 'login' ? { prompt: 'select_account' } : {}, hint ? { login_hint: hint } : {}));
   }
-  function gStart() {
+  function gStart(hint) {
     if (window.CD_DEMO_LOGIN) return window.CD_DEMO_LOGIN('google');
-    lset('cd.prov', 'google'); location.href = gUrl('login');
+    lset('cd.prov', 'google'); location.href = gUrl('login', hint);
   }
   function gParse(h) { var p = new URLSearchParams(h); return { at: p.get('access_token'), exp: +p.get('expires_in') || 3600, st: p.get('state'), err: p.get('error'), scope: p.get('scope') || '' }; }
   var gWaiting = null;
@@ -128,7 +128,7 @@
     if (t.exp - Date.now() > 120000) return Promise.resolve(t.access);
     if (refreshing) return refreshing;
     refreshing = tokenRequest({ grant_type: 'refresh_token', refresh_token: t.refresh }).then(function () { return tok().access; }, function (e) {
-      if (e.auth && /invalid_grant|interaction_required|invalid_request/.test(e.code || '')) { setTok(null); sessionExpired(); }
+      if (e.auth && /invalid_grant|interaction_required|invalid_request/.test(e.code || '')) { rememberMail(); setTok(null); sessionExpired(); }
       throw e;
     }).then(function (a) { refreshing = null; return a; }, function (e) { refreshing = null; throw e; });
     return refreshing;
@@ -1212,10 +1212,19 @@
       '<div class="pt"><i>3</i><div><b>Reminded before it is urgent</b><span>Gas safety and insurance two months ahead, mortgage deals four months ahead, straight to your Outlook calendar.</span></div></div>' +
       '<div class="ft">Your records stay in your own OneDrive, so they are still yours even if you stop using the app. We never see your tenants\' details.</div></aside>';
   }
-  function showSignIn(msg, page) {
-    if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); msg = 'You were logged out after ' + idleLabel() + ' of inactivity. Log in again to continue.'; } } catch (e) {} }
+  /* passive = the person did not ask to log in: their saved sign-in simply ended (a day away, or logged out for inactivity) */
+  function showSignIn(msg, page, passive) {
+    if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); passive = true; msg = 'You were logged out after ' + idleLabel() + ' of inactivity. Log in again to continue.'; } } catch (e) {} }
     var qp = (/[?&]p=(login|register)\b/.exec(location.search) || [])[1];
     if (qp) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {} }
+    /* the main address then shows the home page, and the reason is kept for the login screen. A copy installed on a phone goes straight to login. */
+    var installed = false; try { installed = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; } catch (e) {}
+    if (msg && passive && !page && !qp && !sget('cd.reg') && !installed) {
+      try { localStorage.setItem('cd.signMsg', JSON.stringify({ m: msg, t: Date.now() })); } catch (e) {}
+      msg = '';
+    } else if (!msg && (page === 'login' || qp === 'login')) {
+      try { var sm = JSON.parse(localStorage.getItem('cd.signMsg') || 'null'); localStorage.removeItem('cd.signMsg'); if (sm && sm.m && Date.now() - sm.t < 864e5) msg = sm.m; } catch (e) {}
+    }
     page = page || qp || (sget('cd.reg') ? 'register' : msg ? 'login' : 'home');
     /* the full welcome page explains the app; this screen is only for logging in or registering */
     if (page === 'home' && !window.CD_DEMO && location.protocol !== 'file:' && CFG.welcomePage !== false) { location.replace('home.html'); return; }
@@ -1235,11 +1244,15 @@
     var msLbl = (CFG.tenant || 'consumers') === 'consumers' ? 'Outlook or Hotmail' : 'Outlook, Hotmail or Microsoft 365';
     var html;
     if (!ok.ms && !ok.g) html = '<div style="' + card + '">' + head + '<p style="color:#A3261F;font-size:14px">This copy has not been set up yet (no Microsoft or Google app ID).</p></div>';
-    else if (page === 'login') html = '<div class="mdl">' + hdr('register') + '<h1>Welcome back</h1>' +
-      '<p class="lead">Log in with the email account you registered with. Your records load from your own OneDrive.</p>' +
-      (ok.ms ? '<button id="mdGo" style="' + pri + '">Log in with ' + msLbl + sub('Microsoft account', 1) + '</button>' : '') +
-      (ok.g ? '<button id="mdGoG" style="' + (ok.ms ? sec : pri) + '">Log in with Gmail' + sub('Google account', !ok.ms) + '</button>' : '') +
-      '<p style="margin:16px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' + err + legal + '</div>';
+    else if (page === 'login') {
+      var lgInp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 8px;font-weight:400', lastMail = ls('cd.lastMail') || profGet().email || (sget('cd.reg') || {}).email || '';
+      html = '<form id="lgForm" novalidate class="mdl">' + hdr('register') + '<h1>Welcome back</h1>' +
+      '<p class="lead">Log in with the email you registered with. Your records load from your own ' + (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') + '.</p>' +
+      '<label style="font-size:14px">User ID (your email address)<input id="lgMail" type="email" name="username" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" value="' + esc(lastMail) + '" style="' + lgInp + '"></label>' +
+      '<p style="margin:0 0 4px;padding:9px 11px;background:#EEF6F2;border-radius:8px;font-size:13.5px;color:#234"><b>Your password is next.</b> ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' asks for it on its own secure page, with your email already filled in. This app never sees your password.</p>' +
+      '<button type="submit" id="lgGo" style="' + pri + '">Continue' + sub('Then type your password on ' + (ok.g ? 'their' : 'Microsoft\'s') + ' page', 1) + '</button>' +
+      '<p style="margin:16px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' + err + legal + '</form>';
+    }
     else if (page === 'register') {
       var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
       var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
@@ -1270,6 +1283,20 @@
     };
     var b = o.querySelector('#mdGo'); if (b) b.onclick = function () { b.disabled = true; sset('cd.intent', 'login'); lset('cd.prov', 'ms'); startLogin(); };
     var bg = o.querySelector('#mdGoG'); if (bg) bg.onclick = function () { bg.disabled = true; sset('cd.intent', 'login'); gStart(); };
+    var lf = o.querySelector('#lgForm');
+    if (lf) {
+      var lm = o.querySelector('#lgMail'); try { if (lm && !lm.value) lm.focus(); } catch (e) {}
+      lf.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var em = ((lm || {}).value || '').trim(), er = o.querySelector('#mdErr');
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { er.textContent = em ? 'That email address does not look right.' : 'Enter the email address you registered with.'; try { lm.focus(); } catch (x) {} return; }
+        er.textContent = '';
+        var gm = /@(gmail|googlemail)\./i.test(em), useG = ok.g && (gm || !ok.ms);
+        lf.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+        lset('cd.lastMail', em); sset('cd.intent', 'login');
+        if (useG) gStart(em); else { lset('cd.prov', 'ms'); startLogin(false, em); }
+      });
+    }
     var f = o.querySelector('#rgForm'); if (!f) return;
     var val = function (id) { return ((o.querySelector('#' + id) || {}).value || '').trim(); };
     var modeNow = function () { return 'acct'; };
@@ -1306,7 +1333,7 @@
       if (which === 'google') gStart(); else { lset('cd.prov', 'ms'); startLogin(); }
     });
   }
-  function sessionExpired() { showSignIn('Your sign-in has expired. Please sign in again. Your unsaved changes are kept on this device.'); }
+  function sessionExpired() { showSignIn('Your sign-in has expired. Please sign in again. Your unsaved changes are kept on this device.', undefined, !firstPullDone); }
 
   /* ---------- account / settings ---------- */
   function ACCN() { try { var b = (mem.settings.business && mem.settings.business.data) || {}; return (b.accountant && b.accountant.name) || ''; } catch (e) { return ''; } }
@@ -1441,13 +1468,15 @@
       else if (a === 'delacct') { ov.remove(); openAcctDelete(); }
     });
   }
+  /* keep the email (never a password) so the login screen can fill in the User ID next time */
+  function rememberMail() { try { var m = ((tok() || {}).account || {}).mail; if (m) lset('cd.lastMail', m); } catch (e) {} }
   async function signOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
     var msg = pending()
       ? pending() + ' change(s) have not reached ' + SNAME() + ' yet and will be lost. Log out anyway?'
       : 'Log out? Records are removed from this device and load again when you sign in. Signing in again also loads the latest version of the app.';
     if (!confirm(msg)) return;
-    await wipeAndReload(false);
+    rememberMail(); await wipeAndReload(false);
   }
   async function wipeAndReload(auto) {
     try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
@@ -1466,11 +1495,11 @@
   async function autoSignOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
     if (pending()) {
-      setTok(null);
-      showSignIn('You were signed out after ' + idleLabel() + ' of inactivity. Changes not yet saved to ' + SNAME() + ' are kept on this device and upload when you sign in.');
+      rememberMail(); setTok(null);
+      showSignIn('You were signed out after ' + idleLabel() + ' of inactivity. Changes not yet saved to ' + SNAME() + ' are kept on this device and upload when you sign in.', undefined, !firstPullDone);
       return;
     }
-    await wipeAndReload(true);
+    rememberMail(); await wipeAndReload(true);
   }
 
   /* ---------- PIN screen lock (auto-locks after 15 minutes with no activity, only when a PIN is set) ---------- */
@@ -1646,7 +1675,7 @@
         (files ? 'Your records are in your ' + w + ' ' + bin + '.' : 'Your records are still in your ' + w + '. You can delete that folder yourself at any time.') + '\n\n' +
         'To finish, you can also remove ' + APPN + '\'s permission in your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account, under apps with access to your account.\n\nYou will now be logged out.');
       dirty = {};
-      ['cd.profile', 'cd.pin', 'cd.auth', 'cd.locked', 'cd.guide', 'cd.readme', 'cd.su', 'cd.bkpw', 'cd.act'].forEach(function (k) { lset(k, null); });
+      ['cd.profile', 'cd.pin', 'cd.auth', 'cd.locked', 'cd.guide', 'cd.readme', 'cd.su', 'cd.bkpw', 'cd.act', 'cd.lastMail', 'cd.signMsg'].forEach(function (k) { lset(k, null); });
       await wipeAndReload(false);
     });
   }
@@ -1900,7 +1929,7 @@
       lset('cd.prov', 'google'); PROV = 'google';
       setTok({ access: gr.at, exp: Date.now() + gr.exp * 1000, prov: 'google', account: prevG });
       var gu = {}; try { var ur = await gfetch(GAPI + '/oauth2/v3/userinfo'); if (ur.ok) gu = await ur.json(); } catch (e) {}
-      var t0 = tok(); t0.account = { name: gu.name || '', mail: gu.email || '' }; setTok(t0);
+      var t0 = tok(); t0.account = { name: gu.name || '', mail: gu.email || '' }; setTok(t0); if (gu.email) lset('cd.lastMail', gu.email);
       if (ls('cd.gunlock') === '1') {
         lset('cd.gunlock', null);
         if (prevG.mail && String(prevG.mail).toLowerCase() !== String(t0.account.mail).toLowerCase()) { setTok(null); throw new Error('That was a different Google account (' + t0.account.mail + '), so the app stayed locked. Log in with ' + prevG.mail + '.'); }
@@ -1935,7 +1964,7 @@
     var meMail = '';
     try {
       var me = await (await gfetch('/me?$select=displayName,mail,userPrincipalName')).json();
-      var t = tok(); t.account = { name: me.displayName || '', mail: me.mail || me.userPrincipalName || '', id: me.id || '' }; t.prov = 'ms'; setTok(t); meMail = t.account.mail;
+      var t = tok(); t.account = { name: me.displayName || '', mail: me.mail || me.userPrincipalName || '', id: me.id || '' }; t.prov = 'ms'; setTok(t); meMail = t.account.mail; if (meMail) lset('cd.lastMail', meMail);
     } catch (e) {}
     lset('cd.prov', 'ms'); PROV = 'ms';
     if (ls('cd.reauth') !== '1') await ownerCheck('ms', meMail);

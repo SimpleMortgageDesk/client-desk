@@ -785,3 +785,11 @@ header.top .in{padding-block:12px}}
 .caseswrap .tw tbody tr.click:nth-child(6n+5)>td{background:#FCF1F5}
 .caseswrap .tw tbody tr.click:nth-child(6n+6)>td{background:#EFF7FA}
 .caseswrap .tw tbody tr.click:hover>td{filter:brightness(.97)}
+
+/* ---- Reports and agreements: two tabs ---- */
+.gntabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:12px 0 14px}
+.gntabs button{flex:0 1 auto;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;padding:10px 14px;font:600 15px inherit;color:var(--muted);cursor:pointer;border-radius:8px 8px 0 0;white-space:normal;text-align:center}
+.gntabs button:hover{color:var(--ink);background:var(--surface2)}
+.gntabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.gntabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+@media (max-width:620px){.gntabs button{flex:1 1 0;padding:10px 8px;font-size:14px}}
