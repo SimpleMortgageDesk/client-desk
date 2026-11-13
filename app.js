@@ -564,7 +564,7 @@ function openDrawer(id,draft){
   d.innerHTML='<div class="bk" data-close></div><div class="panel" role="dialog" aria-modal="true" aria-label="'+esc(T.noun[0])+'">'+
   '<div class="dh"><div style="min-width:0"><div class="eyebrow">'+(id?esc(T.noun[0]):draft&&draft._from?'New '+N1()+' for an existing client. Add the details, then it saves automatically':'New '+N1())+'</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 id="dTitle" style="margin:0">'+esc(id?names(c):(T.tenancyMode?'Add a property':'Add a client'))+'</h2></div>'+(id?'<div id="nextAppt" class="muted" style="font-size:12px;margin-top:4px">'+apNextHtml(id)+'</div>':'')+(id&&c.oneDriveLink?'<div class="pl" style="margin-top:4px">'+odLink(c.oneDriveLink)+'</div>':'')+
   stripHtml(c)+(T.tenancyMode&&id?'<div id="rentHead"></div>':'')+'</div>'+
-  '<div class="dhb" style="display:flex;gap:8px;flex-wrap:nowrap;justify-content:flex-end;align-items:center;flex:none">'+(id?(T.tenancyMode?'<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Expenses</button>':'<button type="button" class="btn" id="bookBtn">Book appointment</button>'):'')+(id&&!T.tenancyMode?'<button type="button" class="btn" id="dupBtn" title="Same client, another '+esc(N1())+'">New '+esc(N1())+' for this client</button>':'')+'<button type="button" class="btn" id="saveCloseBtn">Done</button></div></div>'+
+  '<div class="dhb" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;flex:none">'+(id?(T.tenancyMode?'<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Receipts and expenses</button>':'<button type="button" class="btn" id="bookBtn">Book appointment</button>'):'')+(id&&!T.tenancyMode?'<button type="button" class="btn" id="dupBtn" title="Same client, another '+esc(N1())+'">New '+esc(N1())+' for this client</button>':'')+'<button type="button" class="btn" id="saveCloseBtn">Done</button></div></div>'+
   '<form id="caseForm" class="db" autocomplete="off">'+
    (T.tenancyMode?llBody(c):(!id&&!draft?pickClient():'')+'<fieldset id="peopleFs"><legend>'+esc(T.peopleTitle)+'</legend><div class="appsplit"><div class="appleft"><div id="apps">'+(c.applicants&&c.applicants.length?c.applicants:[{}]).map(appRow).join('')+'</div><button type="button" class="btn ghost sm" id="addApp">Add '+esc(T.person[0].toLowerCase())+'</button><div class="grid" style="margin-top:10px">'+fld('clientNo','Client number',c.clientNo)+'</div></div><aside class="lkpane"><div class="lkt" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span id="lkTitle">Connected clients (0)</span><button type="button" class="btn ghost sm secbtn" id="lkToggle">Show</button></div><div id="linksBox" style="display:none"></div></aside></div></fieldset>'+
    (T.securities?'<fieldset class="secfs"><legend>Security addresses (buy to let and other properties)</legend><p class="muted" style="font-size:12px;margin:0 0 8px">Add the address of each property the mortgage is secured on.</p><div id="secs">'+(c.securities||[]).map(secRow).join('')+'</div><button type="button" class="btn ghost sm" id="addSec">Add security address</button></fieldset>':'')+
@@ -2090,16 +2090,36 @@ function homeEvents(){
 /* the home address, in small type, under the My home tab */
 function homeLine(){var h=HOME;return h&&h.addr1?[String(h.addr1).trim(),String(h.postcode||'').trim()].filter(Boolean).join(', '):''}
 function homeSmall(top){var a=homeLine();return a?'<small title="'+esc(a)+'" style="display:block;font-size:11px;font-weight:400;line-height:1.3;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:'+(top?'170px':'100%')+'">'+esc(a)+'</small>':''}
+var hfRun=false,hfTried=false;
+function hfSweep(){
+  var h=HOME;if(hfRun||hfTried||!h||!h.addr1||(h.folder&&h.folder.rc)||!window.CD_files||!window.CD_files.can())return;
+  hfRun=true;hfTried=true;var nm=(h.folder&&h.folder.name)||pfClean(String(h.addr1).split(/[\n,]/)[0])||'My home';
+  window.CD_files.folder(nm,'Home').then(function(f){hfRun=false;if(f&&f.name&&HOME&&HOME.addr1)homeWrite(Object.assign({},HOME,{folder:Object.assign({},HOME.folder||{},f)}))},function(){hfRun=false});
+}
 function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases'||view==='myhome')render();renderRem();renderNav();renderSide()}
+var HOME_DUE={dealEnd:1,ercEnd:1,termEnd:1,insRenewal:1,energyEnd:1,boilerDue:1,eicrDue:1};
+function homeRows(h,g){
+  var out=g[1].map(function(x){
+    var k=x[0],t=x[2],v=homeV(h,k);if(k==='addr1'||k==='postcode'||v===''||v==null)return '';
+    var val=t==='date'?(HOME_DUE[k]?'<span class="chip '+tone(v)+'">'+esc(fd(v))+'</span>':esc(fd(v))):t==='money'?esc(money(v)):esc(k==='rate'?v+'%':String(v));
+    return '<div class="hrow"><span>'+esc(x[1])+'</span><b>'+val+'</b></div>'}).join('');
+  return out||'<p class="muted" style="margin:0">Nothing added yet. Press View and edit.</p>';
+}
 function homeCard(pg){
   var h=HOME,hd=pg?'':'<h2>My home</h2>';
-  if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div>'+hd+'<p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills and safety checks. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
+  if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div>'+hd+'<p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills, safety checks, and your receipts and expenses. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
   var bal=+h.balance||0,val=+h.value||0,ltv=bal&&val?Math.round(bal/val*1000)/10:null,eq=val?val-bal:null;
   var chip=function(d,l){return d?'<span class="chip '+tone(d)+'">'+esc(l)+' '+fd(d)+'</span>':''};
   var fact=function(l,v){return v?'<div class="hf"><span>'+esc(l)+'</span><b>'+v+'</b></div>':''};
-  return '<section class="homecard"><div class="hch"><div>'+hd+'<div class="hadr">'+esc(h.addr1)+(h.postcode?', '+esc(h.postcode):'')+'</div><div class="muted" style="font-size:13px">'+esc([h.ownership,h.ptype,h.bedrooms?h.bedrooms+' bed':''].filter(Boolean).join(' · '))+'</div></div><button type="button" class="btn ghost" id="homeEdit">View and edit</button></div>'+
+  var ty=taxYear(iso(TODAY)),el=expList(h),tyTot=el.filter(function(e){return e.date>=ty.from&&e.date<=ty.to}).reduce(function(a,e){return a+(+e.amount||0)},0);
+  var card=function(t,body,extra){return '<section class="hcard"><div class="hcardhd"><h3>'+esc(t)+'</h3>'+(extra||'')+'</div>'+body+'</section>'};
+  var expBody=el.length?'<p class="muted" style="margin:0 0 6px;font-size:13px">Tax year '+ty.label+' so far: <b>'+gbp(tyTot)+'</b> · '+el.length+' item'+(el.length===1?'':'s')+'</p>'+el.slice(0,4).map(function(e){return '<div class="hrow"><span>'+esc(fd(e.date))+' · '+esc(e.desc||e.cat||'')+'</span><b>'+esc(gbp(e.amount))+(e.receipt&&rcUrl(e.receipt.url)?' <a href="'+esc(e.receipt.url)+'" target="_blank" rel="noopener" title="Show receipt">Receipt</a>':'')+'</b></div>'}).join(''):'<p class="muted" style="margin:0">No receipts or expenses recorded for your home yet.</p>';
+  return '<div class="homepage"><section class="homecard"><div class="hch"><div>'+hd+'<div class="hadr">'+esc(h.addr1)+(h.postcode?', '+esc(h.postcode):'')+'</div><div class="muted" style="font-size:13px">'+esc([h.ownership,h.ptype,h.bedrooms?h.bedrooms+' bed':''].filter(Boolean).join(' · '))+'</div></div><div class="add" style="margin:0"><button type="button" class="btn" id="homeExp">Receipts and expenses</button><button type="button" class="btn ghost" id="homeEdit">View and edit</button></div></div>'+
     '<div class="hfacts">'+fact('Estimated value',val?money(val):'')+fact('Mortgage balance',bal?money(bal):'')+fact('Equity',eq!=null&&bal?money(eq):'')+fact('Loan to value',ltv!=null?ltv+'%':'')+fact('Lender',esc(h.lender||''))+fact('Rate',h.rate?esc(h.rate)+'%'+(h.dealType?' '+esc(String(h.dealType).toLowerCase()):''):'')+fact('Monthly payment',h.payment?money(h.payment):'')+'</div>'+
-    '<div class="hchips">'+chip(homeV(h,'dealEnd'),'Deal ends')+chip(homeV(h,'insRenewal'),'Insurance renewal')+chip(homeV(h,'boilerDue'),'Boiler service')+chip(homeV(h,'energyEnd'),'Energy deal ends')+'</div>'+advBox(homeV(h,'dealEnd'),'Mortgage deal on your home')+'</section>';
+    '<div class="hchips">'+chip(homeV(h,'dealEnd'),'Deal ends')+chip(homeV(h,'insRenewal'),'Insurance renewal')+chip(homeV(h,'boilerDue'),'Boiler service')+chip(homeV(h,'energyEnd'),'Energy deal ends')+'</div>'+advBox(homeV(h,'dealEnd'),'Mortgage deal on your home')+'</section>'+
+    '<div class="homegrid">'+HOME_F.map(function(g){return card(g[0]==='Your home'?'About your home':g[0],homeRows(h,g))}).join('')+
+    card('Receipts and expenses',expBody,'<button type="button" class="btn ghost sm" data-homeexp="1">Open</button>')+
+    (h.notes?card('Notes','<p style="margin:0;white-space:pre-wrap">'+esc(h.notes)+'</p>'):'')+'</div></div>';
 }
 function homeOpen(){
   var h=HOME||{};
@@ -2129,9 +2149,10 @@ function homeSave(){
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;
   if(t.closest('#homeAdd')||t.closest('#homeEdit')){homeOpen();return}
+  if(t.closest('#homeExp')||t.closest('[data-homeexp]')){expOpen(HOME_ID);return}
   if(t.closest('[data-hmclose]')){closeOv('hmOv');return}
   if(t.closest('[data-hmsave]')){homeSave();return}
-  var dl=t.closest('[data-hmdel]');if(dl){if(!dl.classList.contains('armed')){dl.classList.add('armed');dl.textContent='Press again to remove';return}homeWrite({removedAt:Date.now()});closeOv('hmOv');toast('My home removed');return}
+  var dl=t.closest('[data-hmdel]');if(dl){if(!dl.classList.contains('armed')){dl.classList.add('armed');var nx=((HOME&&HOME.expenses)||[]).length;dl.textContent=nx?'Press again to remove. This also removes its '+nx+' expense record'+(nx===1?'':'s')+'.':'Press again to remove';return}homeWrite({removedAt:Date.now()});closeOv('hmOv');toast('My home removed');return}
 });
 document.addEventListener('input',function(e){var t=e.target;if(!t||!t.id||t.id.indexOf('hm-')!==0)return;
   if(t.hasAttribute('data-hfrom'))t.setAttribute('data-auto',t.value?'0':'1');
@@ -2806,13 +2827,13 @@ document.addEventListener('click',function(e){
 /* makes the storage folder for every property that has an address and no folder yet (new and existing properties) */
 function pfSweep(){
   if(!T.tenancyMode||pfRun||!window.CD_files||!window.CD_files.can())return;
-  var todo=cases.filter(function(c){return String(c.propertyAddress||'').trim()&&!(c.folder&&c.folder.name)&&!pfTried[c.id]});
+  var todo=cases.filter(function(c){return String(c.propertyAddress||'').trim()&&!(c.folder&&c.folder.name&&c.folder.rc)&&!pfTried[c.id]});
   if(!todo.length)return;pfRun=true;var used={};
   (function next(){
     var c=todo.shift();if(!c){pfRun=false;return}
-    pfTried[c.id]=1;var nm=pfName(c,used);used[nm.toLowerCase()]=1;
+    pfTried[c.id]=1;var nm=(c.folder&&c.folder.name)||pfName(c,used);used[nm.toLowerCase()]=1;
     window.CD_files.folder(nm).then(function(f){
-      if(f&&f.name){patch(c.id,{folder:f});if(openId===c.id){var cur=currentCase()||c;dzRefresh(Object.assign({},cur,{folder:f}))}}
+      if(f&&f.name){f=Object.assign({},c.folder||{},f);patch(c.id,{folder:f});if(openId===c.id){var cur=currentCase()||c;dzRefresh(Object.assign({},cur,{folder:f}))}}
       next();
     },function(){next()});
   })();
@@ -3059,28 +3080,121 @@ document.addEventListener('change',function(e){var t=e.target;if(t&&t.closest&&(
 
 /* ---------- landlords: expenses, and rent and expenses reports for the accountant ---------- */
 var EXP_CATS=['Repairs and maintenance','Insurance','Letting agent and management fees','Legal, accountancy and professional fees','Council tax, utilities, ground rent and service charges','Mortgage interest and finance costs','Cleaning, gardening and other services','Travel','Replacing furnishings and appliances','Other'];
+function exDesc(e,sep){return [e.desc,e.to].filter(Boolean).concat(e.receipt?['receipt on file']:[]).join(sep)}
 function expList(c){return ((c&&c.expenses)||[]).slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0})}
 function taxYear(d){var p=pd(d),y=p.getFullYear(),start=new Date(y,3,6);if(p<start)y--;return {from:y+'-04-06',to:(y+1)+'-04-05',label:y+'/'+String(y+1).slice(2)}}
 var exCase=null,exEdit=null;
+/* the subject of the screen: a rental property (its id) or My home ('__home', stored in the home record) */
+var HOME_ID='__home';
+var EXP_CATS_HOME=['Repairs and maintenance','Insurance','Council tax, energy and water','Mortgage interest and fees','Furnishings and appliances','Cleaning and garden','Home improvements','Other'];
+function exSubj(id){if(id===HOME_ID)return HOME&&HOME.addr1?HOME:null;return cases.filter(function(x){return x.id===id})[0]}
+function exPatch(id,up){if(id===HOME_ID){homeWrite(Object.assign({},HOME,up));return Promise.resolve()}return patch(id,up)}
+function exCats(id){return id===HOME_ID?EXP_CATS_HOME:EXP_CATS}
 function exCommit(){
-  var c=cases.filter(function(x){return x.id===exCase})[0];if(!c)return false;var amt=parseFloat(($('#ex-amt')||{}).value),dt=($('#ex-date')||{}).value;
+  var c=exSubj(exCase);if(!c)return false;var amt=parseFloat(($('#ex-amt')||{}).value),dt=($('#ex-date')||{}).value;
   if(!dt||!(amt>0)){toast('Add the date and an amount, or clear the amount to close without saving');return false}
-  var vals={date:dt,cat:$('#ex-cat').value,amount:r2(amt),to:($('#ex-to').value||'').trim(),desc:($('#ex-desc').value||'').trim()};
-  if(exEdit){var eid=exEdit;patch(c.id,{expenses:(c.expenses||[]).map(function(x){return x.id===eid?Object.assign({},x,vals,{edited:Date.now()}):x})});toast('Expense updated')}
-  else{patch(c.id,{expenses:(c.expenses||[]).concat([Object.assign({id:'e'+uid(),added:Date.now()},vals)])});toast('Expense added')}
+  var vals={date:dt,cat:$('#ex-cat').value,amount:r2(amt),to:($('#ex-to').value||'').trim(),desc:($('#ex-desc').value||'').trim(),receipt:rcPend||null};
+  if(exEdit){var eid=exEdit;exPatch(exCase,{expenses:(c.expenses||[]).map(function(x){return x.id===eid?Object.assign({},x,vals,{edited:Date.now()}):x})});toast('Expense updated')}
+  else{if(!vals.receipt)delete vals.receipt;exPatch(exCase,{expenses:(c.expenses||[]).concat([Object.assign({id:'e'+uid(),added:Date.now()},vals)])});toast('Expense added')}
+  rcFor=null;rcPend=null;
   return true;
 }
+/* ---------- receipts: photograph or upload a receipt, saved in the property's Receipts folder ---------- */
+var rcPend=null,rcFor=null,rcBusy=false,rcMsg='',rcThumb='',rcListOpen=false;
+function rcUrl(u){u=String(u||'');return /^(https:\/\/|blob:)/.test(u)?u:''}
+function rcCase(){return exSubj(exCase)}
+function rcBox(c){
+  var touch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches),w=window.CD_files?window.CD_files.where():'file storage';
+  return '<div class="rcbox"><div class="rchd"><b>Receipt</b><span class="muted">Photograph it or upload a file. It is saved in a folder called Receipts, inside this property\'s folder in your '+esc(w)+'.</span></div>'+
+   '<div class="add" style="margin:8px 0 0">'+(touch?'<button type="button" class="btn" data-rcpick="camera">Take photo of receipt</button>':'')+'<button type="button" class="btn'+(touch?' ghost':'')+'" data-rcpick="file">Upload receipt</button><button type="button" class="btn ghost" data-rcopen="1" aria-expanded="'+(rcListOpen?'true':'false')+'">Open receipt</button></div>'+
+   '<div id="rcState" role="status" aria-live="polite">'+rcStateHtml()+'</div><div id="rcList">'+rcListHtml(c)+'</div></div>';
+}
+function rcStateHtml(){
+  if(rcBusy)return '<p class="rcmsg"><span class="rcspin" aria-hidden="true"></span>'+esc(rcMsg||'Saving…')+'</p>';
+  if(rcPend){var u=rcUrl(rcPend.url);return '<div class="rcatt">'+(rcThumb?'<img src="'+rcThumb+'" alt="Photo of the receipt">':'')+'<div><b>Receipt saved</b><span class="muted">'+esc(rcPend.name)+'</span><span>'+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">Show receipt</a>':'')+'<button type="button" class="rclink" data-rcrm="1" title="Removes the link from this expense. The file stays in your Receipts folder.">Remove</button></span></div></div>'}
+  return rcMsg?'<p class="rcmsg err">'+esc(rcMsg)+'</p>':'';
+}
+function rcListHtml(c){
+  if(!rcListOpen)return '';
+  var rs=((c&&c.receipts)||[]).slice().sort(function(a,b){return (b.at||0)-(a.at||0)}),ex=(c&&c.expenses)||[];
+  if(!rs.length)return '<p class="muted rcnone">No receipts have been uploaded for this property yet.</p>';
+  return '<ul class="rclist">'+rs.map(function(r){
+    var e=ex.filter(function(x){return x.receipt&&(x.receipt.fid?x.receipt.fid===r.fid:x.receipt.url===r.url)})[0],u=rcUrl(r.url);
+    var info=e?esc([e.desc||e.cat,gbp(e.amount)].filter(Boolean).join(' · ')):'Not linked to an expense yet';
+    return '<li><div class="rcrow"><b>'+esc(r.name)+'</b><span class="muted">'+(r.at?'Added '+esc(fd(iso(new Date(r.at))))+' · ':'')+info+'</span></div><div class="rcact">'+(u?'<a class="btn ghost sm" href="'+esc(u)+'" target="_blank" rel="noopener">Open</a>':'')+(!e&&!(rcPend&&rcPend.id===r.id)?'<button type="button" class="btn ghost sm" data-rcuse="'+esc(r.id)+'">Use for this expense</button>':'')+'</div></li>'}).join('')+'</ul>';
+}
+function rcDraw(cc){
+  var s=$('#rcState');if(s)s.innerHTML=rcStateHtml();
+  var l=$('#rcList');if(l)l.innerHTML=rcListHtml(cc||rcCase());
+  var o=document.querySelector('[data-rcopen]');if(o)o.setAttribute('aria-expanded',rcListOpen?'true':'false');
+}
+/* phone photos are large: shrink them to a clear 2400 px JPEG before saving (PDFs and anything that cannot be read are saved as they are) */
+function rcPrep(file){
+  return new Promise(function(res){
+    var orig={blob:file,ext:''};
+    if(!/^image\//.test(file.type||'')||/svg|gif/.test(file.type))return res(orig);
+    var draw=function(src,w,h){
+      try{var k=Math.min(1,2400/Math.max(w,h)),cw=Math.max(1,Math.round(w*k)),ch=Math.max(1,Math.round(h*k)),cv=document.createElement('canvas');cv.width=cw;cv.height=ch;var cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cw,ch);cx.drawImage(src,0,0,cw,ch);
+        cv.toBlob(function(b){res(b&&(b.size<file.size||file.size>1500000)?{blob:b,ext:'.jpg'}:orig)},'image/jpeg',0.82)}catch(e){res(orig)}
+    };
+    var viaImg=function(){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){URL.revokeObjectURL(u);draw(im,im.naturalWidth,im.naturalHeight)};im.onerror=function(){URL.revokeObjectURL(u);res(orig)};im.src=u};
+    if(window.createImageBitmap){createImageBitmap(file,{imageOrientation:'from-image'}).then(function(bm){draw(bm,bm.width,bm.height)},viaImg)}else viaImg();
+  });
+}
+function rcPick(mode){
+  var c=rcCase();if(!c)return;
+  if(!window.CD_files||!window.CD_files.can()){rcMsg='Could not reach your file storage. Check you are online, then try again.';rcDraw();return}
+  if(rcBusy){toast('Still saving the last receipt. Try again in a moment.');return}
+  var inp=document.createElement('input');inp.type='file';inp.id='rcFile';inp.style.display='none';
+  if(mode==='camera'){inp.accept='image/*';inp.setAttribute('capture','environment')}else inp.accept='image/*,application/pdf';
+  var old=$('#rcFile');if(old)old.remove();document.body.appendChild(inp);
+  var subj=exCase;inp.addEventListener('change',function(){var f=inp.files&&inp.files[0];inp.remove();if(f)rcSend(subj,f)});
+  inp.click();
+}
+function rcSend(caseId,file){
+  var c=exSubj(caseId);if(!c)return;
+  if(!file.size){rcMsg='That file is empty.';rcDraw();return}
+  rcBusy=true;rcMsg='Preparing the photo…';rcDraw();
+  rcPrep(file).then(function(p){
+    var blob=p.blob,ext=p.ext||((/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase())||'.jpg';
+    if(blob.size>window.CD_files.max)throw {big:true};
+    var d=new Date(),z=function(n){return String(n).padStart(2,'0')},dt=(($('#ex-date')||{}).value)||iso(TODAY),fname='Receipt '+dt+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+ext,home=caseId===HOME_ID,folder=(c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c));
+    rcMsg='Saving to your '+window.CD_files.where()+'…';rcDraw();
+    return window.CD_files.upload(folder,fname,blob,'Receipts',home?'Home':undefined).then(function(res){return {res:res,blob:blob}});
+  }).then(function(o){
+    rcBusy=false;
+    if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}
+    if(/^image\//.test(o.blob.type||'')){try{rcThumb=URL.createObjectURL(o.blob)}catch(x){}}
+    var rec={id:'r'+uid(),name:o.res.name,url:o.res.url,fid:o.res.id,size:o.blob.size,at:Date.now()};
+    rcPend=rec;rcMsg='';rcListOpen=false;
+    var cur=exSubj(caseId)||c,up={receipts:(cur.receipts||[]).concat([rec])};
+    if(o.res.folder&&o.res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=o.res.folder;
+    exPatch(caseId,up);rcDraw(Object.assign({},cur,up));
+    toast('Receipt saved. Add the amount, then press Add expense.');var a=$('#ex-amt');if(a)a.focus();
+  }).catch(function(e){rcBusy=false;rcMsg=e&&e.big?'That file is over 50 MB. Choose a smaller one.':dzErr(e);rcDraw()});
+}
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('[data-rcpick],[data-rcrm],[data-rcopen],[data-rcuse]'):null;if(!b||!b.closest('#exOv'))return;
+  e.preventDefault();
+  if(b.hasAttribute('data-rcpick')){rcPick(b.getAttribute('data-rcpick'));return}
+  if(b.hasAttribute('data-rcrm')){rcPend=null;rcMsg='';rcDraw();return}
+  if(b.hasAttribute('data-rcopen')){rcListOpen=!rcListOpen;rcDraw();return}
+  var c=rcCase(),r=c&&(c.receipts||[]).filter(function(x){return x.id===b.getAttribute('data-rcuse')})[0];
+  if(r){if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}rcPend=Object.assign({},r);rcListOpen=false;rcMsg='';rcDraw();var a=$('#ex-amt');if(a)a.focus()}
+});
 function expOpen(caseId,editId){
-  var c=cases.filter(function(x){return x.id===caseId})[0];if(!c)return;if(caseId!==exCase)editId=null;exCase=caseId;exEdit=editId||null;
+  var c=exSubj(caseId);if(!c)return;if(caseId!==exCase)editId=null;exCase=caseId;exEdit=editId||null;
   var ed=exEdit?((c.expenses||[]).filter(function(x){return x.id===exEdit})[0]||null):null;if(!ed)exEdit=null;
+  var rk=caseId+':'+(exEdit||'new');if(rcFor!==rk){rcFor=rk;rcPend=ed?(ed.receipt||null):null;rcMsg='';rcListOpen=false;if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}}
   var l=expList(c),ty=taxYear(iso(TODAY)),tyTot=l.filter(function(e){return e.date>=ty.from&&e.date<=ty.to}).reduce(function(a,e){return a+(+e.amount||0)},0);
-  overlay('exOv','<div class="dhd"><h2>Expenses · '+esc(names(c))+'</h2><button type="button" class="btn" data-exclose="1">Save and close</button></div>'+
-   '<p class="muted" style="margin:4px 0 10px">Tax year '+ty.label+' so far: <b>'+gbp(tyTot)+'</b> · '+l.length+' expense'+(l.length===1?'':'s')+' in total. These go into the rent and expenses report for your accountant (Account › Generate documents).</p>'+
-   (ed?'<p style="margin:0 0 6px;font-weight:600">Editing the expense from '+fd(ed.date)+'</p>':'')+'<div class="exadd grid'+(ed?' editing':'')+'"><label class="f">Date<input id="ex-date" type="date" value="'+(ed?esc(ed.date):iso(TODAY))+'"></label><label class="f">Category<select id="ex-cat">'+EXP_CATS.concat(ed&&EXP_CATS.indexOf(ed.cat)<0&&ed.cat?[ed.cat]:[]).map(function(k){return '<option'+(ed&&ed.cat===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></label>'+
+  overlay('exOv','<div class="dhd"><h2>Receipts and expenses · '+esc(caseId===HOME_ID?'My home · '+short(c.addr1):names(c))+'</h2><button type="button" class="btn" data-exclose="1">Save and close</button></div>'+
+   '<p class="muted" style="margin:4px 0 10px">Tax year '+ty.label+' so far: <b>'+gbp(tyTot)+'</b> · '+l.length+' expense'+(l.length===1?'':'s')+' in total. '+(caseId===HOME_ID?'These are kept apart from your rental properties and are not in the rent and expenses report.':'These go into the rent and expenses report for your accountant (Reports and agreements).')+'</p>'+
+   rcBox(c)+
+   (ed?'<p style="margin:0 0 6px;font-weight:600">Editing the expense from '+fd(ed.date)+'</p>':'')+'<div class="exadd grid'+(ed?' editing':'')+'"><label class="f">Date<input id="ex-date" type="date" value="'+(ed?esc(ed.date):iso(TODAY))+'"></label><label class="f">Category<select id="ex-cat">'+exCats(caseId).concat(ed&&exCats(caseId).indexOf(ed.cat)<0&&ed.cat?[ed.cat]:[]).map(function(k){return '<option'+(ed&&ed.cat===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></label>'+
    '<label class="f">Amount<span class="ig"><i>£</i><input id="ex-amt" type="number" step="any" inputmode="decimal" value="'+(ed?esc(ed.amount):'')+'"></span></label><label class="f">Paid to<input id="ex-to" placeholder="Supplier or tradesperson" value="'+(ed?esc(ed.to||''):'')+'"></label>'+
    '<label class="f wide">Description<input id="ex-desc" placeholder="For example: boiler repair, annual landlord insurance" value="'+(ed?esc(ed.desc||''):'')+'"></label></div>'+
-   '<div class="add" style="margin:6px 0 12px"><button type="button" class="btn" data-exadd="1">'+(ed?'Save changes':'Add expense')+'</button>'+(ed?'<button type="button" class="btn ghost" data-excancel="1">Cancel edit</button>':'')+'<span class="muted" style="font-size:12px;align-self:center">Keep the receipts. Do not type bank or card numbers here.</span></div>'+
-   (l.length?'<div class="tw"><table class="extab"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Paid to</th><th>Amount</th><th></th></tr></thead><tbody>'+l.map(function(e){return '<tr><td>'+fd(e.date)+'</td><td>'+esc(e.cat||'')+'</td><td>'+esc(e.desc||'')+'</td><td>'+esc(e.to||'')+'</td><td class="num">'+gbp(e.amount)+'</td><td class="exact"><button type="button" class="exed" data-exedit="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-exdel="'+esc(e.id)+'" aria-label="Delete expense">×</button></td></tr>'}).join('')+'</tbody></table></div>':'<p class="muted">No expenses recorded for this property yet.</p>'),true);
+   '<div class="add" style="margin:6px 0 12px"><button type="button" class="btn" data-exadd="1">'+(ed?'Save changes':'Add expense')+'</button>'+(ed?'<button type="button" class="btn ghost" data-excancel="1">Cancel edit</button>':'')+'<span class="muted" style="font-size:12px;align-self:center">Do not type bank or card numbers here.</span></div>'+
+   (l.length?'<div class="tw"><table class="extab"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Paid to</th><th>Amount</th><th>Receipt</th><th></th></tr></thead><tbody>'+l.map(function(e){return '<tr><td>'+fd(e.date)+'</td><td>'+esc(e.cat||'')+'</td><td>'+esc(e.desc||'')+'</td><td>'+esc(e.to||'')+'</td><td class="num">'+gbp(e.amount)+'</td><td>'+(e.receipt&&rcUrl(e.receipt.url)?'<a href="'+esc(e.receipt.url)+'" target="_blank" rel="noopener">Show</a>':'<span class="muted">—</span>')+'</td><td class="exact"><button type="button" class="exed" data-exedit="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-exdel="'+esc(e.id)+'" aria-label="Delete expense">×</button></td></tr>'}).join('')+'</tbody></table></div>':'<p class="muted">No receipts or expenses recorded for this property yet.</p>'),true);
 }
 /* report */
 var gnSel=null;
@@ -3152,7 +3266,7 @@ function gnHtml(rows,from,to){
    (Object.keys(tt.cats).length?'<h4 style="margin:14px 0 4px;color:#2F4A40">Expenses by category</h4><table class="dkv">'+Object.keys(tt.cats).sort().map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+gbp(tt.cats[k])+'</td></tr>'}).join('')+'</table>':'')+
    rows.map(function(p){return '<h4 style="margin:18px 0 4px;color:#2F4A40">'+esc(names(p.c))+'</h4>'+
      '<table class="dtab"><thead><tr><th>Rent received</th><th>Tenant</th><th>For rent due</th><th>Amount</th></tr></thead><tbody>'+(p.rent.length?p.rent.map(function(r){return '<tr><td>'+fd(r.date)+'</td><td>'+esc(r.who)+'</td><td>'+fd(r.due)+'</td><td>'+gbp(r.amount)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">None in this period</td></tr>')+'<tr><td colspan="3"><b>Total rent</b></td><td><b>'+gbp(p.rt)+'</b></td></tr></tbody></table>'+
-     '<table class="dtab" style="margin-top:6px"><thead><tr><th>Expense date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead><tbody>'+(p.ex.length?p.ex.map(function(e){return '<tr><td>'+fd(e.date)+'</td><td>'+esc(e.cat||'')+'</td><td>'+esc([e.desc,e.to].filter(Boolean).join(' · '))+'</td><td>'+gbp(e.amount)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">None in this period</td></tr>')+'<tr><td colspan="3"><b>Total expenses</b></td><td><b>'+gbp(p.et)+'</b></td></tr></tbody></table>'+
+     '<table class="dtab" style="margin-top:6px"><thead><tr><th>Expense date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead><tbody>'+(p.ex.length?p.ex.map(function(e){return '<tr><td>'+fd(e.date)+'</td><td>'+esc(e.cat||'')+'</td><td>'+esc(exDesc(e,' · '))+'</td><td>'+gbp(e.amount)+'</td></tr>'}).join(''):'<tr><td colspan="4" class="muted">None in this period</td></tr>')+'<tr><td colspan="3"><b>Total expenses</b></td><td><b>'+gbp(p.et)+'</b></td></tr></tbody></table>'+
      (p.mo.rows.length?'<table class="dtab" style="margin-top:6px"><thead><tr><th>Mortgage payment</th><th>Details</th><th>Interest part</th><th>Amount</th></tr></thead><tbody>'+p.mo.rows.map(function(r){return '<tr><td>'+fd(r.date)+'</td><td>'+esc(mLabel(p.mo))+'</td><td>'+(r.i==null?'—':gbp(r.i))+'</td><td>'+gbp(r.amount)+'</td></tr>'}).join('')+'<tr><td colspan="2"><b>Total mortgage payments</b></td><td><b>'+(p.mo.est?gbp(p.mo.est):'—')+'</b></td><td><b>'+gbp(p.mo.tot)+'</b></td></tr></tbody></table>':'')}).join('')+
    '<div class="dfoot">Prepared from the records kept in '+esc((window.MD_CONFIG||{}).appName||'MySimpleDesk')+' on '+fd(iso(TODAY))+'. Check against your bank statements and receipts.</div></div>';
 }
@@ -3184,17 +3298,17 @@ function gnPdf(rows,from,to){
   rows.forEach(function(p){
     P.need(80);P.y+=10;wrapT(names(p.c),515,12,true).forEach(function(l){P.t(40,P.y,l,12,true,'l',A);P.y+=15});P.y+=2;
     table(['Rent received','Tenant','For rent due','Amount'],[[46,'l'],[120,'l'],[330,'l'],[549,'r']],p.rent.map(function(r){return [fd(r.date),r.who,fd(r.due),gbp(r.amount)]}),['Total rent',gbp(p.rt)]);
-    table(['Expense date','Category','Description','Amount'],[[46,'l'],[120,'l'],[300,'l'],[549,'r']],p.ex.map(function(e){return [fd(e.date),e.cat||'',[e.desc,e.to].filter(Boolean).join(' · '),gbp(e.amount)]}),['Total expenses',gbp(p.et)]);
+    table(['Expense date','Category','Description','Amount'],[[46,'l'],[120,'l'],[300,'l'],[549,'r']],p.ex.map(function(e){return [fd(e.date),e.cat||'',exDesc(e,' · '),gbp(e.amount)]}),['Total expenses',gbp(p.et)]);
     if(p.mo.rows.length)table(['Mortgage payment','Details','Interest part','Amount'],[[46,'l'],[150,'l'],[420,'l'],[549,'r']],p.mo.rows.map(function(r){return [fd(r.date),mLabel(p.mo),r.i==null?'-':gbp(r.i),gbp(r.amount)]}),['Total mortgage payments'+(p.mo.est?' (interest part '+gbp(p.mo.est)+')':''),gbp(p.mo.tot)]);
   });
   P.need(30);P.y+=6;wrapT('Prepared from the records kept in '+((window.MD_CONFIG||{}).appName||'MySimpleDesk')+' on '+fd(iso(TODAY))+'. Check against your bank statements and receipts.',515,8).forEach(function(l){P.t(40,P.y,l,8,false,'l',G);P.y+=10});
   return P.bytes('Rent received and expenses · '+fd(from)+' to '+fd(to));
 }
 function gnCsv(rows){
-  var q=function(v){return '"'+csvCell(v).replace(/"/g,'""')+'"'},out=[['Property','Type','Date','Tenant or category','Detail','Amount','Interest part'].map(q).join(',')];
+  var q=function(v){return '"'+csvCell(v).replace(/"/g,'""')+'"'},out=[['Property','Type','Date','Tenant or category','Detail','Amount','Interest part','Receipt link'].map(q).join(',')];
   var tt=gnTotals(rows);gnSumRows(tt).forEach(function(r){out.push([rows.length>1?'All properties':names(rows[0]?rows[0].c:{}),'Summary','',r[0],'',r[1]].map(q).join(','))});
   if(rows.length>1)rows.forEach(function(p){[['Rent received',p.rt],['Mortgage interest paid',p.mo.est],['Expenses',p.et],['Net rental income',gnNet(p)]].forEach(function(r){out.push([names(p.c),'Summary','',r[0],'',r[1]].map(q).join(','))})});
-  rows.forEach(function(p){p.rent.forEach(function(r){out.push([names(p.c),'Rent received',r.date,r.who,'For rent due '+r.due,r.amount].map(q).join(','))});p.ex.forEach(function(e){out.push([names(p.c),'Expense',e.date,e.cat||'',[e.desc,e.to].filter(Boolean).join(' - '),e.amount].map(q).join(','))});p.mo.rows.forEach(function(r){out.push([names(p.c),'Mortgage payment',r.date,mLabel(p.mo),'',r.amount,r.i==null?'':r.i].map(q).join(','))})});
+  rows.forEach(function(p){p.rent.forEach(function(r){out.push([names(p.c),'Rent received',r.date,r.who,'For rent due '+r.due,r.amount,'',''].map(q).join(','))});p.ex.forEach(function(e){out.push([names(p.c),'Expense',e.date,e.cat||'',exDesc(e,' - '),e.amount,'',(e.receipt&&rcUrl(e.receipt.url))||''].map(q).join(','))});p.mo.rows.forEach(function(r){out.push([names(p.c),'Mortgage payment',r.date,mLabel(p.mo),'',r.amount,r.i==null?'':r.i,''].map(q).join(','))})});
   return '﻿'+out.join('\r\n')+'\r\n';
 }
 function gnHas(r){return gnData(r[0],r[1]).some(function(p){return p.rent.length||p.ex.length})}
@@ -3261,11 +3375,11 @@ function gnFile(g,ext,c){return 'Rent-and-expenses-'+(c?pfClean(names(c),50).rep
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;var b;
   if(t.id==='expBtn'){if(!openId){toast('Add the property address first. It saves itself, then try again.');return}patch(openId,collectForm());lastAuto=JSON.stringify(collectForm());expOpen(openId);return}
-  if(t.closest('[data-exclose]')||t.id==='exOv'){var pend=(($('#ex-amt')||{}).value||'').trim();if(pend||exEdit){if(!exCommit())return}closeOv('exOv');exEdit=null;return}
+  if(t.closest('[data-exclose]')||t.id==='exOv'){if(rcBusy){toast('Still saving the receipt. Wait a moment, then close.');return}var pend=(($('#ex-amt')||{}).value||'').trim();if(rcPend&&!pend&&!exEdit&&!confirm('This receipt is not saved as an expense yet, because there is no amount. Close anyway? The file stays in your Receipts folder, and you can use it later from Open receipt.'))return;if(pend||exEdit){if(!exCommit())return}closeOv('exOv');exEdit=null;rcFor=null;rcPend=null;return}
   if(t.closest('[data-exadd]')){if(exCommit())setTimeout(function(){expOpen(exCase)},60);return}
   if((b=t.closest('[data-exedit]'))){expOpen(exCase,b.getAttribute('data-exedit'));var f=$('#ex-amt');if(f)f.focus();return}
   if(t.closest('[data-excancel]')){expOpen(exCase);return}
-  if((b=t.closest('[data-exdel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var c2=cases.filter(function(x){return x.id===exCase})[0];if(c2)patch(c2.id,{expenses:(c2.expenses||[]).filter(function(x){return x.id!==b.getAttribute('data-exdel')})});setTimeout(function(){expOpen(exCase)},60);return}
+  if((b=t.closest('[data-exdel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var c2=exSubj(exCase);if(c2)exPatch(exCase,{expenses:(c2.expenses||[]).filter(function(x){return x.id!==b.getAttribute('data-exdel')})});setTimeout(function(){expOpen(exCase)},60);return}
   if(t.closest('[data-gnopen]')){gnOpen();return}
   if(t.closest('[data-gnclose]')||t.id==='gnOv'){closeOv('gnOv');return}
   if((b=t.closest('[data-gnr]'))){var rg=gnRange(b.getAttribute('data-gnr'));$('#gn-from').value=rg[0];$('#gn-to').value=rg[1];document.querySelectorAll('[data-gnr]').forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});gnPreview();return}
@@ -3347,7 +3461,7 @@ claude.use('db').then(function(d){
     loaded=true;
     var ae=document.activeElement;
     var typing=ae&&(ae.id==='q');
-    render();if(trayOpen)renderTray();clearTimeout(window.__rt);window.__rt=setTimeout(function(){rtSweep();pfSweep()},400);
+    render();if(trayOpen)renderTray();clearTimeout(window.__rt);window.__rt=setTimeout(function(){rtSweep();pfSweep();hfSweep()},400);
     if(typing){var q=$('#q');q.focus&&q.focus()}
     if(openId){var ae2=document.activeElement;if(!(ae2&&(/^(ntText|prText|tkText|ntEdit)$/.test(ae2.id||'')||(ae2.closest&&(ae2.closest('table.nt.xl')||ae2.closest('[data-tkbox]'))))))renderLive()}
   },function(){loaded=true;db=null;render();toast('Lost connection to your saved cases')});
