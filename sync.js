@@ -1213,6 +1213,11 @@
       '<div class="ft">Your records stay in your own OneDrive, so they are still yours even if you stop using the app. We never see your tenants\' details.</div></aside>';
   }
   /* passive = the person did not ask to log in: their saved sign-in simply ended (a day away, or logged out for inactivity) */
+  /* the site name: "My" is quiet, "Simple" is bold and "Desk" is bold green */
+  function brandHtml(n) {
+    var m = /^(My)(.+?)(Desk)$/.exec(n || '');
+    return m ? '<span style="font-weight:400;opacity:.62">' + esc(m[1]) + '</span><span style="font-weight:800">' + esc(m[2]) + '</span><span style="font-weight:800;color:#0A6B50">' + esc(m[3]) + '</span>' : esc(n);
+  }
   function showSignIn(msg, page, passive) {
     if (!msg) { try { if (localStorage.getItem('cd.idleMsg')) { localStorage.removeItem('cd.idleMsg'); passive = true; msg = 'You were logged out after ' + idleLabel() + ' of inactivity. Log in again to continue.'; } } catch (e) {} }
     var qp = (/[?&]p=(login|register)\b/.exec(location.search) || [])[1];
@@ -1238,7 +1243,7 @@
     var foot = '<p style="color:#58697A;font-size:12px;margin:14px 0 0"><a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>';
     var err = '<div id="mdErr" role="alert" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div>';
     var back = '<a href="#" data-sp="home" style="color:#0A6B50;font-size:13px">&larr; Back</a>';
-    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + esc(APPN) + '</b><small>Property records and reminders for landlords</small></span></a>' +
+    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>Property records and reminders for landlords</small></span></a>' +
       '<a href="#" class="sw" data-sp="' + other + '">' + (other === 'login' ? 'Log in' : 'Register') + '</a></div>'; };
     var legal = '<p class="mdlegal"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>';
     var msLbl = (CFG.tenant || 'consumers') === 'consumers' ? 'Outlook or Hotmail' : 'Outlook, Hotmail or Microsoft 365';
@@ -1257,7 +1262,7 @@
       var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
       var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
       html = '<form id="rgForm" novalidate class="mdl">' + hdr('login') + '<h1>Free for a year. No card needed.</h1>' +
-        '<p class="lead">Every feature included. Set up your account in a few minutes. Your records are saved in your own ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, never on our computers.</p>' +
+        '<p class="lead"><b>Promotional offer:</b> free for your first year, then from £0.99 a month (<a href="home.html#pricing" target="_blank" rel="noopener" style="color:#0A6B50">see pricing</a>). Every feature included. Set up your account in a few minutes. Your records are saved in your own ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, never on our computers.</p>' +
         '<p id="rgTop" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
         '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +

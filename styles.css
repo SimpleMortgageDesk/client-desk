@@ -831,3 +831,8 @@ header.top .in{padding-block:12px}}
 @media (max-width:620px){.homegrid{grid-template-columns:1fr}.homepage .homecard .hch .add{width:100%}.homepage .homecard .hch .add .btn{flex:1 1 auto}}
 .hrow>b a{color:var(--accent)}
 .rcact a.btn{text-decoration:none}
+
+/* ---- site name: quiet "My", bold "Simple", bold green "Desk" ---- */
+.bn-my{font-weight:400;opacity:.62}
+.bn-simple{font-weight:800}
+.bn-desk{font-weight:800;color:var(--accent,#0A6B50)}
