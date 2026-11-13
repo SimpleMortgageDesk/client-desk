@@ -2524,7 +2524,8 @@ function taDefaults(c,tn){
     deposit:G('deposit')||'',scheme:G('depositScheme')||'',tenantNotice:'2 months',grounds:{},otherGrounds:'',gas:fv(c,'gsrDate')?'yes':'',improve:'yes',supported:'',supportedWhy:'',extra:'',
     epc:[fv(c,'epcRating'),fv(c,'epcDate')?fd(fv(c,'epcDate')):''].filter(Boolean).join(', issued '),gsr:fv(c,'gsrDate')?fd(fv(c,'gsrDate')):'',eicr:fv(c,'eicrDate')?fd(fv(c,'eicrDate')):''};
 }
-function taOpen(caseId,tnId){var c=cases.filter(function(x){return x.id===caseId})[0];if(!c)return;taCase=caseId;taTn=tnId||null;var tn=tnId?tnList(c).filter(function(x){return x.id===tnId})[0]:null;if(tn&&tnCorp(tn)){var ag=tn.agreement&&tn.agreement.kind==='company'?tn.agreement:{};clLetRender(Object.assign(clDefaults(c,tn),ag));return}var d=Object.assign(taDefaults(c,tn),tn?((tn.agreement&&tn.agreement.kind!=='company'&&tn.agreement)||{}):(c.tenancyDoc||{}));taRender(d)}
+function taRenew(d,old){var ns=iso(TODAY),from=d.start||'';if(d.kind==='company'&&from&&+d.termMonths){var e=new Date(from+'T12:00:00');e.setMonth(e.getMonth()+(+d.termMonths));var en=iso(e);if(en>ns)ns=en}d.start=ns;var note='This agreement renews the earlier agreement'+(from?' that started on '+fd(from):'')+'. The terms continue from the new start date above unless this agreement says otherwise.';if(d.kind==='company')d.terms=[{t:'Renewal',x:note}].concat((d.terms||[]).filter(function(t){return t.t!=='Renewal'}));else d.extra=(note+'\n'+String(d.extra||'').replace(/^This agreement renews[^\n]*\n?/,'')).trim();return d}
+function taOpen(caseId,tnId,renew){var c=cases.filter(function(x){return x.id===caseId})[0];if(!c)return;taCase=caseId;taTn=tnId||null;var tn=tnId?tnList(c).filter(function(x){return x.id===tnId})[0]:null;if(tn&&tnCorp(tn)){var ag=tn.agreement&&tn.agreement.kind==='company'?tn.agreement:{};var dd=Object.assign(clDefaults(c,tn),ag);clLetRender(renew?taRenew(dd):dd);return}var d=Object.assign(taDefaults(c,tn),tn?((tn.agreement&&tn.agreement.kind!=='company'&&tn.agreement)||{}):(c.tenancyDoc||{}));taRender(renew?taRenew(d):d)}
 function taRender(d){
   var i=function(k,l,ph,type){return '<label class="f">'+l+'<input id="ta-'+k+'" type="'+(type||'text')+'" value="'+esc(d[k]==null?'':d[k])+'" placeholder="'+esc(ph||'')+'"></label>'};
   var a=function(k,l,ph,rows){return '<label class="f wide">'+l+'<textarea id="ta-'+k+'" rows="'+(rows||2)+'" placeholder="'+esc(ph||'')+'">'+esc(d[k]||'')+'</textarea></label>'};
@@ -2792,9 +2793,17 @@ function dzPick(k,lg,cam){
   if(!openId){toast('Add the property address first. It saves itself, then try again.');return}
   if(!window.CD_files||!window.CD_files.can()){toast('Could not reach your file storage. Check you are online, then try again.');return}
   if(dzBusy){toast('Still uploading the last file. Try again in a moment.');return}
-  var inp=document.createElement('input');inp.type='file';inp.id='dzFile';inp.accept=cam?'image/*':'.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.xls,.xlsx,.txt,image/*,application/pdf';if(cam)inp.setAttribute('capture','environment');inp.style.display='none';
+  var inp=document.createElement('input');inp.type='file';inp.id='dzFile';inp.accept=cam?'image/*':'.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.xls,.xlsx,.txt,image/*,application/pdf';if(cam)inp.setAttribute('capture','environment');if(!cam)inp.multiple=true;inp.style.display='none';
   var old=$('#dzFile');if(old)old.remove();document.body.appendChild(inp);
-  inp.addEventListener('change',function(){var file=inp.files&&inp.files[0];inp.remove();if(!file)return;if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,file,cam);else dzSend(k,file,lg?'keep':'',cam)});
+  inp.addEventListener('change',function(){
+    var files=[].slice.call(inp.files||[]);inp.remove();if(!files.length)return;
+    var imgs=files.filter(scIsImg),after=function(f,c){if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,f,c);else dzSend(k,f,lg?'keep':'',c)};
+    if(imgs.length){
+      if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF or Word file on its own.');
+      scOpen({files:imgs,source:cam?'camera':'file',done:function(f){after(f,true)},fallback:function(f){after(f,false)}});
+    }else if(files.length>1)toast('Choose one PDF or Word file at a time.');
+    else after(files[0],false);
+  });
   inp.click();
 }
 function dzSend(k,file,mode,cam){
@@ -2804,11 +2813,11 @@ function dzSend(k,file,mode,cam){
   var el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document';
   var oext=(/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase(),dt=(($('#f-'+k)||{}).value)||iso(TODAY);
   var folder=(c.folder&&c.folder.name)||pfName(c);
-  dzBusy=true;pfTried[id]=1;toast('Uploading '+(cam?'the photo':file.name)+'…',true);
+  dzBusy=true;pfTried[id]=1;toast('Uploading '+(cam?'the PDF':file.name)+'…',true);
   /* phone photos are large: rcPrep shrinks images to a clear JPEG (PDFs and other files are sent as they are) */
   rcPrep(file).then(function(pp){
     var blob=pp.blob,ext=pp.ext||oext,d=new Date(),z=function(n){return String(n).padStart(2,'0')};
-    var base=cam?'Photo '+iso(TODAY)+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()):(pfClean(file.name.slice(0,file.name.length-oext.length),100)||'Document');
+    var base=cam?'Scan '+iso(TODAY)+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()):(pfClean(file.name.slice(0,file.name.length-oext.length),100)||'Document');
     var fname=k==='other'?base+ext:label.charAt(0).toUpperCase()+label.slice(1)+' '+dt+ext;
     if(mode==='keep'&&k!=='other'&&dzFiles(c,k).some(function(f){return String(f.name).toLowerCase()===fname.toLowerCase()}))fname=fname.slice(0,fname.length-ext.length)+' (added '+iso(TODAY)+')'+ext;
     if(blob.size>window.CD_files.max)throw {big:true};
@@ -3115,13 +3124,229 @@ function exCommit(){
   rcFor=null;rcPend=null;
   return true;
 }
+/* ---------- scanning: every photo upload becomes ONE PDF, one page per photo, cropped to the document ---------- */
+var scPages=[],scOpts=null,scWork=false,scSeq=0;
+function scIsImg(f){return /^image\//.test(f.type||'')||/\.(jpe?g|png|webp|heic|heif)$/i.test(f.name||'')}
+function scCanvas(w,h){var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c}
+/* decode a photo (turned the right way up) onto a canvas of at most 2400 px */
+function scLoad(file){
+  return new Promise(function(res,rej){
+    var fin=function(src,w,h){
+      var k=Math.min(1,2400/Math.max(w,h)),cv=scCanvas(w*k,h*k),cx=cv.getContext('2d');
+      cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(src,0,0,cv.width,cv.height);res(cv)};
+    var viaImg=function(){var im=new Image(),u=URL.createObjectURL(file);im.onload=function(){URL.revokeObjectURL(u);fin(im,im.naturalWidth,im.naturalHeight)};im.onerror=function(){URL.revokeObjectURL(u);rej(new Error('decode'))};im.src=u};
+    if(window.createImageBitmap){createImageBitmap(file,{imageOrientation:'from-image'}).then(function(bm){fin(bm,bm.width,bm.height);if(bm.close)bm.close()},viaImg)}else viaImg();
+  });
+}
+function scBlur(L,w,h){var o=new Float32Array(L.length),x,y,xx,yy,s,c;for(y=0;y<h;y++)for(x=0;x<w;x++){s=0;c=0;for(yy=Math.max(0,y-1);yy<=Math.min(h-1,y+1);yy++)for(xx=Math.max(0,x-1);xx<=Math.min(w-1,x+1);xx++){s+=L[yy*w+xx];c++}o[y*w+x]=s/c}return o}
+/* grow (max) or shrink (min) a 0/1 mask by r pixels, one direction at a time */
+function scMorph(m,w,h,r,max){
+  var a=new Uint8Array(m.length),b=new Uint8Array(m.length),x,y,k,v;
+  for(y=0;y<h;y++)for(x=0;x<w;x++){v=max?0:1;for(k=Math.max(0,x-r);k<=Math.min(w-1,x+r);k++){if(max){if(m[y*w+k]){v=1;break}}else if(!m[y*w+k]){v=0;break}}a[y*w+x]=v}
+  for(y=0;y<h;y++)for(x=0;x<w;x++){v=max?0:1;for(k=Math.max(0,y-r);k<=Math.min(h-1,y+r);k++){if(max){if(a[k*w+x]){v=1;break}}else if(!a[k*w+x]){v=0;break}}b[y*w+x]=v}
+  return b;
+}
+function scHull(pts){
+  pts.sort(function(a,b){return a[0]-b[0]||a[1]-b[1]});
+  var cross=function(o,a,b){return (a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0])},lo=[],up=[],i;
+  for(i=0;i<pts.length;i++){while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],pts[i])<=0)lo.pop();lo.push(pts[i])}
+  for(i=pts.length-1;i>=0;i--){while(up.length>=2&&cross(up[up.length-2],up[up.length-1],pts[i])<=0)up.pop();up.push(pts[i])}
+  up.pop();lo.pop();return lo.concat(up);
+}
+function scArea(p){var s=0,i,j;for(i=0;i<p.length;i++){j=(i+1)%p.length;s+=p[i][0]*p[j][1]-p[j][0]*p[i][1]}return Math.abs(s)/2}
+/* reduce a convex outline to its 4 corners by dropping the vertex that matters least, again and again */
+function scFour(h){
+  var p=h.slice();
+  while(p.length>4){var mi=0,ma=1e18,i,a,b,c,ar;for(i=0;i<p.length;i++){a=p[(i+p.length-1)%p.length];b=p[i];c=p[(i+1)%p.length];ar=Math.abs((a[0]-c[0])*(b[1]-a[1])-(a[0]-b[0])*(c[1]-a[1]))/2;if(ar<ma){ma=ar;mi=i}}p.splice(mi,1)}
+  return p;
+}
+/* find the document in a photo: returns its 4 corners (top-left, top-right, bottom-right, bottom-left) in photo pixels, or null when no clear document is found */
+function scDetect(src){
+  try{
+    var k=Math.min(1,320/Math.max(src.width,src.height)),w=Math.max(8,Math.round(src.width*k)),h=Math.max(8,Math.round(src.height*k)),sm=scCanvas(w,h),sx=sm.getContext('2d');
+    sx.drawImage(src,0,0,w,h);
+    var d=sx.getImageData(0,0,w,h).data,n=w*h,L=new Float32Array(n),i;
+    for(i=0;i<n;i++)L[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];
+    L=scBlur(scBlur(L,w,h),w,h);
+    /* paper is brighter than what is behind it: split the brightness at the best threshold (Otsu) */
+    var hist=new Array(256).fill(0),sum=0,wB=0,sB=0,best=-1,thr=128,wF,mB,mF,v,gap=0;
+    for(i=0;i<n;i++)hist[Math.min(255,L[i]|0)]++;
+    for(i=0;i<256;i++)sum+=i*hist[i];
+    for(i=0;i<256;i++){wB+=hist[i];if(!wB)continue;wF=n-wB;if(!wF)break;sB+=i*hist[i];mB=sB/wB;mF=(sum-sB)/wF;v=wB*wF*(mB-mF)*(mB-mF);if(v>best){best=v;thr=i;gap=mF-mB}}
+    if(gap<22)return null;
+    var m=new Uint8Array(n);for(i=0;i<n;i++)m[i]=L[i]>thr?1:0;
+    m=scMorph(scMorph(m,w,h,3,true),w,h,3,false);          /* close the gaps left by printed text */
+    var lab=new Int32Array(n),q=new Int32Array(n),cur=0,bestLab=0,bestN=0,head,tail,p,x,y,cnt;
+    for(i=0;i<n;i++){
+      if(!m[i]||lab[i])continue;cur++;head=0;tail=0;q[tail++]=i;lab[i]=cur;cnt=0;
+      while(head<tail){p=q[head++];cnt++;x=p%w;y=(p-x)/w;
+        if(x>0&&m[p-1]&&!lab[p-1]){lab[p-1]=cur;q[tail++]=p-1}
+        if(x<w-1&&m[p+1]&&!lab[p+1]){lab[p+1]=cur;q[tail++]=p+1}
+        if(y>0&&m[p-w]&&!lab[p-w]){lab[p-w]=cur;q[tail++]=p-w}
+        if(y<h-1&&m[p+w]&&!lab[p+w]){lab[p+w]=cur;q[tail++]=p+w}}
+      if(cnt>bestN){bestN=cnt;bestLab=cur}
+    }
+    var frac=bestN/n;if(frac<0.12||frac>0.97)return null;
+    var edge=[];
+    for(i=0;i<n;i++){if(lab[i]!==bestLab)continue;x=i%w;y=(i-x)/w;
+      if(x===0||y===0||x===w-1||y===h-1||lab[i-1]!==bestLab||lab[i+1]!==bestLab||lab[i-w]!==bestLab||lab[i+w]!==bestLab)edge.push([x,y])}
+    var hull=scHull(edge);if(hull.length<4)return null;
+    var quad=scFour(hull),ha=scArea(hull),qa=scArea(quad);
+    if(qa<0.82*ha)return null;                              /* not a straight-sided sheet (crumpled or curved): do not guess */
+    /* corners in the order top-left, top-right, bottom-right, bottom-left */
+    var ti=0,bs=1e18;for(i=0;i<4;i++){if(quad[i][0]+quad[i][1]<bs){bs=quad[i][0]+quad[i][1];ti=i}}
+    quad=[quad[ti],quad[(ti+1)%4],quad[(ti+2)%4],quad[(ti+3)%4]];
+    if((quad[1][0]-quad[0][0])*(quad[3][1]-quad[0][1])-(quad[1][1]-quad[0][1])*(quad[3][0]-quad[0][0])<0)quad=[quad[0],quad[3],quad[2],quad[1]];
+    var dist=function(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])},e=[dist(quad[0],quad[1]),dist(quad[1],quad[2]),dist(quad[2],quad[3]),dist(quad[3],quad[0])];
+    if(Math.min.apply(null,e)<0.15*Math.max.apply(null,e))return null;
+    if(scArea(quad)>0.95*n)return null;                    /* the whole frame is not a document cut out of a background */
+    var cx=0,cy=0;quad.forEach(function(pt){cx+=pt[0];cy+=pt[1]});cx/=4;cy/=4;
+    return quad.map(function(pt){return [(cx+(pt[0]-cx)*0.996)/k,(cy+(pt[1]-cy)*0.996)/k]});
+  }catch(e){return null}
+}
+/* solve the 8 numbers that map a rectangle onto the 4 corners (a perspective transform) */
+function scSolve(A,b){
+  var n=b.length,i,j,k,t,f;
+  for(i=0;i<n;i++){A[i].push(b[i])}
+  for(i=0;i<n;i++){
+    k=i;for(j=i+1;j<n;j++)if(Math.abs(A[j][i])>Math.abs(A[k][i]))k=j;
+    t=A[i];A[i]=A[k];A[k]=t;if(Math.abs(A[i][i])<1e-12)return null;
+    for(j=i+1;j<n;j++){f=A[j][i]/A[i][i];for(k=i;k<=n;k++)A[j][k]-=f*A[i][k]}
+  }
+  var x=new Array(n);
+  for(i=n-1;i>=0;i--){t=A[i][n];for(j=i+1;j<n;j++)t-=A[i][j]*x[j];x[i]=t/A[i][i]}
+  return x;
+}
+function scScale(src,maxSide){var k=Math.min(1,maxSide/Math.max(src.width,src.height)),c=scCanvas(src.width*k,src.height*k),x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(src,0,0,c.width,c.height);return c}
+/* cut the document out of the photo and straighten it */
+function scWarp(src,q,maxSide){
+  var dist=function(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])},W=(dist(q[0],q[1])+dist(q[3],q[2]))/2,H=(dist(q[0],q[3])+dist(q[1],q[2]))/2,k=Math.min(1,maxSide/Math.max(W,H));
+  W=Math.max(2,Math.round(W*k));H=Math.max(2,Math.round(H*k));
+  var D=[[0,0],[W,0],[W,H],[0,H]],A=[],b=[],i;
+  for(i=0;i<4;i++){var u=D[i][0],v=D[i][1],x=q[i][0],y=q[i][1];A.push([u,v,1,0,0,0,-u*x,-v*x]);b.push(x);A.push([0,0,0,u,v,1,-u*y,-v*y]);b.push(y)}
+  var s=scSolve(A,b);if(!s)return scScale(src,maxSide);
+  var sw=src.width,sh=src.height,sd=src.getContext('2d').getImageData(0,0,sw,sh).data,out=scCanvas(W,H),ox=out.getContext('2d'),od=ox.createImageData(W,H),o=od.data,xx,yy,den,fx,fy,x0,y0,dx,dy,p0,p1,p2,p3,c,t;
+  for(yy=0;yy<H;yy++)for(xx=0;xx<W;xx++){
+    den=s[6]*(xx+0.5)+s[7]*(yy+0.5)+1;fx=(s[0]*(xx+0.5)+s[1]*(yy+0.5)+s[2])/den-0.5;fy=(s[3]*(xx+0.5)+s[4]*(yy+0.5)+s[5])/den-0.5;
+    if(fx<0)fx=0;else if(fx>sw-1.001)fx=sw-1.001;if(fy<0)fy=0;else if(fy>sh-1.001)fy=sh-1.001;
+    x0=fx|0;y0=fy|0;dx=fx-x0;dy=fy-y0;p0=(y0*sw+x0)*4;p1=p0+4;p2=p0+sw*4;p3=p2+4;t=(yy*W+xx)*4;
+    for(c=0;c<3;c++)o[t+c]=(sd[p0+c]*(1-dx)+sd[p1+c]*dx)*(1-dy)+(sd[p2+c]*(1-dx)+sd[p3+c]*dx)*dy;
+    o[t+3]=255;
+  }
+  ox.putImageData(od,0,0);return out;
+}
+/* the finished page: cropped (or whole photo), then turned */
+function scMake(pg,maxSide){
+  var c=(pg.crop&&pg.quad)?scWarp(pg.src,pg.quad,maxSide):scScale(pg.src,maxSide),r,d,x;
+  for(r=0;r<pg.rot;r++){d=scCanvas(c.height,c.width);x=d.getContext('2d');x.translate(d.width,0);x.rotate(Math.PI/2);x.drawImage(c,0,0);c=d}
+  return c;
+}
+/* a PDF with one JPEG page per picture; each page has the shape of its picture */
+function scPdf(pages){
+  var enc=new TextEncoder(),chunks=[],off=0,xref=[],n=pages.length,i;
+  var put=function(x){var b=typeof x==='string'?enc.encode(x):x;chunks.push(b);off+=b.length};
+  var obj=function(id,fn){xref[id]=off;put(id+' 0 obj\n');fn();put('\nendobj\n')};
+  put(new Uint8Array([37,80,68,70,45,49,46,52,10,37,226,227,207,211,10]));
+  var kids=[];for(i=0;i<n;i++)kids.push((3+3*i)+' 0 R');
+  obj(1,function(){put('<< /Type /Catalog /Pages 2 0 R >>')});
+  obj(2,function(){put('<< /Type /Pages /Count '+n+' /Kids ['+kids.join(' ')+'] >>')});
+  pages.forEach(function(p,i){
+    var k=842/Math.max(p.w,p.h),W=(p.w*k).toFixed(2),H=(p.h*k).toFixed(2),cs='q '+W+' 0 0 '+H+' 0 0 cm /Im0 Do Q';
+    obj(3+3*i,function(){put('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /XObject << /Im0 '+(5+3*i)+' 0 R >> >> /Contents '+(4+3*i)+' 0 R >>')});
+    obj(4+3*i,function(){put('<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream')});
+    obj(5+3*i,function(){put('<< /Type /XObject /Subtype /Image /Width '+p.w+' /Height '+p.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+p.jpeg.length+' >>\nstream\n');put(p.jpeg);put('\nendstream')});
+  });
+  var xo=off,total=3+3*n;
+  put('xref\n0 '+total+'\n0000000000 65535 f \n');
+  for(i=1;i<total;i++)put(String(xref[i]).padStart(10,'0')+' 00000 n \n');
+  put('trailer\n<< /Size '+total+' /Root 1 0 R >>\nstartxref\n'+xo+'\n%%EOF');
+  return new Blob(chunks,{type:'application/pdf'});
+}
+
+/* the page sheet: shows each page, lets people crop, turn, reorder, remove or add pages, then saves one PDF */
+var scTok=0,scSaving=false;
+function scThumb(pg){return scMake(pg,220).toDataURL('image/jpeg',0.72)}
+function scReset(){scTok++;scPages=[];scOpts=null;scWork=false;scSaving=false;closeOv('scOv')}
+function scRowHtml(pg,i,n,dis){
+  var st=pg.quad?(pg.crop?'Cropped to the document':'Whole photo'):'Whole photo (no document found)';
+  return '<li data-scp="'+pg.id+'"><img src="'+pg.thumb+'" alt="Page '+(i+1)+'"><div class="scrow"><b>Page '+(i+1)+'</b><span class="muted">'+st+'</span><div class="scbtns">'+
+   (pg.quad?'<button type="button" class="btn ghost sm"'+dis+' data-scact="crop">'+(pg.crop?'Use whole photo':'Crop to document')+'</button>':'')+
+   '<button type="button" class="btn ghost sm"'+dis+' data-scact="rot">Rotate</button>'+
+   (i>0?'<button type="button" class="btn ghost sm"'+dis+' data-scact="up">Earlier</button>':'')+
+   (i<n-1?'<button type="button" class="btn ghost sm"'+dis+' data-scact="down">Later</button>':'')+
+   '<button type="button" class="btn ghost sm"'+dis+' data-scact="rm">Remove</button></div></div></li>';
+}
+function scDraw(msg){
+  var n=scPages.length,touch=dzTouch(),dis=scWork?' disabled':'';
+  overlay('scOv','<div class="dhd"><h2>Save as one PDF</h2></div>'+
+   '<p class="muted" style="margin:4px 0 10px">Each photo becomes a page. The app finds the document in each photo and crops it. Add more pages for a longer document, then save.</p>'+
+   (msg?'<p class="rcmsg" role="status"><span class="rcspin" aria-hidden="true"></span>'+esc(msg)+'</p>':'')+
+   (n?'<ul class="sclist">'+scPages.map(function(p,i){return scRowHtml(p,i,n,dis)}).join('')+'</ul>':'')+
+   '<div class="add" style="margin:8px 0">'+(touch?'<button type="button" class="btn ghost"'+dis+' data-scadd="camera">Take another photo</button><button type="button" class="btn ghost"'+dis+' data-scadd="file">Add from files</button>':'<button type="button" class="btn ghost"'+dis+' data-scadd="file">Add more photos</button>')+'</div>'+
+   '<div class="add" style="justify-content:flex-end;margin:6px 0 0"><button type="button" class="btn ghost" data-sccancel="1"'+(scSaving?' disabled':'')+'>Cancel</button><button type="button" class="btn" data-scsave="1"'+(n&&!scWork?'':' disabled')+'>Save as PDF'+(n?' · '+n+' page'+(n===1?'':'s'):'')+'</button></div>');
+}
+function scOpen(o){scTok++;scOpts=o;scPages=[];scSaving=false;scAdd(o.files,true)}
+function scAdd(files,first){
+  var tok=scTok,list=files.slice(0,Math.max(0,20-scPages.length)),bad=0,last=null,only=!!first&&list.length===1;
+  if(files.length>list.length)toast('A PDF can have up to 20 pages.');
+  scWork=true;scDraw('Reading the photo'+(list.length>1?'s':'')+'…');
+  (function next(){
+    if(tok!==scTok)return;
+    var f=list.shift();
+    if(!f){
+      scWork=false;
+      if(!scPages.length){var o=scOpts;scReset();if(o&&only&&last&&o.fallback){toast('This photo could not be turned into a PDF, so it is saved as a picture.');o.fallback(last)}else toast('Could not read the photo. Try again.');return}
+      if(bad)toast(bad+' photo'+(bad===1?'':'s')+' could not be read and '+(bad===1?'was':'were')+' left out.');
+      scDraw();return;
+    }
+    last=f;
+    scLoad(f).then(function(cv){if(tok!==scTok)return;var pg={id:++scSeq,src:cv,quad:scDetect(cv),rot:0};pg.crop=!!pg.quad;pg.thumb=scThumb(pg);scPages.push(pg);setTimeout(next,0)},function(){bad++;setTimeout(next,0)});
+  })();
+}
+function scMore(mode){
+  var inp=document.createElement('input');inp.type='file';inp.id='scFile';inp.accept='image/*';inp.style.display='none';
+  if(mode==='camera')inp.setAttribute('capture','environment');else inp.multiple=true;
+  var old=$('#scFile');if(old)old.remove();document.body.appendChild(inp);
+  inp.addEventListener('change',function(){var fs=[].slice.call(inp.files||[]).filter(scIsImg);inp.remove();if(fs.length)scAdd(fs,false)});
+  inp.click();
+}
+function scSave(){
+  if(scWork||scSaving||!scPages.length||!scOpts)return;
+  scWork=true;scSaving=true;scDraw('Making the PDF…');
+  var o=scOpts,pages=scPages.slice(),parts=[],chain=Promise.resolve();
+  setTimeout(function(){
+    pages.forEach(function(pg){chain=chain.then(function(){
+      var c=scMake(pg,2400);
+      return new Promise(function(res,rej){c.toBlob(function(b){if(!b){rej(new Error('jpeg'));return}b.arrayBuffer().then(function(ab){parts.push({w:c.width,h:c.height,jpeg:new Uint8Array(ab)});c.width=c.height=1;res()},rej)},'image/jpeg',0.82)});
+    })});
+    chain.then(function(){var f=new File([scPdf(parts)],'Scan.pdf',{type:'application/pdf'}),th=pages[0].thumb;scReset();o.done(f,th)})
+      .catch(function(){scWork=false;scSaving=false;scDraw();toast('Could not make the PDF. Try again.')});
+  },60);
+}
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('[data-scact],[data-scadd],[data-scsave],[data-sccancel]'):null;if(!b||!b.closest('#scOv'))return;
+  e.preventDefault();
+  if(b.hasAttribute('data-sccancel')){if(!scSaving)scReset();return}
+  if(b.hasAttribute('data-scsave')){scSave();return}
+  if(scWork)return;
+  if(b.hasAttribute('data-scadd')){scMore(b.getAttribute('data-scadd'));return}
+  var li=b.closest('li'),id=li&&+li.getAttribute('data-scp'),i=-1;scPages.forEach(function(p,x){if(p.id===id)i=x});if(i<0)return;
+  var a=b.getAttribute('data-scact'),pg=scPages[i],t;
+  if(a==='crop'){pg.crop=!pg.crop;pg.thumb=scThumb(pg)}
+  else if(a==='rot'){pg.rot=(pg.rot+1)%4;pg.thumb=scThumb(pg)}
+  else if(a==='up'&&i>0){t=scPages[i-1];scPages[i-1]=pg;scPages[i]=t}
+  else if(a==='down'&&i<scPages.length-1){t=scPages[i+1];scPages[i+1]=pg;scPages[i]=t}
+  else if(a==='rm'){scPages.splice(i,1)}
+  scDraw();
+});
+
 /* ---------- receipts: photograph or upload a receipt, saved in the property's Receipts folder ---------- */
 var rcPend=null,rcFor=null,rcBusy=false,rcMsg='',rcThumb='',rcListOpen=false;
 function rcUrl(u){u=String(u||'');return /^(https:\/\/|blob:)/.test(u)?u:''}
 function rcCase(){return exSubj(exCase)}
 function rcBox(c){
   var touch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches),w=window.CD_files?window.CD_files.where():'file storage';
-  return '<div class="rcbox"><div class="rchd"><b>Receipt</b><span class="muted">Photograph it or upload a file. It is saved in a folder called Receipts, inside this property\'s folder in your '+esc(w)+'.</span></div>'+
+  return '<div class="rcbox"><div class="rchd"><b>Receipt</b><span class="muted">Photograph it or choose photos. They are saved as one PDF in a folder called Receipts, inside this property\'s folder in your '+esc(w)+'.</span></div>'+
    '<div class="add" style="margin:8px 0 0">'+(touch?'<button type="button" class="btn" data-rcpick="camera">Take photo of receipt</button>':'')+'<button type="button" class="btn'+(touch?' ghost':'')+'" data-rcpick="file">Upload receipt</button><button type="button" class="btn ghost" data-rcopen="1" aria-expanded="'+(rcListOpen?'true':'false')+'">Open receipt</button></div>'+
    '<div id="rcState" role="status" aria-live="polite">'+rcStateHtml()+'</div><div id="rcList">'+rcListHtml(c)+'</div></div>';
 }
@@ -3162,12 +3387,20 @@ function rcPick(mode){
   if(!window.CD_files||!window.CD_files.can()){rcMsg='Could not reach your file storage. Check you are online, then try again.';rcDraw();return}
   if(rcBusy){toast('Still saving the last receipt. Try again in a moment.');return}
   var inp=document.createElement('input');inp.type='file';inp.id='rcFile';inp.style.display='none';
-  if(mode==='camera'){inp.accept='image/*';inp.setAttribute('capture','environment')}else inp.accept='image/*,application/pdf';
+  if(mode==='camera'){inp.accept='image/*';inp.setAttribute('capture','environment')}else{inp.accept='image/*,application/pdf';inp.multiple=true}
   var old=$('#rcFile');if(old)old.remove();document.body.appendChild(inp);
-  var subj=exCase;inp.addEventListener('change',function(){var f=inp.files&&inp.files[0];inp.remove();if(f)rcSend(subj,f)});
+  var subj=exCase;inp.addEventListener('change',function(){
+    var files=[].slice.call(inp.files||[]);inp.remove();if(!files.length)return;
+    var imgs=files.filter(scIsImg);
+    if(imgs.length){
+      if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF on its own.');
+      scOpen({files:imgs,source:mode==='camera'?'camera':'file',done:function(f,th){rcSend(subj,f,th)},fallback:function(f){rcSend(subj,f)}});
+    }else if(files.length>1)toast('Choose one PDF at a time.');
+    else rcSend(subj,files[0]);
+  });
   inp.click();
 }
-function rcSend(caseId,file){
+function rcSend(caseId,file,thumb){
   var c=exSubj(caseId);if(!c)return;
   if(!file.size){rcMsg='That file is empty.';rcDraw();return}
   rcBusy=true;rcMsg='Preparing the photo…';rcDraw();
@@ -3180,7 +3413,7 @@ function rcSend(caseId,file){
   }).then(function(o){
     rcBusy=false;
     if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}
-    if(/^image\//.test(o.blob.type||'')){try{rcThumb=URL.createObjectURL(o.blob)}catch(x){}}
+    if(thumb)rcThumb=thumb;else if(/^image\//.test(o.blob.type||'')){try{rcThumb=URL.createObjectURL(o.blob)}catch(x){}}
     var rec={id:'r'+uid(),name:o.res.name,url:o.res.url,fid:o.res.id,size:o.blob.size,at:Date.now()};
     rcPend=rec;rcMsg='';rcListOpen=false;
     var cur=exSubj(caseId)||c,up={receipts:(cur.receipts||[]).concat([rec])};
@@ -3331,7 +3564,7 @@ function gnHas(r){return gnData(r[0],r[1]).some(function(p){return p.rent.length
 function gnOpen(){
   var pre=gnHas(gnRange('lasttax'))||!gnHas(gnRange('thistax'))?'lasttax':'thistax',r=gnRange(pre),props=cases.filter(function(c){return c.stage!=='lost'}).sort(function(a,b){return names(a).localeCompare(names(b))});
   overlay('gnOv','<div class="dhd"><h2>Reports and agreements</h2><button type="button" class="btn ghost" data-gnclose="1">Close</button></div>'+
-   '<div class="gntabs" role="tablist" aria-label="Reports and agreements"><button type="button" role="tab" id="gnt-rep" aria-controls="gnp-rep" aria-selected="true" data-gntab="rep">Rent and expense reports</button><button type="button" role="tab" id="gnt-ag" aria-controls="gnp-ag" aria-selected="false" tabindex="-1" data-gntab="ag">Tenancy agreement</button></div>'+
+   '<div class="gntabs" role="tablist" aria-label="Reports and agreements"><button type="button" role="tab" id="gnt-rep" aria-controls="gnp-rep" aria-selected="true" data-gntab="rep"><b>Rent and expense reports</b><small>For you and your accountant</small></button><button type="button" role="tab" id="gnt-ag" aria-controls="gnp-ag" aria-selected="false" tabindex="-1" data-gntab="ag"><b>Tenancy agreement</b><small>Create or renew an agreement</small></button></div>'+
    '<div id="gnp-rep" role="tabpanel" aria-labelledby="gnt-rep">'+
    '<p class="muted" style="margin:4px 0 10px">A report of rent received, expenses and mortgage payments for your accountant. Choose the dates and properties, then download it as a PDF or a spreadsheet (CSV), or email it.</p>'+
    '<div id="gnAcc" class="gnacc"></div>'+
@@ -3365,7 +3598,7 @@ function gnModeSync(){var m=($('#gn-mode')||{}).value||'all',pk=$('#gnPick');if(
 function gnAgHtml(props){
   return '<fieldset style="margin:6px 0 0"><legend>Tenancy and lease agreements</legend>'+
    '<p class="muted" style="margin:0 0 8px;font-size:12.5px">Choose the kind of agreement and the property. A tenancy agreement is for a tenant who is a person. A lease agreement is for a tenant that is a company, for a fixed term of up to 3 years.</p>'+
-   (props.length?'<div class="grid"><label class="f">Agreement<select id="gn-agkind"><option value="tenancy">Tenancy agreement</option><option value="lease">Lease agreement (company tenant)</option></select></label>'+
+   (props.length?'<div class="grid"><label class="f">Agreement<select id="gn-agkind"><option value="tenancy">Tenancy agreement</option><option value="lease">Lease agreement (company tenant)</option><option value="renew">Renew a tenancy or lease</option></select></label>'+
    '<label class="f">Property<select id="gn-agprop">'+props.map(function(c){return '<option value="'+esc(c.id)+'">'+esc(names(c))+'</option>'}).join('')+'</select></label>'+
    '<label class="f wide">Tenant<select id="gn-agtn"></select></label></div>'+
    '<p class="muted" id="gnAgMsg" style="margin:0 0 8px;font-size:12.5px"></p>'+
@@ -3373,16 +3606,16 @@ function gnAgHtml(props){
 }
 function gnAgSync(){
   var k=$('#gn-agkind'),p=$('#gn-agprop'),s=$('#gn-agtn'),m=$('#gnAgMsg'),go=$('#gnAgGo');if(!k||!p||!s)return;
-  var lease=k.value==='lease',c=cases.filter(function(x){return x.id===p.value})[0],keep=s.value;
-  var tns=tnList(c).filter(function(t){return tnCorp(t)===lease}).sort(function(a,b){return ((a.status||'current')==='current'?0:1)-((b.status||'current')==='current'?0:1)});
-  var opts=tns.map(function(t){var has=t.agreement&&((t.agreement.kind==='company')===lease);return '<option value="'+esc(t.id)+'">'+esc((tnNames(t)||'Tenant with no name yet')+((t.status||'current')==='current'?'':' (previous tenant)')+(has?' · agreement saved':''))+'</option>'});
-  if(!lease)opts.push('<option value="">No tenant yet: start a blank agreement for this property</option>');
+  var renew=k.value==='renew',lease=k.value==='lease',c=cases.filter(function(x){return x.id===p.value})[0],keep=s.value;
+  var tns=tnList(c).filter(function(t){return renew||tnCorp(t)===lease}).sort(function(a,b){return ((a.status||'current')==='current'?0:1)-((b.status||'current')==='current'?0:1)});
+  var opts=tns.map(function(t){var tl=renew?tnCorp(t):lease,has=t.agreement&&((t.agreement.kind==='company')===tl);return '<option value="'+esc(t.id)+'">'+esc((tnNames(t)||'Tenant with no name yet')+((t.status||'current')==='current'?'':' (previous tenant)')+(renew?(tl?' · lease':' · tenancy'):'')+(has?' · agreement saved':''))+'</option>'});
+  if(!lease&&!renew)opts.push('<option value="">No tenant yet: start a blank agreement for this property</option>');
   s.innerHTML=opts.join('');if(keep&&tns.some(function(t){return t.id===keep}))s.value=keep;
-  var none=lease&&!tns.length;s.disabled=none;if(go)go.disabled=none;
-  if(none)s.innerHTML='<option value="">No company tenant on this property</option>';
-  if(m)m.textContent=none?'This property has no company tenant. Open the property, add the tenant and set Type of tenant to Corporate tenant, then come back here.':'';
-  var t0=tns.filter(function(t){return t.id===s.value})[0],saved=t0?(t0.agreement&&((t0.agreement.kind==='company')===lease)):(!lease&&c&&c.tenancyDoc);
-  if(go)go.textContent=(saved?'Open ':'Create ')+(lease?'lease agreement':'tenancy agreement');
+  var none=(lease||renew)&&!tns.length;s.disabled=none;if(go)go.disabled=none;
+  if(none)s.innerHTML='<option value="">'+(renew?'No tenant on this property yet':'No company tenant on this property')+'</option>';
+  if(m)m.textContent=none?(renew?'This property has no tenant to renew. Open the property and add the tenant first.':'This property has no company tenant. Open the property, add the tenant and set Type of tenant to Corporate tenant, then come back here.'):(renew?'Renewing opens the agreement with the same terms and a new start date, with a line saying it renews the earlier one. Check the dates and rent, then save. Saving replaces the saved agreement for this tenant, so download the old one first if you want to keep it.':'');
+  var t0=tns.filter(function(t){return t.id===s.value})[0],saved=!renew&&(t0?(t0.agreement&&((t0.agreement.kind==='company')===lease)):(!lease&&c&&c.tenancyDoc));
+  if(go)go.textContent=renew?'Create renewal':(saved?'Open ':'Create ')+(lease?'lease agreement':'tenancy agreement');
 }
 function gnPreview(){var g=gnRead(),p=$('#gnPrev');if(!p)return;if(!g.from||!g.to||g.from>g.to){p.innerHTML='<p class="muted" style="padding:10px">Choose a start date before the end date.</p>';return}
   var out=[];g.rows.forEach(function(r){(r.c.expenses||[]).forEach(function(e){if(e.date&&(e.date<g.from||e.date>g.to))out.push(e.date)})});out.sort();
@@ -3425,7 +3658,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('input',function(e){var t=e.target;if(t&&t.closest&&t.closest('#gnOv')&&(t.id==='gn-from'||t.id==='gn-to'))gnPreview()});
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.closest&&t.closest('#gnOv')){if(/^gn-ag/.test(t.id||'')){gnAgSync();return}gnModeSync();gnPreview()}});
-document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('#gnAgGo'):null;if(!t)return;e.preventDefault();var p=$('#gn-agprop'),s=$('#gn-agtn');if(p&&p.value)taOpen(p.value,(s&&s.value)||null)});
+document.addEventListener('click',function(e){var t=e.target&&e.target.closest?e.target.closest('#gnAgGo'):null;if(!t)return;e.preventDefault();var p=$('#gn-agprop'),s=$('#gn-agtn');if(p&&p.value)taOpen(p.value,(s&&s.value)||null,($('#gn-agkind')||{}).value==='renew')});
 
 /* rent not paid by its due date: add a task to contact the tenant; tick it off when the rent is marked paid */
 var rtBusy=false;
