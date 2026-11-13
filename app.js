@@ -208,14 +208,15 @@ function caseEvents(c){
   var ev=[],st=c.stage,n=names(c);
   function add(date,label,kind){if(date)ev.push({date:date,label:label,kind:kind,id:c.id,who:n})}
   reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:n,key:r.key,rep:r.rep,exp:r.exp})});
-  (c.tasks||[]).forEach(function(t){if(!t.done&&t.due)ev.push({date:t.due,label:t.text,kind:'task',id:c.id,who:n})});
+  (c.tasks||[]).forEach(function(t){if(!t.done&&t.due)ev.push({date:t.due,label:t.text,kind:'task',id:c.id,who:n,key:'task:'+(t.id||'')})});
   return ev;
 }
 function allEvents(){
   var out=[];cases.forEach(function(c){if(c.stage!=='lost')out=out.concat(caseEvents(c))});if(T.tenancyMode)out=out.concat(homeEvents());
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
 }
-function reviewEvents(){return allEvents().filter(function(e){return e.kind==='review'})}
+function apEvents(){var t=iso(TODAY);return appts.filter(function(a){return a.date&&a.status!=='cancelled'&&a.status!=='done'&&a.status!=='noshow'&&a.date>=addDays(t,-30)}).map(function(a){return {date:a.date,label:(a.time?a.time+' · ':'')+(a.title||a.type||a.what||'Appointment'),kind:'appt',id:a.id,who:apWho(a),key:'ap:'+a.id}})}
+function reviewEvents(){var out=allEvents().filter(function(e){return e.kind==='review'||(T.tenancyMode&&e.kind==='task')});if(T.tenancyMode)out=out.concat(apEvents());out.forEach(function(e){if(e.kind==='task'&&!e.key)e.key='task:'+e.label});return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0})}
 /* key dates for the Outlook calendar: sync.js turns these into 9am events with a phone alert */
 window.CD_keyDates=function(){
   if(!loaded||!db)return null;var out=[];
@@ -253,10 +254,10 @@ function visible(){
 /* landlords: Notebook and Book appointment sit under More, in the top menu (phone) and the side menu (computer) */
 var navMore=false;
 function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
-  var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['tasks','Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
-  var tools={invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
-  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]));
+  var tools={logout:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
+  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
@@ -305,7 +306,7 @@ function render(){
   if(T.hideTabs&&T.hideTabs.indexOf(view)>-1)view=T.landing||'tasks';
   if(T.tenancyMode&&(view==='invoices'||view==='marketing'))view='cases';
   if(!T.tenancyMode&&view==='myhome')view=T.landing||'tasks';
-  if(view==='tasks'){if(!$('#trList')||!v.contains($('#trList'))){v.innerHTML='<div class="homesplit"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section><section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section><aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();renderTray();renderRem()}
+  if(view==='tasks'){if((!T.tenancyMode&&(!$('#trList')||!v.contains($('#trList'))))||(T.tenancyMode&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(T.tenancyMode?' nocal':'')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(T.tenancyMode?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!T.tenancyMode)renderTray();renderRem()}
   else if(view==='notebook'){if(!$('#nbMain')||!v.contains($('#nbMain'))){v.innerHTML=nbShell();nbShown=null}renderNotebook()}
   else if(view==='calculator'){if(!$('#calcMain')||!v.contains($('#calcMain'))){v.innerHTML=calcShell();calcUpdate()}}
   else if(view==='marketing'){var mr=$('#mkRoot');if(!mr||!v.contains(mr)||mr.getAttribute('data-tab')!==mkTab)v.innerHTML=mkShell();mkList()}
@@ -394,14 +395,15 @@ function remindersHTML(){
   var ev=reviewEvents(),q=query.trim().toLowerCase();
   if(q)ev=ev.filter(function(e){return (e.who+' '+e.label).toLowerCase().indexOf(q)>-1});
   var g=[['Overdue','bad',function(n){return n<0}],['Next 7 days','',function(n){return n>=0&&n<=7}],['Next 30 days','',function(n){return n>7&&n<=30}],['Later this year and beyond','',function(n){return n>30}]];
-  var h='<div class="pagehead"><h1>Reminders</h1><span class="muted">Key dates from your '+NS()+'. Tasks are in the Tasks tab</span></div>';
+  var h='<div class="pagehead"><h1>Reminders</h1><span class="muted">'+(T.tenancyMode?'Key dates, to-dos and appointments from your calendar':'Key dates from your '+NS()+'. Tasks are in the Tasks tab')+'</span></div>';
   if(!ev.length)return h+'<div class="empty"><h2>Nothing due</h2>Key dates you enter on your '+NS()+' (for example '+esc(T.reminders.slice(0,2).map(function(r){return r.l.toLowerCase()}).join(' or '))+') appear here.</div>';
   g.forEach(function(x){
     var items=ev.filter(function(e){return x[2](diff(e.date))});
     if(!items.length)return;
     h+='<div class="group"><h3 class="'+x[1]+'">'+x[0]+' · '+items.length+'</h3>';
     items.forEach(function(e){
-      h+='<div class="evrow"><button class="ev" data-open="'+e.id+'"><div class="d">'+fd(e.date)+'<small>'+rel(e.date)+'</small></div><div><b>'+esc(e.label)+'</b><div class="who">'+esc(e.who)+'</div></div><span class="chip '+tone(e.date)+'">'+esc(T.reviewWord)+'</span></button><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'"'+(e.rep?' data-rep="1" title="Remind me again in 30 days. Update the date when it is renewed.">In 30 days':' title="Hide this reminder">Done')+'</button></div>';
+      var rowH='<div class="evrow"><button class="ev" '+(e.kind==='appt'?'data-apedit="'+esc(e.id)+'"':'data-open="'+e.id+'"')+'><div class="d">'+fd(e.date)+'<small>'+rel(e.date)+'</small></div><div><b>'+esc(e.label)+'</b><div class="who">'+esc(e.who)+'</div></div><span class="chip '+tone(e.date)+'">'+esc(e.kind==='appt'?'Appointment':e.kind==='task'?'To do':T.reviewWord)+'</span></button><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'"'+(e.rep?' data-rep="1" title="Remind me again in 30 days. Update the date when it is renewed.">In 30 days':' title="Hide this reminder">Done')+'</button></div>'
+      h+=e.kind==='appt'?rowH.replace(/<button type="button" class="btn ghost sm" data-remdone.*$/,'</div>'):rowH;
     });
     h+='</div>';
   });
@@ -1162,11 +1164,11 @@ function renderLive(){
   var c=currentCase();if(!c)return;
   var ts=(c.tasks||[]).slice().sort(function(a,b){return (a.done?1:0)-(b.done?1:0)||((b.pri&&!b.done?1:0)-(a.pri&&!a.done?1:0))||(tkKey(a)<tkKey(b)?-1:tkKey(a)>tkKey(b)?1:0)});
   var ns=(c.notes||[]).slice().sort(function(a,b){return b.ts-a.ts});
-  var tasksHtml='<fieldset><legend>Tasks</legend>'+
+  var tasksHtml=T.tenancyMode?'':'<fieldset><legend>Tasks</legend>'+
     (ts.length?ts.map(function(t){var tk0=c.id+'|'+t.id;if(editTk===tk0)return '<div class="task">'+tkEditor(tk0,t)+'</div>';return '<div class="task'+(t.done?' done':'')+(t.pri&&!t.done?' pri':'')+'"><input type="checkbox" data-tk="'+t.id+'"'+(t.done?' checked':'')+' aria-label="Done"><span class="t">'+esc(t.text)+'</span>'+(t.created?'<span class="muted" style="font-size:11px;white-space:nowrap">Added '+shortStamp(t.created)+'</span>':'')+(t.due?'<span class="chip '+(t.done?'':tone(t.due))+'">'+fd(t.due)+(t.time?' · '+esc(t.time):'')+'</span>':'')+'<button type="button" class="star'+(t.pri?' on':'')+'" data-tkpri="'+tk0+'" title="High priority" aria-label="Toggle high priority">'+(t.pri?'★':'☆')+'</button><button type="button" class="btn ghost sm" data-tkedit="'+tk0+'">Edit</button><button type="button" class="x" data-rmtk="'+t.id+'" aria-label="Delete task">×</button></div>'}).join(''):'<span class="muted">No tasks yet.</span>')+
     '<div class="add"><input type="text" id="tkText" placeholder="Add a task, e.g. '+esc(T.taskHint)+'" aria-label="New task"><input type="date" id="tkDue" aria-label="Due date"><input type="time" id="tkTime" aria-label="Time"><label class="prichk"><input type="checkbox" id="tkPri"> High priority</label><button type="button" class="btn ghost" id="tkAdd">Add task</button><button type="button" class="btn" id="tkBook">Book appointment</button></div></fieldset>';
   box.innerHTML=((T.extraLog||(c.protection||[]).length)?protFs(c):'')+(T.tenancyMode?'':docsFs(c));
-  var nb=$('#liveNotes');if(nb)nb.innerHTML='<div style="margin-bottom:14px">'+tasksHtml+'</div><fieldset><legend>Notes ('+ns.length+')</legend><div class="add" style="margin:0 0 8px"><button type="button" class="btn ghost sm" id="ntHide">'+(notesHidden?'Show notes':'Hide notes')+'</button></div>'+
+  var nb=$('#liveNotes');if(nb)nb.innerHTML=(tasksHtml?'<div style="margin-bottom:14px">'+tasksHtml+'</div>':'')+'<fieldset><legend>Notes ('+ns.length+')</legend><div class="add" style="margin:0 0 8px"><button type="button" class="btn ghost sm" id="ntHide">'+(notesHidden?'Show notes':'Hide notes')+'</button></div>'+
     (notesHidden?'<span class="muted">Notes hidden.</span>':'<label class="f">New note<textarea id="ntText" rows="3" placeholder="File note, call summary, next step. You can also paste a table from Excel">'+esc(ntDraft)+'</textarea></label><div class="muted" style="font-size:12px;margin:-4px 0 8px">'+esc(T.dontRecord)+'</div><div id="ntTblBox">'+pendHtml('nt')+'</div><div class="add"><button type="button" class="btn ghost" id="ntStamp">Insert date and time</button><button type="button" class="btn ghost" id="ntAdd">Add note</button></div>'+
     (notesAll?ns:ns.slice(0,1)).map(function(n){return noteItem(n,'notes',(notesAll||ns.length<2?'':' (latest)'),paras)}).join('')+(ns.length>1?'<button type="button" class="btn ghost sm" id="ntAll">'+(notesAll?'Show latest only':'Show all '+ns.length+' notes')+'</button>':''))+'</fieldset>';
   decorateSecs();
@@ -1268,7 +1270,7 @@ function exportCsv(){
 var trayOpen=false,trFilter='open',trQuery='',trOpen={};
 function allTasks(){var out=[];cases.forEach(function(c){if(c.stage==='lost')return;(c.tasks||[]).forEach(function(t){out.push({c:c,t:t})})});return out}
 function trBucket(x){var d=x.t.due;if(x.t.done)return 'done';if(!d)return 'none';var n=diff(d);return n<0?'over':n===0?'today':n<=7?'week':'later'}
-function updTrayBtn(){var b=$('#trayBtn');if(!b)return;var od=allTasks().filter(function(x){return trBucket(x)==='over'}).length;b.innerHTML='Tasks'+(od?'<span class="tbadge">'+od+' overdue</span>':'')}
+function updTrayBtn(){var b=$('#trayBtn');if(!b)return;if(T&&T.tenancyMode){b.style.display='none';return}b.style.display='';var od=allTasks().filter(function(x){return trBucket(x)==='over'}).length;b.innerHTML='Tasks'+(od?'<span class="tbadge">'+od+' overdue</span>':'')}
 var TR_LABEL={pri:'High priority',over:'Overdue',today:'Due today',week:'Next 7 days',later:'Later',none:'No due date',done:'Done'};
 function trItem(x){
   var c=x.c,t=x.t,b=trBucket(x),k=c.id+'|'+t.id;
@@ -1284,6 +1286,7 @@ function applySide(){document.body.classList.toggle('side-on',sideOn);if(sideVis
 if(mqSide.addEventListener)mqSide.addEventListener('change',function(){applySide()});
 window.addEventListener('resize',function(){if(sideVisible()&&view==='reminders'){view='tasks';render()}renderNav();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')});
 function sideItem(e,g){
+  if(e.kind==='appt')return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-apedit="'+esc(e.id)+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+' · in your calendar</div></div></div>';
   return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-open="'+e.id+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+'</div></div><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'"'+(e.rep?' data-rep="1" title="Remind me again in 30 days. Update the date when it is renewed.">In 30 days':' title="Hide this reminder">Done')+'</button></div>';
 }
 var sideLater=false;
@@ -1498,7 +1501,8 @@ document.addEventListener('click',function(e){
   var t=e.target;
   var rdn=t.closest('[data-remdone]');
   if(rdn&&rdn.getAttribute('data-remdone').indexOf('__home|')===0){e.stopPropagation();var hp=rdn.getAttribute('data-remdone').split('|'),nh=Object.assign({},HOME||{});nh.remDone=Object.assign({},nh.remDone||{});nh.remDone[hp[1]]=hp[2];homeWrite(nh);toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'));return}
-  if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'))}return}
+  if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc&&rp[1].indexOf('task:')===0){var tid=rp[1].slice(5);patch(rc.id,{tasks:(rc.tasks||[]).map(function(x){return x.id===tid?Object.assign({},x,{done:true,doneAt:Date.now()}):x})});toast('Reminder done');return}
+  if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'))}return}
   var tpb=t.closest('[data-trade]');if(tpb&&(tpb.disabled||(window.CD_tradeOpen&&!window.CD_tradeOpen(tpb.getAttribute('data-trade')))))return;if(tpb){saveTrade(tpb.getAttribute('data-trade'));var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+T.label);return}
   if(t.closest('[data-tpclose]')){var ov2=$('#tpOv');if(ov2)ov2.remove();return}
   var adv=t.closest('[data-adv]');
@@ -1512,6 +1516,7 @@ document.addEventListener('click',function(e){
   if(nv&&nv.dataset.v==='bookappt'){apOpen(null,iso(TODAY));return}
   if(nv&&nv.dataset.v==='gendocs'){gnOpen();return}
   if(nv&&nv.dataset.v==='more'){navMore=!navMore;renderNav();renderSide();return}
+  if(nv&&nv.dataset.v==='logout'){var lb=$('#logoutBtn');if(lb)lb.click();return}
   if(nv&&nv.dataset.v==='acctset'){var sb=$('#settingsBtn');if(sb)sb.click();return}
   if(nv){nbFlush();view=nv.dataset.v;render();return}
   if(t.closest('#newBtn')||t.closest('[data-act="new"]')){if(T.tenancyMode)qaOpen();else openDrawer(null);return}
@@ -2800,7 +2805,7 @@ function dzPick(k,lg,cam){
     var imgs=files.filter(scIsImg),after=function(f,c){if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,f,c);else dzSend(k,f,lg?'keep':'',c)};
     if(imgs.length){
       if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF or Word file on its own.');
-      scOpen({files:imgs,source:cam?'camera':'file',done:function(f){after(f,true)},fallback:function(f){after(f,false)}});
+      scOpen({files:imgs,source:cam?'camera':'file',ask:k==='other'?'Document name':'',hint:'For example: Boiler service 2026',done:function(f,th,named){after(f,!named)},fallback:function(f){after(f,false)}});
     }else if(files.length>1)toast('Choose one PDF or Word file at a time.');
     else after(files[0],false);
   });
@@ -3276,16 +3281,19 @@ function scRowHtml(pg,i,n,dis){
    (i<n-1?'<button type="button" class="btn ghost sm"'+dis+' data-scact="down">Later</button>':'')+
    '<button type="button" class="btn ghost sm"'+dis+' data-scact="rm">Remove</button></div></div></li>';
 }
+var scName='';
 function scDraw(msg){
   var n=scPages.length,touch=dzTouch(),dis=scWork?' disabled':'';
   overlay('scOv','<div class="dhd"><h2>Save as one PDF</h2></div>'+
    '<p class="muted" style="margin:4px 0 10px">Each photo becomes a page. The app finds the document in each photo and crops it. Add more pages for a longer document, then save.</p>'+
+   (scOpts&&scOpts.ask?'<label class="f" style="margin:0 0 10px">'+esc(scOpts.ask)+' <span class="muted">(optional, becomes the file name)</span><input id="scName" type="text" maxlength="80" autocomplete="off" placeholder="'+esc(scOpts.hint||'')+'" value="'+esc(scName)+'"'+(scSaving?' disabled':'')+'></label>':'')+
    (msg?'<p class="rcmsg" role="status"><span class="rcspin" aria-hidden="true"></span>'+esc(msg)+'</p>':'')+
    (n?'<ul class="sclist">'+scPages.map(function(p,i){return scRowHtml(p,i,n,dis)}).join('')+'</ul>':'')+
    '<div class="add" style="margin:8px 0">'+(touch?'<button type="button" class="btn ghost"'+dis+' data-scadd="camera">Take another photo</button><button type="button" class="btn ghost"'+dis+' data-scadd="file">Add from files</button>':'<button type="button" class="btn ghost"'+dis+' data-scadd="file">Add more photos</button>')+'</div>'+
    '<div class="add" style="justify-content:flex-end;margin:6px 0 0"><button type="button" class="btn ghost" data-sccancel="1"'+(scSaving?' disabled':'')+'>Cancel</button><button type="button" class="btn" data-scsave="1"'+(n&&!scWork?'':' disabled')+'>Save as PDF'+(n?' · '+n+' page'+(n===1?'':'s'):'')+'</button></div>');
 }
-function scOpen(o){scTok++;scOpts=o;scPages=[];scSaving=false;scAdd(o.files,true)}
+document.addEventListener('input',function(e){if(e.target&&e.target.id==='scName')scName=e.target.value});
+function scOpen(o){scTok++;scOpts=o;scName=o.name||'';scPages=[];scSaving=false;scAdd(o.files,true)}
 function scAdd(files,first){
   var tok=scTok,list=files.slice(0,Math.max(0,20-scPages.length)),bad=0,last=null,only=!!first&&list.length===1;
   if(files.length>list.length)toast('A PDF can have up to 20 pages.');
@@ -3319,7 +3327,7 @@ function scSave(){
       var c=scMake(pg,2400);
       return new Promise(function(res,rej){c.toBlob(function(b){if(!b){rej(new Error('jpeg'));return}b.arrayBuffer().then(function(ab){parts.push({w:c.width,h:c.height,jpeg:new Uint8Array(ab)});c.width=c.height=1;res()},rej)},'image/jpeg',0.82)});
     })});
-    chain.then(function(){var f=new File([scPdf(parts)],'Scan.pdf',{type:'application/pdf'}),th=pages[0].thumb;scReset();o.done(f,th)})
+    chain.then(function(){var nm=o.ask?pfClean(scName,80):'',f=new File([scPdf(parts)],(nm||'Scan')+'.pdf',{type:'application/pdf'}),th=pages[0].thumb;scReset();o.done(f,th,!!nm)})
       .catch(function(){scWork=false;scSaving=false;scDraw();toast('Could not make the PDF. Try again.')});
   },60);
 }
@@ -3394,20 +3402,20 @@ function rcPick(mode){
     var imgs=files.filter(scIsImg);
     if(imgs.length){
       if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF on its own.');
-      scOpen({files:imgs,source:mode==='camera'?'camera':'file',done:function(f,th){rcSend(subj,f,th)},fallback:function(f){rcSend(subj,f)}});
+      scOpen({files:imgs,source:mode==='camera'?'camera':'file',ask:'Receipt name',hint:'For example: Boiler repair',name:(($('#ex-desc')||{}).value||'').trim(),done:function(f,th,named){rcSend(subj,f,th,named)},fallback:function(f){rcSend(subj,f)}});
     }else if(files.length>1)toast('Choose one PDF at a time.');
     else rcSend(subj,files[0]);
   });
   inp.click();
 }
-function rcSend(caseId,file,thumb){
+function rcSend(caseId,file,thumb,named){
   var c=exSubj(caseId);if(!c)return;
   if(!file.size){rcMsg='That file is empty.';rcDraw();return}
   rcBusy=true;rcMsg='Preparing the photo…';rcDraw();
   rcPrep(file).then(function(p){
     var blob=p.blob,ext=p.ext||((/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase())||'.jpg';
     if(blob.size>window.CD_files.max)throw {big:true};
-    var d=new Date(),z=function(n){return String(n).padStart(2,'0')},dt=(($('#ex-date')||{}).value)||iso(TODAY),fname='Receipt '+dt+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+ext,home=caseId===HOME_ID,folder=(c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c));
+    var d=new Date(),z=function(n){return String(n).padStart(2,'0')},dt=(($('#ex-date')||{}).value)||iso(TODAY),fname=named?'Receipt '+dt+' '+pfClean(file.name.replace(/\.[A-Za-z0-9]{1,8}$/,''),60)+' '+z(d.getHours())+z(d.getMinutes())+ext:'Receipt '+dt+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+ext,home=caseId===HOME_ID,folder=(c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c));
     rcMsg='Saving to your '+window.CD_files.where()+'…';rcDraw();
     return window.CD_files.upload(folder,fname,blob,'Receipts',home?'Home':undefined).then(function(res){return {res:res,blob:blob}});
   }).then(function(o){
@@ -3419,6 +3427,7 @@ function rcSend(caseId,file,thumb){
     var cur=exSubj(caseId)||c,up={receipts:(cur.receipts||[]).concat([rec])};
     if(o.res.folder&&o.res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=o.res.folder;
     exPatch(caseId,up);rcDraw(Object.assign({},cur,up));
+    if(named){var dsc=$('#ex-desc');if(dsc&&!dsc.value)dsc.value=file.name.replace(/\.[A-Za-z0-9]{1,8}$/,'')}
     toast('Receipt saved. Add the amount, then press Add expense.');var a=$('#ex-amt');if(a)a.focus();
   }).catch(function(e){rcBusy=false;rcMsg=e&&e.big?'That file is over 50 MB. Choose a smaller one.':dzErr(e);rcDraw()});
 }
