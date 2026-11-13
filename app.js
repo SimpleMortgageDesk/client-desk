@@ -223,7 +223,7 @@ window.CD_keyDates=function(){
     reviewItems(c,true).forEach(function(r){out.push({key:c.id+'|'+r.key,date:kdNext(r),title:r.label,who:n})});
     (c.tasks||[]).forEach(function(t,i){if(!t.done&&t.due)out.push({key:c.id+'|task:'+(t.id||i),date:t.due,title:t.text,who:n})});
   });
-  if(T.tenancyMode)homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:kdNext(e),title:e.label,who:'My home'})});
+  if(T.tenancyMode)homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:kdNext(e),title:e.label,who:'My residential house'})});
   return out;
 };
 function kdNext(r){if(!r.rep)return r.date;var n=diff(r.date);return n>=0?r.date:addDays(r.date,Math.ceil(-n/30)*30)}
@@ -256,14 +256,14 @@ function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
   var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['tasks','Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
   var tools={invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
-  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My home'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]));
+  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
   var hideRem=sideVisible(),n1=$('#nav'),n2=$('#nav2'),one=T.tenancyMode&&NAV_MQ&&NAV_MQ.matches;
   /* landlords on a phone: every menu item in one row that swipes sideways, Settings last */
   n1.classList.toggle('onerow',!!one);
-  if(one){var keep=n1.scrollLeft;n1.innerHTML=mk(items.filter(function(i){return !(hideRem&&i[0]==='reminders')}));if(n2)n2.innerHTML='';n1.scrollLeft=keep;var cur=n1.querySelector('[aria-current="page"]');if(cur&&(cur.offsetLeft<n1.scrollLeft||cur.offsetLeft+cur.offsetWidth>n1.scrollLeft+n1.clientWidth))n1.scrollLeft=Math.max(0,cur.offsetLeft-12);return}
+  if(one){var keep=n1.scrollLeft,ord=items.slice(),mi=ord.map(function(i){return i[0]}).indexOf('myhome');if(mi>0)ord.unshift(ord.splice(mi,1)[0]);n1.innerHTML=mk(ord.filter(function(i){return !(hideRem&&i[0]==='reminders')}));if(n2)n2.innerHTML='';n1.scrollLeft=keep;var cur=n1.querySelector('[aria-current="page"]');if(cur&&(cur.offsetLeft<n1.scrollLeft||cur.offsetLeft+cur.offsetWidth>n1.scrollLeft+n1.clientWidth))n1.scrollLeft=Math.max(0,cur.offsetLeft-12);return}
   n1.innerHTML=mk(items.filter(function(i){return !tools[i[0]]&&!(hideRem&&i[0]==='reminders')}));if(n2)n2.innerHTML=mk(items.filter(function(i){return tools[i[0]]}));
 }
 var NAV_MQ=window.matchMedia?window.matchMedia('(max-width:759px)'):null;
@@ -315,7 +315,7 @@ function render(){
   else if(view==='invoices')v.innerHTML=invoicesHTML();
   else if(view==='pipeline')v.innerHTML=pipelineHTML();
   else if(view==='cases')v.innerHTML=casesHTML();
-  else if(view==='myhome')v.innerHTML='<div class="pagehead"><h1>My home</h1></div>'+homeCard(true);
+  else if(view==='myhome')v.innerHTML='<div class="pagehead"><h1>My residential house</h1></div>'+homeCard(true);
   else v.innerHTML=remindersHTML();
 }
 function emptyHTML(){
@@ -1290,7 +1290,7 @@ var sideLater=false;
 function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
-  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My home</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
+  if(T.tenancyMode){var an=bizName()||(profA().name)||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<span>'+esc(an)+'</span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
   var items=toolItems([['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   s.innerHTML='<div id="sideTools"><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
@@ -2087,7 +2087,7 @@ var HOME_F=[
 function homeF(k){var f=null;HOME_F.forEach(function(g){g[1].forEach(function(x){if(x[0]===k)f=x})});return f}
 function homeV(h,k){h=h||{};if(h[k])return h[k];var f=homeF(k);if(f&&f[4]&&h[f[4].from])return addMonths(h[f[4].from],f[4].m);return ''}
 function homeEvents(){
-  var h=HOME;if(!h||!h.addr1)return [];var out=[],who='My home · '+h.addr1;
+  var h=HOME;if(!h||!h.addr1)return [];var out=[],who='My residential house · '+h.addr1;
   function add(k,exp,label,lead){if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp))return;out.push({date:remDue(h.remDone&&h.remDone[k],exp,lead),label:label+' '+fd(exp),kind:'review',id:'__home',who:who,key:k,rep:1,exp:exp})}
   add('dealEnd',homeV(h,'dealEnd'),'Mortgage deal ends',4);
   add('insRenewal',homeV(h,'insRenewal'),'Home insurance renewal',2);add('energyEnd',homeV(h,'energyEnd'),'Energy deal ends',2);
@@ -2113,7 +2113,7 @@ function homeRows(h,g){
   return out||'<p class="muted" style="margin:0">Nothing added yet. Press View and edit.</p>';
 }
 function homeCard(pg){
-  var h=HOME,hd=pg?'':'<h2>My home</h2>';
+  var h=HOME,hd=pg?'':'<h2>My residential house</h2>';
   if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div>'+hd+'<p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills, safety checks, and your receipts and expenses. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
   var bal=+h.balance||0,val=+h.value||0,ltv=bal&&val?Math.round(bal/val*1000)/10:null,eq=val?val-bal:null;
   var chip=function(d,l){return d?'<span class="chip '+tone(d)+'">'+esc(l)+' '+fd(d)+'</span>':''};
@@ -2135,7 +2135,7 @@ function homeOpen(){
     if(x[4])return '<label class="f">'+esc(l)+'<input id="hm-'+k+'" type="date" data-hfrom="'+x[4].from+'" data-hm="'+x[4].m+'" data-auto="'+(v?'0':'1')+'" value="'+esc(homeV(h,k))+'"></label>';
     var inp='<input id="hm-'+k+'" type="'+(t==='date'?'date':t==='text'?'text':'number" step="any" inputmode="decimal')+'" value="'+esc(v)+'">';
     return '<label class="f">'+esc(l)+(t==='money'?'<span class="ig"><i>£</i>'+inp+'</span>':inp)+'</label>'};
-  overlay('hmOv','<div class="dhd"><h2>My home</h2><button type="button" class="btn ghost" data-hmclose="1">Close</button></div>'+
+  overlay('hmOv','<div class="dhd"><h2>My residential house</h2><button type="button" class="btn ghost" data-hmclose="1">Close</button></div>'+
    '<p class="muted" style="margin:4px 0 12px">Your own home, kept apart from your rental properties. It is saved in your own '+esc(window.CD_files?window.CD_files.where():'storage')+'. Do not add account numbers or bank details.</p>'+
    HOME_F.map(function(g){return '<fieldset><legend>'+esc(g[0])+'</legend><div class="grid">'+g[1].map(fld).join('')+'</div></fieldset>'}).join('')+
    '<fieldset><legend>Notes</legend><label class="f wide">Notes<textarea id="hm-notes" rows="3">'+esc(h.notes||'')+'</textarea></label></fieldset>'+
@@ -2151,7 +2151,7 @@ function homeSave(){
   d.notes=($('#hm-notes')||{}).value||'';
   if(d.postcode)d.postcode=pcFmt(d.postcode);
   if(!String(d.addr1||'').trim()){if(m){m.textContent='Add address line one.';m.style.color='#b3261e'}var a=$('#hm-addr1');if(a){a.focus();a.scrollIntoView({block:'center'})}return}
-  homeWrite(d);closeOv('hmOv');toast('My home saved');
+  homeWrite(d);closeOv('hmOv');toast('My residential house saved');
 }
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;
@@ -2159,7 +2159,7 @@ document.addEventListener('click',function(e){
   if(t.closest('#homeExp')||t.closest('[data-homeexp]')){expOpen(HOME_ID);return}
   if(t.closest('[data-hmclose]')){closeOv('hmOv');return}
   if(t.closest('[data-hmsave]')){homeSave();return}
-  var dl=t.closest('[data-hmdel]');if(dl){if(!dl.classList.contains('armed')){dl.classList.add('armed');var nx=((HOME&&HOME.expenses)||[]).length;dl.textContent=nx?'Press again to remove. This also removes its '+nx+' expense record'+(nx===1?'':'s')+'.':'Press again to remove';return}homeWrite({removedAt:Date.now()});closeOv('hmOv');toast('My home removed');return}
+  var dl=t.closest('[data-hmdel]');if(dl){if(!dl.classList.contains('armed')){dl.classList.add('armed');var nx=((HOME&&HOME.expenses)||[]).length;dl.textContent=nx?'Press again to remove. This also removes its '+nx+' expense record'+(nx===1?'':'s')+'.':'Press again to remove';return}homeWrite({removedAt:Date.now()});closeOv('hmOv');toast('My residential house removed');return}
 });
 document.addEventListener('input',function(e){var t=e.target;if(!t||!t.id||t.id.indexOf('hm-')!==0)return;
   if(t.hasAttribute('data-hfrom'))t.setAttribute('data-auto',t.value?'0':'1');
@@ -3203,7 +3203,7 @@ function expOpen(caseId,editId){
   var ed=exEdit?((c.expenses||[]).filter(function(x){return x.id===exEdit})[0]||null):null;if(!ed)exEdit=null;
   var rk=caseId+':'+(exEdit||'new');if(rcFor!==rk){rcFor=rk;rcPend=ed?(ed.receipt||null):null;rcMsg='';rcListOpen=false;if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}}
   var l=expList(c),ty=taxYear(iso(TODAY)),tyTot=l.filter(function(e){return e.date>=ty.from&&e.date<=ty.to}).reduce(function(a,e){return a+(+e.amount||0)},0);
-  overlay('exOv','<div class="dhd"><h2>Receipts and expenses · '+esc(caseId===HOME_ID?'My home · '+short(c.addr1):names(c))+'</h2><button type="button" class="btn" data-exclose="1">Save and close</button></div>'+
+  overlay('exOv','<div class="dhd"><h2>Receipts and expenses · '+esc(caseId===HOME_ID?'My residential house · '+short(c.addr1):names(c))+'</h2><button type="button" class="btn" data-exclose="1">Save and close</button></div>'+
    '<p class="muted" style="margin:4px 0 10px">Tax year '+ty.label+' so far: <b>'+gbp(tyTot)+'</b> · '+l.length+' expense'+(l.length===1?'':'s')+' in total. '+(caseId===HOME_ID?'These are kept apart from your rental properties and are not in the rent and expenses report.':'These go into the rent and expenses report for your accountant (Reports and agreements).')+'</p>'+
    rcBox(c)+
    (ed?'<p style="margin:0 0 6px;font-weight:600">Editing the expense from '+fd(ed.date)+'</p>':'')+'<div class="exadd grid'+(ed?' editing':'')+'"><label class="f">Date<input id="ex-date" type="date" value="'+(ed?esc(ed.date):iso(TODAY))+'"></label><label class="f">Category<select id="ex-cat">'+exCats(caseId).concat(ed&&exCats(caseId).indexOf(ed.cat)<0&&ed.cat?[ed.cat]:[]).map(function(k){return '<option'+(ed&&ed.cat===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></label>'+
