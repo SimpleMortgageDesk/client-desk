@@ -1,11 +1,18 @@
 (function(){
 'use strict';
 var T,STAGES,STAGE_LABEL,TYPES,AP_TYPES,landingDone=false;
+/* the site name: "My" is quiet, "Simple" is bold and "Desk" is bold green, so it reads as SimpleDesk */
+function brandHtml(an){
+  var m=/^(My)(.+?)(Desk)$/.exec(an||'');
+  if(m)return '<span class="bn-my">'+esc(m[1])+'</span><span class="bn-simple">'+esc(m[2])+'</span><span class="bn-desk">'+esc(m[3])+'</span>';
+  var sp=String(an).lastIndexOf(' '),dk=/^(.+)(Desk)$/.exec(an);
+  return sp>0?esc(an.slice(0,sp))+' <span class="bn-desk">'+esc(an.slice(sp+1))+'</span>':dk?esc(dk[1])+'<span class="bn-desk">'+esc(dk[2])+'</span>':esc(an);
+}
 function applyTrade(){
   T=window.CD_T();STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
   var nb=document.getElementById('newBtn');if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
   var q=document.getElementById('q');if(q)q.placeholder='Search '+T.noun[1].toLowerCase();
-  var bn=document.getElementById('brandName'),an=(window.MD_CONFIG||{}).appName||'MySimpleDesk';if(bn){var sp=an.lastIndexOf(' '),dk=/^(.+)(Desk)$/.exec(an);bn.innerHTML=sp>0?esc(an.slice(0,sp))+' <span style="font-weight:300">'+esc(an.slice(sp+1))+'</span>':dk?esc(dk[1])+'<span style="font-weight:300">'+dk[2]+'</span>':esc(an)}
+  var bn=document.getElementById('brandName'),an=(window.MD_CONFIG||{}).appName||'MySimpleDesk';if(bn)bn.innerHTML=brandHtml(an)
   document.title=an;
   if(!landingDone&&window.CD_tradeChosen&&window.CD_tradeChosen()){landingDone=true;if(T.landing&&(view==='tasks'||view===undefined))view=T.landing}
 }

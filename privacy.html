@@ -24,13 +24,14 @@
   a{color:var(--accent)}
   .fill{background:#FFF6DD;border-radius:4px;padding:0 4px}
   .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-weight:700}
+  .bn-my{font-weight:400;opacity:.62}.bn-simple{font-weight:800}.bn-desk{font-weight:800;color:var(--accent)}
   @media (max-width:560px){.card{padding:20px 18px}h1{font-size:24px}table{font-size:14px}}
 </style>
 <script src="config.js?v=202611111600"></script>
 </head>
 <body>
 <main>
-  <div class="top"><span>&#9670; <span data-app>MySimpleDesk</span></span><a href="./">Back to the app</a></div>
+  <div class="top"><span>&#9670; <span data-brand><span class="bn-my">My</span><span class="bn-simple">Simple</span><span class="bn-desk">Desk</span></span></span><a href="./">Back to the app</a></div>
   <div class="card">
     <h1>Privacy policy</h1>
     <p class="muted">Last updated: 10 November 2026</p>
@@ -145,6 +146,10 @@
   var c = window.MD_CONFIG || {}, ph = function (v) { return !v || /PASTE/i.test(v); };
   var app = c.appName || 'MySimpleDesk';
   document.querySelectorAll('[data-app]').forEach(function (e) { e.textContent = app; });
+  document.querySelectorAll('[data-brand]').forEach(function (e) {
+    var m = /^(My)(.+?)(Desk)$/.exec(app); if (!m) { e.textContent = app; return; }
+    e.textContent = ''; ['my', 'simple', 'desk'].forEach(function (k, i) { var s = document.createElement('span'); s.className = 'bn-' + k; s.textContent = m[i + 1]; e.appendChild(s); });
+  });
   document.title = 'Privacy policy · ' + app;
   var su = !ph(c.signupUrl) && /^(https:\/\/|\/api\/)/.test(c.signupUrl || '') && !/github\.io$/i.test(location.hostname);
   document.querySelectorAll('[data-su]').forEach(function (e) { e.hidden = !su; });
