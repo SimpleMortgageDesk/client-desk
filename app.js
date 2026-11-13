@@ -1900,7 +1900,7 @@ function lgChip(c){var s=lgSum(c);return s.bad?'<span class="chip bad">'+s.bad+'
    The same file shows next to the matching date field, because both use the same key. */
 var LG_DOC='display:flex;flex-direction:row;flex-wrap:wrap;gap:4px 14px;margin-top:5px;font-size:12px';
 function lgDocInner(c,k){
-  var fl=dzFiles(c,k).slice().reverse(),up='<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">Upload</button>';
+  var fl=dzFiles(c,k).slice().reverse(),up=dzCam(k,'Take photo')+'<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">Upload</button>';
   if(!fl.length)return up;
   var lk=function(f,t){return '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">'+esc(t)+'</a>'};
   if(fl.length===1)return up+lk(fl[0],'Show');
@@ -1908,9 +1908,9 @@ function lgDocInner(c,k){
 }
 /* a second upload for the same item asks first: keep the old documents as well, or replace them */
 var lgPend=null;
-function lgAsk(k,file){
+function lgAsk(k,file,cam){
   var c=currentCase(),n=dzFiles(c,k).length,w=window.CD_files.where(),bin=w==='Google Drive'?'Google Drive bin':w+' recycle bin';
-  lgPend={k:k,file:file};
+  lgPend={k:k,file:file,cam:cam};
   overlay('lgAskOv','<h2>A document is already saved here</h2><p style="margin:0 0 14px">You are uploading <b>'+esc(file.name)+'</b>. What should happen to the '+(n>1?n+' documents':'document')+' already saved?</p>'+
    '<div style="display:flex;flex-direction:column;gap:10px">'+
    '<button type="button" class="btn" data-lgask="keep" style="text-align:left;white-space:normal">Keep old and add this one<br><span style="font-weight:400;font-size:12.5px">Both stay in the property folder. The new one is saved with its date in the name.</span></button>'+
@@ -1920,7 +1920,7 @@ function lgAsk(k,file){
 document.addEventListener('click',function(e){
   var t=e.target&&e.target.closest?e.target.closest('[data-lgask]'):null;if(!t)return;
   e.preventDefault();var m=t.getAttribute('data-lgask'),p=lgPend;lgPend=null;closeOv('lgAskOv');
-  if(p&&m!=='cancel')dzSend(p.k,p.file,m);
+  if(p&&m!=='cancel')dzSend(p.k,p.file,m,p.cam);
 });
 function lgInner(c){return '<ul class="lglist">'+lgItems(c).map(function(x){return '<li class="lg-'+x.st+'"><i aria-hidden="true"></i><div><b>'+esc(x.l)+'</b><span>'+esc(x.note)+'</span>'+(x.k?'<div class="pl" style="'+LG_DOC+'" data-dz="'+esc(x.k)+'" data-dzl="'+esc(x.doc)+'" data-dzlg="1">'+lgDocInner(c,x.k)+'</div>':'')+'</div></li>'}).join('')+'</ul><p class="muted" style="margin:8px 0 0;font-size:11.5px">A guide built from the dates you have entered, for England. It is not legal advice.</p>'}
 function lgBox(c){return '<fieldset data-sec="legal" id="lgFs"><legend>Legal to let <span class="lgsum" id="lgChip">'+lgChip(c)+'</span></legend><div id="lgBody">'+lgInner(c)+'</div></fieldset>'}
@@ -2757,12 +2757,15 @@ function pfName(c,used){
   return clash?a+' ('+(c.clientNo||String(c.id||'').slice(0,4))+')':a;
 }
 function dzFiles(c,k){return ((c&&c.files)||[]).filter(function(f){return f.k===k})}
+/* phones also get a Take photo button next to Upload (Upload opens the file picker; Take photo opens the camera) */
+function dzTouch(){return !!(window.matchMedia&&matchMedia('(pointer:coarse)').matches)}
+function dzCam(k,t){return dzTouch()?'<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'" data-dzcam="1">'+esc(t||'Take photo')+'</button>':''}
 function dzInner(c,k,label){
   var fl=dzFiles(c,k),up=function(t){return '<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">'+esc(t)+'</button>'},rm=function(f){return '<button type="button" style="'+DZ_BTN+';color:#8a98a3" data-dzrm="'+esc(f.id)+'">Remove</button>'};
-  if(k==='other')return fl.map(function(f){return '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>'+rm(f)+'</div>'}).join('')+'<div class="pl">'+up('Upload a document')+'</div>';
-  if(!fl.length)return up('Upload '+label);
+  if(k==='other')return fl.map(function(f){return '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>'+rm(f)+'</div>'}).join('')+'<div class="pl">'+dzCam('other','Take photo')+up('Upload a document')+'</div>';
+  if(!fl.length)return dzCam(k,'Take photo')+up('Upload '+label);
   var f=fl[fl.length-1];
-  return '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">Open '+esc(label)+'</a>'+up('Replace')+rm(f);
+  return '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">Open '+esc(label)+'</a>'+up('Replace')+dzCam(k,'Replace with photo')+rm(f);
 }
 function dzSpan(c,f){return '<span class="pl dz" style="flex-wrap:wrap" data-dz="'+esc(f.k)+'" data-dzl="'+esc(f.doc)+'">'+dzInner(c,f.k,f.doc)+'</span>'}
 function dzFolderHtml(c){
@@ -2778,31 +2781,37 @@ function dzErr(e){
   if(e&&e.status===507)return 'Your file storage is full.';
   return 'Could not upload the file ('+((e&&e.message)||'try again')+').';
 }
-function dzPick(k,lg){
+function dzPick(k,lg,cam){
   if(!openId){toast('Add the property address first. It saves itself, then try again.');return}
   if(!window.CD_files||!window.CD_files.can()){toast('Could not reach your file storage. Check you are online, then try again.');return}
   if(dzBusy){toast('Still uploading the last file. Try again in a moment.');return}
-  var inp=document.createElement('input');inp.type='file';inp.id='dzFile';inp.accept='.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.xls,.xlsx,.txt,image/*,application/pdf';inp.style.display='none';
+  var inp=document.createElement('input');inp.type='file';inp.id='dzFile';inp.accept=cam?'image/*':'.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.xls,.xlsx,.txt,image/*,application/pdf';if(cam)inp.setAttribute('capture','environment');inp.style.display='none';
   var old=$('#dzFile');if(old)old.remove();document.body.appendChild(inp);
-  inp.addEventListener('change',function(){var file=inp.files&&inp.files[0];inp.remove();if(!file)return;if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,file);else dzSend(k,file,lg?'keep':'')});
+  inp.addEventListener('change',function(){var file=inp.files&&inp.files[0];inp.remove();if(!file)return;if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,file,cam);else dzSend(k,file,lg?'keep':'',cam)});
   inp.click();
 }
-function dzSend(k,file,mode){
+function dzSend(k,file,mode,cam){
   var id=openId,c=currentCase();if(!id||!c)return;
   if(!file.size){toast('That file is empty.');return}
   if(file.size>window.CD_files.max){toast('That file is over 50 MB. Choose a smaller file.');return}
   var el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document';
-  var ext=(/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase(),dt=(($('#f-'+k)||{}).value)||iso(TODAY);
-  var fname=k==='other'?(pfClean(file.name.slice(0,file.name.length-ext.length),100)||'Document')+ext:label.charAt(0).toUpperCase()+label.slice(1)+' '+dt+ext;
-  if(mode==='keep'&&k!=='other'&&dzFiles(c,k).some(function(f){return String(f.name).toLowerCase()===fname.toLowerCase()}))fname=fname.slice(0,fname.length-ext.length)+' (added '+iso(TODAY)+')'+ext;
+  var oext=(/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase(),dt=(($('#f-'+k)||{}).value)||iso(TODAY);
   var folder=(c.folder&&c.folder.name)||pfName(c);
-  dzBusy=true;pfTried[id]=1;toast('Uploading '+file.name+'…',true);
-  window.CD_files.upload(folder,fname,file).then(function(res){
-    dzBusy=false;
+  dzBusy=true;pfTried[id]=1;toast('Uploading '+(cam?'the photo':file.name)+'…',true);
+  /* phone photos are large: rcPrep shrinks images to a clear JPEG (PDFs and other files are sent as they are) */
+  rcPrep(file).then(function(pp){
+    var blob=pp.blob,ext=pp.ext||oext,d=new Date(),z=function(n){return String(n).padStart(2,'0')};
+    var base=cam?'Photo '+iso(TODAY)+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()):(pfClean(file.name.slice(0,file.name.length-oext.length),100)||'Document');
+    var fname=k==='other'?base+ext:label.charAt(0).toUpperCase()+label.slice(1)+' '+dt+ext;
+    if(mode==='keep'&&k!=='other'&&dzFiles(c,k).some(function(f){return String(f.name).toLowerCase()===fname.toLowerCase()}))fname=fname.slice(0,fname.length-ext.length)+' (added '+iso(TODAY)+')'+ext;
+    if(blob.size>window.CD_files.max)throw {big:true};
+    return window.CD_files.upload(folder,fname,blob).then(function(res){return {res:res,size:blob.size}});
+  }).then(function(o){
+    var res=o.res;dzBusy=false;
     var cur=cases.filter(function(x){return x.id===id})[0]||c;
     var old=mode==='replace'?(cur.files||[]).filter(function(f){return f.k===k}):[];
     var files=(cur.files||[]).filter(function(f){return k==='other'||mode==='keep'||f.k!==k});
-    files.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:file.size,at:Date.now()});
+    files.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:o.size,at:Date.now()});
     var up={files:files};if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
     patch(id,up);toast('Uploaded to Properties › '+folder);
     if(openId===id)dzRefresh(Object.assign({},cur,up));
@@ -2811,7 +2820,7 @@ function dzSend(k,file,mode){
         var bad=rs.filter(function(x){return !x}).length;
         toast(bad?'Uploaded. '+bad+' old document'+(bad>1?'s':'')+' could not be moved to the '+bin+'. Delete '+(bad>1?'them':'it')+' from the property folder yourself.':'Uploaded. The old document'+(old.length>1?'s are':' is')+' in your '+bin+'.');
       })}
-  },function(e){dzBusy=false;toast(dzErr(e))});
+  },function(e){dzBusy=false;toast(e&&e.big?'That file is over 50 MB. Choose a smaller file.':dzErr(e))});
 }
 function dzRemove(fid){
   var id=openId,c=currentCase();if(!id||!c)return;
@@ -2822,7 +2831,7 @@ function dzRemove(fid){
 document.addEventListener('click',function(e){
   var t=e.target&&e.target.closest?e.target.closest('[data-dzup],[data-dzrm]'):null;if(!t)return;
   e.preventDefault();
-  if(t.hasAttribute('data-dzup'))dzPick(t.getAttribute('data-dzup'),!!t.closest('[data-dzlg]'));else dzRemove(t.getAttribute('data-dzrm'));
+  if(t.hasAttribute('data-dzup'))dzPick(t.getAttribute('data-dzup'),!!t.closest('[data-dzlg]'),t.hasAttribute('data-dzcam'));else dzRemove(t.getAttribute('data-dzrm'));
 });
 /* makes the storage folder for every property that has an address and no folder yet (new and existing properties) */
 function pfSweep(){
