@@ -793,3 +793,41 @@ header.top .in{padding-block:12px}}
 .gntabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
 .gntabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @media (max-width:620px){.gntabs button{flex:1 1 0;padding:10px 8px;font-size:14px}}
+
+/* ---- Receipts and expenses ---- */
+.rcbox{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;background:var(--surface)}
+.rchd{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.rcmsg{margin:8px 0 0;font-size:13.5px;display:flex;align-items:center;gap:8px}
+.rcmsg.err{color:var(--bad,#A3261F);font-weight:600}
+.rcspin{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:rcsp .8s linear infinite;flex:none}
+@keyframes rcsp{to{transform:rotate(360deg)}}
+.rcatt{display:flex;gap:12px;align-items:center;margin-top:10px}
+.rcatt img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:none}
+.rcatt>div{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:13px}
+.rcatt .muted{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rclink{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;font:inherit;margin-left:12px;padding:0}
+.rclist{list-style:none;margin:10px 0 0;padding:0;max-height:280px;overflow:auto;border-top:1px solid var(--line)}
+.rclist li{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)}
+.rcrow{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:13px}
+.rcrow b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rcact{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.rcnone{margin:10px 0 0}
+@media (prefers-reduced-motion:reduce){.rcspin{animation:none}}
+@media (max-width:759px){.rcbox .add .btn{flex:1 1 100%}.rclist li{flex-direction:column;align-items:stretch}.rcact{justify-content:flex-start}}
+
+/* ---- My home page: fills the screen like the Properties page ---- */
+#view:has(.homepage){width:100%}
+.homepage{display:flex;flex-direction:column;gap:14px;width:100%}
+.homepage .homecard{margin-top:0}
+.homegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start}
+.hcard{background:var(--surface,#fff);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.hcardhd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.hcard h3{margin:0;font-size:15px}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.hcardhd+.hrow,.hcardhd+p+.hrow{border-top:0}
+.hrow>span{color:var(--muted);min-width:0}
+.hrow>b{text-align:right;font-weight:600}
+.hrow>b a{font-weight:600;margin-left:6px}
+@media (max-width:620px){.homegrid{grid-template-columns:1fr}.homepage .homecard .hch .add{width:100%}.homepage .homecard .hch .add .btn{flex:1 1 auto}}
+.hrow>b a{color:var(--accent)}
+.rcact a.btn{text-decoration:none}

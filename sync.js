@@ -1590,7 +1590,7 @@
     var ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;z-index:260;background:rgba(8,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px';
     ov.innerHTML = '<div style="background:#fff;color:#101C26;width:min(520px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px/1.5 system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)"><h2 style="margin:0 0 10px;font-size:20px">Quick guide</h2>' +
-      (TR().id === 'landlord' ? '<ul style="margin:0 0 12px;padding-left:20px"><li><b>Properties</b> (home page): press <b>Add property</b>, then add the tenants, rent and certificates. Everything saves by itself to your own OneDrive or Google Drive.</li><li><b>Rent</b>: mark each rent as due or paid at the top of the property page, and create a rent invoice from there.</li><li><b>Expenses</b>: add them on the property page. <b>Reports and agreements</b> (left menu) makes the income and expenses report for your accountant.</li><li><b>Reminders</b>: gas safety, EICR, EPC, deposit protection, insurance and overdue rent.</li><li><b>Settings</b>: app password, backup to PDF/CSV, restore.</li></ul>' : '') +
+      (TR().id === 'landlord' ? '<ul style="margin:0 0 12px;padding-left:20px"><li><b>Properties</b> (home page): press <b>Add property</b>, then add the tenants, rent and certificates. Everything saves by itself to your own OneDrive or Google Drive.</li><li><b>Rent</b>: mark each rent as due or paid at the top of the property page, and create a rent invoice from there.</li><li><b>Receipts and expenses</b>: photograph or upload receipts and add expenses on the property page. <b>Reports and agreements</b> (left menu) makes the income and expenses report for your accountant.</li><li><b>Reminders</b>: gas safety, EICR, EPC, deposit protection, insurance and overdue rent.</li><li><b>Settings</b>: app password, backup to PDF/CSV, restore.</li></ul>' : '') +
       '<ul style="margin:0 0 12px;padding-left:20px' + (TR().id === 'landlord' ? ';display:none' : '') + '"><li><b>Tasks</b> (home page): tick things off. Tap a task to change its date or edit it.</li><li><b>Add client</b> opens a new client. Everything saves by itself to your OneDrive.</li><li><b>Tools</b> (left bar): Notebook, Marketing and Settings, plus tools for your trade.</li><li><b>Reminders</b> (right of the home page): key dates coming up, such as services, deadlines and renewals.</li><li><b>Settings</b>: change your app password, sync, back up to PDF/CSV, restore, calendar reminders.</li></ul>' +
       '<p style="margin:0 0 6px"><b>Please do not record</b> NI numbers, bank or sort-code details, passport numbers, income and expenditure, health or lifestyle answers, immigration share codes or benefit amounts.</p>' +
       '<p style="margin:0 0 14px;color:#58697A">Keep your own Microsoft login private, and save your Microsoft recovery code somewhere safe.</p><button class="btn" data-g="1">Got it</button></div>';
@@ -1631,7 +1631,7 @@
       try {
         if (PROV === 'google') { var gid = ls('cd.gfid'); if (gid) { var gr = await gfetch('/drive/v3/files/' + encodeURIComponent(gid) + '?fields=id', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) }); out.files = gr.ok || gr.status === 404 ? 'ok' : 'fail'; } else out.files = 'ok'; }
         else {
-          var f = FOLDER(), names = f ? [f] : COLS.concat([PDIR]), bad = 0;
+          var f = FOLDER(), names = f ? [f] : COLS.concat([PDIR, 'Home']), bad = 0;
           for (var i = 0; i < names.length; i++) { var dr = await gfetch(APP + ':/' + enc(names[i]), { method: 'DELETE' }); if (!dr.ok && dr.status !== 404) bad++; }
           out.files = bad ? 'fail' : 'ok';
         }
@@ -1817,18 +1817,27 @@
     }
     return f.length ? { id: f[0].id, name: name, webUrl: f[0].webViewLink || 'https://drive.google.com/drive/folders/' + encodeURIComponent(f[0].id) } : null;
   }
-  async function propDir(name, create) {
-    var d = PROV === 'google' ? await gDir(await gColId(PDIR, true), name, create) : await odDir(base() + PDIR + '/' + name, create);
+  /* root: the top-level folder the property folder sits in. Rental properties use 'Properties'; My home uses 'Home'. */
+  async function propDir(name, create, root) {
+    var d = PROV === 'google' ? await gDir(await gColId(root || PDIR, true), name, create) : await odDir(base() + (root || PDIR) + '/' + name, create);
     return d ? { name: name, id: d.id || '', url: d.webUrl || '' } : null;
+  }
+  /* makes a sub-folder (for example Receipts) inside a property folder, if it is not there yet */
+  async function subDir(dir, folder, sub, root) {
+    if (PROV === 'google') { if (dir && dir.id) await gDir(dir.id, sub, true); }
+    else await odDir(base() + (root || PDIR) + '/' + folder + '/' + sub, true);
   }
   window.CD_files = {
     where: function () { return SNAME(); },
     max: UPMAX,
     can: function () { return !!tok() && navigator.onLine !== false && (PROV !== 'google' || !!ls('cd.gfid')) && FOLDER() !== null; },
     /* makes the property folder if it is not there yet; returns {name, id, url} */
-    folder: async function (name) {
-      if (window.CD_DEMO) return { name: name, id: 'demo', url: '' };
-      return propDir(name, true);
+    folder: async function (name, root) {
+      if (window.CD_DEMO) return { name: name, id: 'demo', url: '', rc: 1 };
+      var d = await propDir(name, true, root);
+      /* the Receipts folder is made at the same time; rc marks that it is there so it is only made once */
+      try { await subDir(d, name, 'Receipts', root); d.rc = 1; } catch (e) {}
+      return d;
     },
     /* moves one uploaded file to the recycle bin of the user's OneDrive or Google Drive (it can be restored from there).
        A file that is already gone counts as done. */
@@ -1840,18 +1849,21 @@
       if (!r.ok && r.status !== 404) throw httpErr(r);
       return true;
     },
-    /* uploads one file into the property folder; returns {id, name, url, folder} */
-    upload: async function (folder, fname, file) {
+    /* uploads one file into the property folder, or into a sub-folder of it when `sub` is given (for example 'Receipts');
+       returns {id, name, url, folder} where folder is always the property folder */
+    upload: async function (folder, fname, file, sub, root) {
       if (window.CD_DEMO) return { id: 'demo' + Date.now(), name: fname, url: URL.createObjectURL(file), folder: { name: folder, id: 'demo', url: '' } };
       var dir = null, r, type = file.type || 'application/octet-stream';
       if (PROV === 'google') {
-        dir = await propDir(folder, true);
+        dir = await propDir(folder, true, root);
+        var target = dir;
+        if (sub) { var sd = await gDir(dir.id, sub, true); if (sd) target = sd; }
         if (file.size <= 5 * 1024 * 1024) {
           var bnd = 'cd' + rand(12);
-          var body = new Blob(['--' + bnd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: fname, parents: [dir.id] }) + '\r\n--' + bnd + '\r\nContent-Type: ' + type + '\r\n\r\n', file, '\r\n--' + bnd + '--']);
+          var body = new Blob(['--' + bnd + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: fname, parents: [target.id] }) + '\r\n--' + bnd + '\r\nContent-Type: ' + type + '\r\n\r\n', file, '\r\n--' + bnd + '--']);
           r = await gfetch(GAPI + '/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + bnd }, body: body });
         } else {
-          var s = await gfetch(GAPI + '/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': type }, body: JSON.stringify({ name: fname, parents: [dir.id] }) });
+          var s = await gfetch(GAPI + '/upload/drive/v3/files?uploadType=resumable&fields=id,name,webViewLink', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': type }, body: JSON.stringify({ name: fname, parents: [target.id] }) });
           if (!s.ok) throw httpErr(s);
           var loc = s.headers.get('Location'); if (!loc) throw new Error('Google Drive did not accept a large file');
           r = await gfetch(loc, { method: 'PUT', headers: { 'Content-Type': type }, body: file });
@@ -1860,8 +1872,9 @@
         var gj = await r.json();
         return { id: gj.id, name: gj.name || fname, url: gj.webViewLink || 'https://drive.google.com/file/d/' + encodeURIComponent(gj.id) + '/view', folder: dir };
       }
-      try { dir = await propDir(folder, true); } catch (x) { dir = null; }   /* if refused, OneDrive makes the folders on upload */
-      var p = APP + ':/' + enc(base() + PDIR + '/' + folder + '/' + fname);
+      try { dir = await propDir(folder, true, root); } catch (x) { dir = null; }   /* if refused, OneDrive makes the folders on upload */
+      if (sub) { try { await subDir(dir, folder, sub, root); } catch (x) {} }
+      var p = APP + ':/' + enc(base() + (root || PDIR) + '/' + folder + (sub ? '/' + sub : '') + '/' + fname);
       if (file.size <= 4 * 1024 * 1024) r = await gfetch(p + ':/content?@microsoft.graph.conflictBehavior=rename', { method: 'PUT', headers: { 'Content-Type': type }, body: file });
       else {
         var us = await gfetch(p + ':/createUploadSession', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'rename' } }) });
@@ -1870,7 +1883,7 @@
       }
       if (!r.ok) throw httpErr(r);
       var mj = await r.json();
-      if (!dir) { try { dir = await propDir(folder, false); } catch (x2) { dir = { name: folder, id: '', url: '' }; } }
+      if (!dir) { try { dir = await propDir(folder, false, root); } catch (x2) { dir = { name: folder, id: '', url: '' }; } }
       return { id: mj.id, name: mj.name || fname, url: mj.webUrl || '', folder: dir };
     }
   };
