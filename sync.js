@@ -134,6 +134,7 @@
     return refreshing;
   }
   async function gfetch(path, opt, retried) {
+    if (window.CD_TEST) return { ok: false, status: 503, json: async function () { return {}; }, text: async function () { return ''; } };
     opt = opt || {};
     var at = await getToken();
     var url = path.indexOf('http') === 0 ? path : (PROV === 'google' ? GAPI : GRAPH) + path;
@@ -295,6 +296,7 @@
     var cur = mem[col][id];
     mem[col][id] = { data: data, etag: cur ? cur.etag : null, itemId: cur ? cur.itemId : null };
     persistDoc(col, id);
+    if (window.CD_TEST) { notify(col); return; }
     var k = col + '/' + id, d = dirty[k];
     var nd = { k: k, col: col, id: id, kind: (kind === 'set' || (d && d.kind === 'set')) ? 'set' : 'patch', patch: kind === 'set' ? {} : Object.assign({}, d && d.patch || {}, patch || {}), v: ++vctr };
     dirty[k] = nd; idbPut('dirty', nd); notify(col); scheduleFlush(); setState();
@@ -330,6 +332,7 @@
     if (dirty[d.k] && dirty[d.k].v === v) clearDirty(d);
   }
   async function flush() {
+    if (window.CD_TEST) return;
     if (flushing || !tok()) return;
     flushing = true;
     try {
@@ -355,6 +358,7 @@
   var pulling = false, firstPullDone = false;
   var fpRes; window.CD_firstPull = new Promise(function (r) { fpRes = r; });
   async function pull() {
+    if (window.CD_TEST) return;
     if (pulling || !tok()) return;
     pulling = true;
     try {
@@ -1489,6 +1493,7 @@
     rememberMail(); await wipeAndReload(false);
   }
   async function wipeAndReload(auto) {
+    if (window.CD_TEST) { location.href = 'home.html'; return; }
     try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
     try { if (navigator.serviceWorker) { var rg = await navigator.serviceWorker.getRegistrations(); await Promise.all(rg.map(function (r) { return r.unregister(); })); } } catch (e) {}
     await idbClearAll(); setTok(null);
@@ -1621,7 +1626,7 @@
   }
   function suSend(kind) {
     try {
-      if (!suOn() || !tok()) return;
+      if (!suOn() || !tok() || window.CD_TEST) return;
       var today = new Date().toISOString().slice(0, 10);
       if (kind !== 'signup' && ls('cd.su') === today) return; /* at most once a day per device */
       var p = profGet(), a = (tok() || {}).account || {}, email = String(p.email || a.mail || a.email || '').trim();
@@ -1638,6 +1643,7 @@
   }
   /* ---------- delete my account ---------- */
   async function acctDeleteRun(alsoFiles) {
+    if (window.CD_TEST) { location.href = 'home.html'; return; }
     var out = { files: '', list: '' };
     if (alsoFiles) {
       try {
@@ -2173,8 +2179,42 @@
     });
     try { localStorage.setItem('cd.loc2', '1'); } catch (e) {}
   }
+  /* ---------- test link (?test=landlord or ?test=gas): sample data in memory only ---------- */
+  function testBoot() {
+    var kind = window.CD_TEST, D = function (n) { return new Date(Date.now() + n * 864e5).toISOString().slice(0, 10); }, now = Date.now();
+    memTok = { access_token: 'test', expires: now + 864e7, exp: now + 864e7, account: { name: 'Test User', mail: 'test@example.com', id: 'test' }, prov: 'ms' };
+    PROV = 'ms';
+    var put = function (col, id, data) { data.updatedAt = now; mem[col][id] = { data: data, etag: null, itemId: null }; };
+    put('settings', 'trade', { trade: kind });
+    put('settings', 'profile', { name: 'Test User', email: 'test@example.com', phone: '' });
+    if (kind === 'landlord') {
+      put('cases', 'p1', { clientNo: 'C001', type: 'House', propertyAddress: '1 Example Road', postcode: 'AB1 2CD', bedrooms: 3, stage: 'let', gsrDate: D(-340), gsrDue: D(25), eicrDate: D(-400), epcRating: 'C', tasks: [], notes: [{ id: 'n1', ts: now, text: 'Tenant prefers email.' }], expenses: [{ id: 'e1', date: D(-20), cat: 'Repairs and maintenance', amount: 120, to: 'A. Plumber', desc: 'Tap repair' }],
+        tenancies: [{ id: 't1', status: 'current', tenantType: 'private', people: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }], rent: 1150, rentFreq: 'Monthly', rentDay: 1, tenancyStart: D(-300), deposit: 1150 }] });
+      put('cases', 'p2', { clientNo: 'C002', type: 'Flat', propertyAddress: 'Flat 1, 2 Sample Street', postcode: 'AB3 4EF', bedrooms: 2, stage: 'let', gsrDate: D(-200), insuranceRenewal: D(40), tasks: [], notes: [], expenses: [],
+        tenancies: [{ id: 't2', status: 'current', tenantType: 'private', people: [{ name: 'B. Test' }, { name: 'C. Test' }], rent: 875, rentFreq: 'Monthly', rentDay: 15, tenancyStart: D(-120) }] });
+      put('cases', 'p3', { clientNo: 'C003', type: 'House', propertyAddress: '3 Demo Lane', postcode: 'AB5 6GH', bedrooms: 4, stage: 'vacant', tasks: [], notes: [], expenses: [], tenancies: [] });
+      put('settings', 'home', { addr1: '9 Home Close', postcode: 'AB7 8IJ', savedAt: now });
+      put('appointments', 'a1', { date: D(2), time: '10:00', dur: 30, type: 'Viewing', who: 'J. Viewer', status: 'booked' });
+    } else {
+      put('cases', 'j1', { clientNo: 'C001', type: 'Boiler service', stage: 'booked', applicants: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }], jobAddress: '14 Example Road', postcode: 'AB1 2CD', appliance: 'Worcester Greenstar 30i', lastService: D(-350), nextService: D(15), quote: 95, tasks: [], notes: [{ id: 'n1', ts: now, text: 'Customer prefers mornings.' }], expenses: [] });
+      put('cases', 'j2', { clientNo: 'C002', type: 'Boiler installation', stage: 'quoted', applicants: [{ name: 'B. Test', phone: '07700900222' }], jobAddress: '2 Sample Street', appliance: 'Vaillant ecoTEC plus', quote: 2950, installDate: D(-10), notifyBy: D(20), tasks: [], notes: [], expenses: [] });
+      put('cases', 'j3', { clientNo: 'C003', type: 'Landlord gas safety record (CP12)', stage: 'invoiced', applicants: [{ name: 'C. Demo' }], jobAddress: '3 Demo Lane', gsrDate: D(-360), gsrDue: D(5), invoiceNo: 'INV-12', invoiceAmount: 80, tasks: [], notes: [], expenses: [] });
+      put('appointments', 'a1', { date: D(0), time: '09:00', dur: 60, type: 'Job', who: 'A. Sample', status: 'booked' });
+      put('appointments', 'a2', { date: D(3), time: '14:00', dur: 60, type: 'Quote visit', who: 'B. Test', status: 'booked' });
+    }
+    firstPullDone = true; try { fpRes(); } catch (e) {}
+    vState = 'ok';
+    var o = $('mdSign'); if (o) o.remove();
+    readyRes({ collection: collection });
+    setState();
+    var b = document.createElement('div'); b.id = 'mdTest'; b.setAttribute('role', 'status');
+    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:10px;z-index:190;background:#101C26;color:#fff;border-radius:99px;padding:8px 14px;font:13px system-ui,sans-serif;box-shadow:0 6px 20px rgba(16,28,38,.3);display:flex;gap:10px;align-items:center;max-width:94vw';
+    b.innerHTML = '<span><b>Test mode.</b> Sample data. Nothing is saved or sent.</span><a href="home.html" style="color:#9fe0c4;font-weight:700;white-space:nowrap">Exit</a>';
+    document.body.appendChild(b);
+  }
   async function boot() {
     addSyncBadge();
+    if (window.CD_TEST) { testBoot(); return; }
     await openIdb(); await loadCache();
     try { await handleRedirect(); } catch (e) { showSignIn(e.message); return; }
     if (!tok()) { showSignIn(''); return; }

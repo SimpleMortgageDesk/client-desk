@@ -17,10 +17,18 @@
 <div id="tray" hidden></div>
 <div id="toast" hidden></div>
 
-<link rel="stylesheet" href="styles.css?v=202611151300"><script>window.MD_BUILD="2026-11-15 13:00 LATEST80";</script>
-<script src="config.js?v=202611151300"></script>
-<script src="trades.js?v=202611151300"></script>
-<script src="sync.js?v=202611151300"></script>
-<script src="app.js?v=202611151300"></script>
+<link rel="stylesheet" href="styles.css?v=202611151500"><script>window.MD_BUILD="2026-11-15 15:00 LATEST81";</script>
+<script>/* TEST LINK: ?test=landlord or ?test=gas opens the app with sample data and no sign-in. The browser's storage is swapped for a
+   throw-away copy in memory, so a real account on this device is never read or changed, and nothing is saved or sent. */
+(function(){var m=/[?&]test=(landlord|gas)\b/.exec(location.search);if(!m)return;
+function S(){var d={};return{getItem:function(k){return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null},setItem:function(k,v){d[k]=String(v)},removeItem:function(k){delete d[k]},clear:function(){d={}},key:function(i){return Object.keys(d)[i]||null},get length(){return Object.keys(d).length}}}
+try{Object.defineProperty(window,'localStorage',{value:S(),configurable:true});Object.defineProperty(window,'sessionStorage',{value:S(),configurable:true});
+if(window.localStorage.getItem('cd.tok2')!==null)throw 0;
+window.localStorage.setItem('cd.trade',m[1]);window.localStorage.setItem('cd.guide','1');window.localStorage.setItem('cd.folder','Test');window.localStorage.setItem('cd.profile',JSON.stringify({name:'Test User',phone:'',email:'test@example.com'}));
+window.CD_TEST=m[1];window.CD_DEMO=true}catch(e){window.CD_TEST='';location.replace('home.html')}})();</script>
+<script src="config.js?v=202611151500"></script>
+<script src="trades.js?v=202611151500"></script>
+<script src="sync.js?v=202611151500"></script>
+<script src="app.js?v=202611151500"></script>
 
 </body></html>
