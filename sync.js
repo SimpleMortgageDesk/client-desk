@@ -1256,7 +1256,8 @@
       '<label style="font-size:14px">User ID (your email address)<input id="lgMail" type="email" name="username" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" value="' + esc(lastMail) + '" style="' + lgInp + '"></label>' +
       '<p style="margin:0 0 4px;padding:9px 11px;background:#EEF6F2;border-radius:8px;font-size:13.5px;color:#234"><b>Your password is next.</b> ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' asks for it on its own secure page, with your email already filled in. This app never sees your password.</p>' +
       '<button type="submit" id="lgGo" style="' + pri + '">Continue' + sub('Then type your password on ' + (ok.g ? 'their' : 'Microsoft\'s') + ' page', 1) + '</button>' +
-      '<p style="margin:16px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' + err + legal + '</form>';
+      '<div style="margin:22px 0 0;padding:12px 14px;border:1px solid #D4DBDF;border-radius:10px;font-size:13.5px;color:#2b3b47"><b>Forgot your password?</b><br>Your password belongs to your ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' account, so it is reset there. They email a reset link to the recovery address on your account. We cannot see or reset it.<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px"><a href="https://account.live.com/password/reset" target="_blank" rel="noopener" style="padding:7px 12px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Microsoft password</a>' + (ok.g ? '<a href="https://accounts.google.com/signin/recovery" target="_blank" rel="noopener" style="padding:7px 12px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Google password</a>' : '') + '</div></div>' +
+      '<p style="margin:26px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' + err + legal + '</form>';
     }
     else if (page === 'register') {
       var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
@@ -1544,7 +1545,7 @@
     ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:#0f1f1a;color:#fff;display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,sans-serif';
     if (acctMode()) {
       ov.innerHTML = '<div style="width:min(360px,100%);text-align:center"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px;font-size:22px">' + esc(note || APPN + ' is locked') + '</h2><p style="margin:0 0 16px;color:#b9c8c0;font-size:13px">Sign in to your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account again to carry on.</p>' +
-        '<button type="button" id="mdLockAcct" style="width:100%;padding:12px;font-size:16px;border:0;border-radius:8px;background:#2f8f6b;color:#fff;cursor:pointer">Unlock with ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + '</button><p style="margin:12px 0 0"><button type="button" id="mdLockOut" style="background:none;border:0;color:#b9c8c0;text-decoration:underline;cursor:pointer;font-size:13px">Log out</button></p></div>';
+        '<button type="button" id="mdLockAcct" style="width:100%;padding:12px;font-size:16px;border:0;border-radius:8px;background:#2f8f6b;color:#fff;cursor:pointer">Unlock with ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + '</button><p style="margin:34px 0 0;padding-top:18px;border-top:1px solid #3d5a4e"><button type="button" id="mdLockOut" style="background:none;border:1px solid #6f8a7e;border-radius:8px;color:#d6e2dc;cursor:pointer;font-size:14px;padding:9px 18px">Log out instead</button></p></div>';
       document.body.appendChild(ov);
       var app0 = $('app'); if (app0) { try { app0.inert = true; } catch (e) {} }
       $('mdLockAcct').addEventListener('click', function () {
@@ -1558,7 +1559,7 @@
     ov.innerHTML = '<form style="width:min(340px,100%);text-align:center" autocomplete="off"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px;font-size:22px">' + esc(note || APPN + ' is locked') + '</h2><p style="margin:0 0 16px;color:#b9c8c0;font-size:13px">Enter your app password to carry on.</p>' +
       '<input id="mdLockPin" type="password" autocomplete="current-password" maxlength="128" aria-label="App password" style="width:100%;box-sizing:border-box;padding:12px;font-size:18px;text-align:center;border-radius:8px;border:1px solid #3d5a4e;background:#fff;color:#101C26">' +
       '<button type="submit" id="mdLockGo" style="width:100%;margin-top:12px;padding:12px;font-size:16px;border:0;border-radius:8px;background:#2f8f6b;color:#fff;cursor:pointer">Unlock</button>' +
-      '<p id="mdLockMsg" style="min-height:20px;margin:10px 0 0;color:#ffb4a8;font-size:13px"></p><button type="button" id="mdLockOut" style="background:none;border:0;color:#b9c8c0;text-decoration:underline;cursor:pointer;font-size:13px">Forgot your password? Log out</button></form>';
+      '<p id="mdLockMsg" style="min-height:20px;margin:10px 0 0;color:#ffb4a8;font-size:13px"></p><p style="margin:30px 0 0;padding-top:18px;border-top:1px solid #3d5a4e;color:#b9c8c0;font-size:13px">Forgot your app password?</p><button type="button" id="mdLockOut" style="margin-top:8px;background:none;border:1px solid #6f8a7e;border-radius:8px;color:#d6e2dc;cursor:pointer;font-size:14px;padding:9px 18px">Log out, then sign in again</button></form>';
     document.body.appendChild(ov);
     var app = $('app'); if (app) { try { app.inert = true; } catch (e) {} }
     var inp = $('mdLockPin'), msg = $('mdLockMsg'); setTimeout(function () { inp.focus(); }, 30);
@@ -1692,6 +1693,8 @@
     var sp = (mem.settings.profile && mem.settings.profile.data) || null, reg = sget('cd.reg'), intent = sget('cd.intent');
     sset('cd.reg', null); sset('cd.intent', null);
     if (reg) {
+      var am = ((tok() || {}).account || {}).mail;
+      if (am && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(am) && String(reg.email || '').trim().toLowerCase() !== String(am).toLowerCase()) { setTimeout(function () { toast('Your account email is ' + am + ', confirmed by ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ', so that is the one we saved.'); }, 2500); reg.email = am; }
       if (sp && sp.name) { adopt(sp, true); return true; }
       var p = profGet();
       lset('cd.profile', JSON.stringify({ name: reg.name, role: p.role || '', biz: p.biz || '', reg: p.reg || '', phone: reg.phone, email: reg.email }));
