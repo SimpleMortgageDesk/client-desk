@@ -1628,6 +1628,8 @@
       if (!email && !a.mail) return;
       var body = { event: kind, name: p.name || a.name || '', email: email, accountEmail: a.mail || a.email || '', mobile: p.phone || '', business: p.biz || '',
         trade: TR().label || '', account: PROV === 'google' ? 'Google' : 'Microsoft', app: APPN, build: window.MD_BUILD || '' };
+      /* a count only, so the right plan can be shown: never an address or any detail of a property */
+      try { if (firstPullDone) { body.props = Object.keys(mem.cases).filter(function (id) { var d = (mem.cases[id] || {}).data; return d && d.stage !== 'lost'; }).length; var hm = (mem.settings.home && mem.settings.home.data) || null; body.home = hm && String(hm.addr1 || '').trim() ? 1 : 0; } } catch (x) {}
       suKey().then(function (k) {
         if (k) body.k = k;
         return fetch(CFG.signupUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), keepalive: true });

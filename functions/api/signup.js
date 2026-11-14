@@ -20,7 +20,7 @@ export async function ensureTable(db) {
     signed_up TEXT, first_seen TEXT, last_seen TEXT, days_active INTEGER DEFAULT 0, app_build TEXT)`).run();
   await db.prepare('CREATE TABLE IF NOT EXISTS hits (k TEXT PRIMARY KEY, hr TEXT, n INTEGER)').run();
   /* added later: del_key lets a person delete their own entry; delete_requested marks a request we could not verify */
-  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   ready = true;
 }
 /* true when this sender has made too many calls this hour */
@@ -82,6 +82,8 @@ export async function onRequestPost({ request, env }) {
     .bind(email, clean(d.name, 100), clean(d.accountEmail, 160).toLowerCase(), clean(d.mobile, 30), clean(d.business, 120),
       clean(d.trade, 60), clean(d.account, 20), d.event === 'signup' ? now : null, now, clean(d.build, 40))
     .run();
+  /* how many properties they manage: a number only, sent by the app so the right plan can be shown */
+  if (Number.isInteger(d.props) && d.props >= 0 && d.props < 10000) { try { await env.DB.prepare('UPDATE users SET props = ?2, home = ?3 WHERE email = ?1').bind(email, d.props, d.home ? 1 : 0).run(); } catch (e) {} }
   if (key) await env.DB.prepare("UPDATE users SET del_key = ?2 WHERE email = ?1 AND (del_key IS NULL OR del_key = '')").bind(email, key).run();
   return say('ok');
 }
