@@ -1205,7 +1205,7 @@
     document.head.appendChild(st);
   }
   function signAside() {
-    return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For landlords who manage their own properties</div>' +
+    return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For home owners and landlords</div>' +
       '<h2>Your rentals, organised. Your records, yours.</h2>' +
       '<div class="pt"><i>1</i><div><b>See what needs doing today</b><span>Overdue rent, expiring certificates and tasks are waiting on your first screen.</span></div></div>' +
       '<div class="pt"><i>2</i><div><b>Each property in one place</b><span>Tenants, rent, deposit, repairs and documents together, ready when you need them.</span></div></div>' +
@@ -1243,7 +1243,7 @@
     var foot = '<p style="color:#58697A;font-size:12px;margin:14px 0 0"><a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>';
     var err = '<div id="mdErr" role="alert" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div>';
     var back = '<a href="#" data-sp="home" style="color:#0A6B50;font-size:13px">&larr; Back</a>';
-    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>Property records and reminders for landlords</small></span></a>' +
+    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>For home owners and landlords</small></span></a>' +
       '<a href="#" class="sw" data-sp="' + other + '">' + (other === 'login' ? 'Log in' : 'Register') + '</a></div>'; };
     var legal = '<p class="mdlegal"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>';
     var msLbl = (CFG.tenant || 'consumers') === 'consumers' ? 'Outlook or Hotmail' : 'Outlook, Hotmail or Microsoft 365';

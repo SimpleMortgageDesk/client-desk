@@ -317,7 +317,7 @@
   };
 
   T.landlord = {
-    label: 'Landlord', noun: ['Property', 'Properties'], person: ['Tenant', 'Tenants'], peopleTitle: 'Tenants',
+    label: 'Home owner / Landlord', noun: ['Property', 'Properties'], person: ['Tenant', 'Tenants'], peopleTitle: 'Tenants',
     dob: false, stages: [{ id: 'vacant', label: 'Vacant' }, { id: 'let', label: 'Let' }, { id: 'notice', label: 'Notice given' }],
     defaultStage: 'vacant', doneStage: 'let',
     tenancyMode: true, landing: 'cases', hideTabs: ['pipeline', 'clients'],
