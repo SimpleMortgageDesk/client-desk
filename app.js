@@ -216,7 +216,7 @@ function allEvents(){
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
 }
 function apEvents(){var t=iso(TODAY);return appts.filter(function(a){return a.date&&a.status!=='cancelled'&&a.status!=='done'&&a.status!=='noshow'&&a.date>=addDays(t,-30)}).map(function(a){return {date:a.date,label:(a.time?a.time+' · ':'')+(a.title||a.type||a.what||'Appointment'),kind:'appt',id:a.id,who:apWho(a),key:'ap:'+a.id}})}
-function reviewEvents(){var out=allEvents().filter(function(e){return e.kind==='review'||(T.tenancyMode&&e.kind==='task')});if(T.tenancyMode)out=out.concat(apEvents());out.forEach(function(e){if(e.kind==='task'&&!e.key)e.key='task:'+e.label});return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0})}
+function reviewEvents(){var out=allEvents().filter(function(e){return e.kind==='review'||((T.tenancyMode||T.noTasks)&&e.kind==='task')});if(T.tenancyMode||T.noTasks)out=out.concat(apEvents());out.forEach(function(e){if(e.kind==='task'&&!e.key)e.key='task:'+e.label});return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0})}
 /* key dates for the Outlook calendar: sync.js turns these into 9am events with a phone alert */
 window.CD_keyDates=function(){
   if(!loaded||!db)return null;var out=[];
@@ -254,14 +254,14 @@ function visible(){
 /* landlords: Notebook and Book appointment sit under More, in the top menu (phone) and the side menu (computer) */
 var navMore=false;
 function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
-  var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
   var tools={logout:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
   if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
-  var hideRem=sideVisible(),n1=$('#nav'),n2=$('#nav2'),one=T.tenancyMode&&NAV_MQ&&NAV_MQ.matches;
+  var hideRem=sideVisible()&&!T.remTab,n1=$('#nav'),n2=$('#nav2'),one=T.tenancyMode&&NAV_MQ&&NAV_MQ.matches;
   /* landlords on a phone: every menu item in one row that swipes sideways, Settings last */
   n1.classList.toggle('onerow',!!one);n1.classList.toggle('dk',!!T.tenancyMode);
   if(one){var keep=n1.scrollLeft,ord=items.slice(),mi=ord.map(function(i){return i[0]}).indexOf('myhome');if(mi>0)ord.unshift(ord.splice(mi,1)[0]);n1.innerHTML=mk(ord.filter(function(i){return !(hideRem&&i[0]==='reminders')}));if(n2)n2.innerHTML='';n1.scrollLeft=keep;var cur=n1.querySelector('[aria-current="page"]');if(cur&&(cur.offsetLeft<n1.scrollLeft||cur.offsetLeft+cur.offsetWidth>n1.scrollLeft+n1.clientWidth))n1.scrollLeft=Math.max(0,cur.offsetLeft-12);return}
@@ -270,7 +270,7 @@ function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
 var NAV_MQ=window.matchMedia?window.matchMedia('(max-width:759px)'):null;
 if(NAV_MQ){var navMqFn=function(){if(T)renderNav()};if(NAV_MQ.addEventListener)NAV_MQ.addEventListener('change',navMqFn);else if(NAV_MQ.addListener)NAV_MQ.addListener(navMqFn)}
 
-function toolItems(l){return l.filter(function(i){return !(i[0]==='calculator'&&!T.calculator)&&!(i[0]==='birthdays'&&!T.dob)&&!(T.hideTabs&&T.hideTabs.indexOf(i[0])>-1)})}
+function toolItems(l){return l.filter(function(i){return !(i[0]==='appointments'&&!T.apptTab)&&!(i[0]==='calculator'&&!T.calculator)&&!(i[0]==='birthdays'&&!T.dob)&&!(T.hideTabs&&T.hideTabs.indexOf(i[0])>-1)})}
 function gbp2(n){return '£'+n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function calcPay(P,rate,n){var r=rate/1200;return r===0?P/n:P*r/(1-Math.pow(1+r,-n))}
 function calcShell(){
@@ -395,7 +395,7 @@ function remindersHTML(){
   var ev=reviewEvents(),q=query.trim().toLowerCase();
   if(q)ev=ev.filter(function(e){return (e.who+' '+e.label).toLowerCase().indexOf(q)>-1});
   var g=[['Overdue','bad',function(n){return n<0}],['Next 7 days','',function(n){return n>=0&&n<=7}],['Next 30 days','',function(n){return n>7&&n<=30}],['Later this year and beyond','',function(n){return n>30}]];
-  var h='<div class="pagehead"><h1>Reminders</h1><span class="muted">'+(T.tenancyMode?'Key dates, to-dos and appointments from your calendar':'Key dates from your '+NS()+'. Tasks are in the Tasks tab')+'</span></div>';
+  var h='<div class="pagehead"><h1>Reminders</h1><span class="muted">'+((T.tenancyMode||T.noTasks)?'Key dates, to-dos and appointments from your calendar':'Key dates from your '+NS()+'. Tasks are in the Tasks tab')+'</span></div>';
   if(!ev.length)return h+'<div class="empty"><h2>Nothing due</h2>Key dates you enter on your '+NS()+' (for example '+esc(T.reminders.slice(0,2).map(function(r){return r.l.toLowerCase()}).join(' or '))+') appear here.</div>';
   g.forEach(function(x){
     var items=ev.filter(function(e){return x[2](diff(e.date))});
@@ -1164,7 +1164,7 @@ function renderLive(){
   var c=currentCase();if(!c)return;
   var ts=(c.tasks||[]).slice().sort(function(a,b){return (a.done?1:0)-(b.done?1:0)||((b.pri&&!b.done?1:0)-(a.pri&&!a.done?1:0))||(tkKey(a)<tkKey(b)?-1:tkKey(a)>tkKey(b)?1:0)});
   var ns=(c.notes||[]).slice().sort(function(a,b){return b.ts-a.ts});
-  var tasksHtml=T.tenancyMode?'':'<fieldset><legend>Tasks</legend>'+
+  var tasksHtml=(T.tenancyMode||T.noTasks)?'':'<fieldset><legend>Tasks</legend>'+
     (ts.length?ts.map(function(t){var tk0=c.id+'|'+t.id;if(editTk===tk0)return '<div class="task">'+tkEditor(tk0,t)+'</div>';return '<div class="task'+(t.done?' done':'')+(t.pri&&!t.done?' pri':'')+'"><input type="checkbox" data-tk="'+t.id+'"'+(t.done?' checked':'')+' aria-label="Done"><span class="t">'+esc(t.text)+'</span>'+(t.created?'<span class="muted" style="font-size:11px;white-space:nowrap">Added '+shortStamp(t.created)+'</span>':'')+(t.due?'<span class="chip '+(t.done?'':tone(t.due))+'">'+fd(t.due)+(t.time?' · '+esc(t.time):'')+'</span>':'')+'<button type="button" class="star'+(t.pri?' on':'')+'" data-tkpri="'+tk0+'" title="High priority" aria-label="Toggle high priority">'+(t.pri?'★':'☆')+'</button><button type="button" class="btn ghost sm" data-tkedit="'+tk0+'">Edit</button><button type="button" class="x" data-rmtk="'+t.id+'" aria-label="Delete task">×</button></div>'}).join(''):'<span class="muted">No tasks yet.</span>')+
     '<div class="add"><input type="text" id="tkText" placeholder="Add a task, e.g. '+esc(T.taskHint)+'" aria-label="New task"><input type="date" id="tkDue" aria-label="Due date"><input type="time" id="tkTime" aria-label="Time"><label class="prichk"><input type="checkbox" id="tkPri"> High priority</label><button type="button" class="btn ghost" id="tkAdd">Add task</button><button type="button" class="btn" id="tkBook">Book appointment</button></div></fieldset>';
   box.innerHTML=((T.extraLog||(c.protection||[]).length)?protFs(c):'')+(T.tenancyMode?'':docsFs(c));
@@ -1270,7 +1270,7 @@ function exportCsv(){
 var trayOpen=false,trFilter='open',trQuery='',trOpen={};
 function allTasks(){var out=[];cases.forEach(function(c){if(c.stage==='lost')return;(c.tasks||[]).forEach(function(t){out.push({c:c,t:t})})});return out}
 function trBucket(x){var d=x.t.due;if(x.t.done)return 'done';if(!d)return 'none';var n=diff(d);return n<0?'over':n===0?'today':n<=7?'week':'later'}
-function updTrayBtn(){var b=$('#trayBtn');if(!b)return;if(T&&T.tenancyMode){b.style.display='none';return}b.style.display='';var od=allTasks().filter(function(x){return trBucket(x)==='over'}).length;b.innerHTML='Tasks'+(od?'<span class="tbadge">'+od+' overdue</span>':'')}
+function updTrayBtn(){var b=$('#trayBtn');if(!b)return;if(T&&(T.tenancyMode||T.noTasks)){b.style.display='none';return}b.style.display='';var od=allTasks().filter(function(x){return trBucket(x)==='over'}).length;b.innerHTML='Tasks'+(od?'<span class="tbadge">'+od+' overdue</span>':'')}
 var TR_LABEL={pri:'High priority',over:'Overdue',today:'Due today',week:'Next 7 days',later:'Later',none:'No due date',done:'Done'};
 function trItem(x){
   var c=x.c,t=x.t,b=trBucket(x),k=c.id+'|'+t.id;
@@ -1282,9 +1282,9 @@ var sideOn=true;
 var mqSide=window.matchMedia('(min-width:760px)');
 function placeAcct(){}
 function sideVisible(){var sd=document.getElementById('side');return !!sd&&document.body.classList.contains('side-on')&&getComputedStyle(sd).display!=='none'}
-function applySide(){document.body.classList.toggle('side-on',sideOn);if(sideVisible()&&view==='reminders'){view='tasks';render()}renderNav();placeAcct();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px');renderSide();renderRem()}
+function applySide(){document.body.classList.toggle('side-on',sideOn);if(sideVisible()&&view==='reminders'&&!T.remTab){view='tasks';render()}renderNav();placeAcct();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px');renderSide();renderRem()}
 if(mqSide.addEventListener)mqSide.addEventListener('change',function(){applySide()});
-window.addEventListener('resize',function(){if(sideVisible()&&view==='reminders'){view='tasks';render()}renderNav();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')});
+window.addEventListener('resize',function(){if(sideVisible()&&view==='reminders'&&!T.remTab){view='tasks';render()}renderNav();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')});
 function sideItem(e,g){
   if(e.kind==='appt')return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-apedit="'+esc(e.id)+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+' · in your calendar</div></div></div>';
   return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-open="'+e.id+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+'</div></div><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'"'+(e.rep?' data-rep="1" title="Remind me again in 30 days. Update the date when it is renewed.">In 30 days':' title="Hide this reminder">Done')+'</button></div>';
