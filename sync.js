@@ -1478,6 +1478,7 @@
     });
   }
   /* keep the email (never a password) so the login screen can fill in the User ID next time */
+  window.CD_loginMail = function () { try { return String(((tok() || {}).account || {}).mail || ''); } catch (e) { return ''; } };
   function rememberMail() { try { var m = ((tok() || {}).account || {}).mail; if (m) lset('cd.lastMail', m); } catch (e) {} }
   async function signOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
