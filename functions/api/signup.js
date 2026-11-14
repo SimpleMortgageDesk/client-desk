@@ -24,7 +24,7 @@ export async function ensureTable(db) {
   ready = true;
 }
 /* true when this sender has made too many calls this hour */
-async function tooMany(db, request, now) {
+export async function tooMany(db, request, now) {
   try {
     const hr = now.slice(0, 13), ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     const dig = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip + '|' + hr));

@@ -1335,6 +1335,7 @@
         try { var salt = crypto.getRandomValues(new Uint8Array(16)); reg.pin = { kind: 'pw', s: b64(salt), h: await pinHash(p1, salt) }; } catch (x) { return say('This browser cannot store a password. Try another browser.'); }
       }
       say(''); f.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+      if (vOn()) { try { await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', email: mail, name: nm }) }); } catch (x) {} }
       sset('cd.reg', reg); sset('cd.intent', 'register');
       if (which === 'google') gStart(); else { lset('cd.prov', 'ms'); startLogin(); }
     });
@@ -1731,8 +1732,46 @@
     if (a.mode === 'acct') { lset('cd.pin', null); lset('cd.auth', 'acct'); toast(fromReg ? 'You already have an account, so you are now logged in.' : 'Welcome back, ' + sp.name + '.'); return; }
     openProfile(true);
   }
+  /* email confirmation: a new account is held until the link in the email is clicked. People who registered before this existed have no record and are never blocked. If the check cannot run, the app carries on. */
+  var vState = '';
+  function vOn() { return suOn() && location.protocol !== 'file:' && !window.CD_DEMO; }
+  function vMail() { var r = sget('cd.reg'); return (r && r.email) || ((tok() || {}).account || {}).mail || ''; }
+  async function vCall(action, email) {
+    var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
+    return { code: r.status, body: await r.json().catch(function () { return {}; }) };
+  }
+  async function vRun() {
+    var em = vMail();
+    if (!vOn() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { vState = 'ok'; return; }
+    try {
+      var r = await vCall('status', em);
+      if (r.code === 200 && r.body.status === 'pending') { vState = 'blocked'; vBlock(em); return; }
+    } catch (e) {}
+    vState = 'ok'; var b = $('mdVerify'); if (b) b.remove(); var ap = $('app'); if (ap) { try { ap.inert = false; } catch (x) {} }
+    setTimeout(pinWarnMaybe, 50);
+  }
+  function vBlock(em) {
+    var ov = $('mdVerify'); if (ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'mdVerify';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:410;background:#0f1f1a;color:#fff;display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,sans-serif';
+    var bs = 'width:100%;padding:12px;font-size:16px;border-radius:8px;cursor:pointer;margin-top:10px;';
+    ov.innerHTML = '<div style="width:min(400px,100%);text-align:center"><div style="font-size:40px">&#9993;</div><h2 style="margin:8px 0 6px;font-size:22px">Confirm your email</h2>' +
+      '<p style="margin:0 0 6px;color:#d6e2dc;font-size:14px;line-height:1.5">We sent an email to <b>' + esc(em) + '</b>. Open it and press <b>Confirm my email</b>. You cannot use ' + esc(APPN) + ' until you do.</p>' +
+      '<p style="margin:0 0 14px;color:#b9c8c0;font-size:13px">Cannot see it? Check your Junk or Spam folder.</p>' +
+      '<button type="button" id="mdVgo" style="' + bs + 'border:0;background:#2f8f6b;color:#fff">I have confirmed it, continue</button>' +
+      '<button type="button" id="mdVre" style="' + bs + 'border:1px solid #6f8a7e;background:none;color:#d6e2dc">Send the email again</button>' +
+      '<p id="mdVmsg" role="status" style="min-height:20px;margin:12px 0 0;color:#ffd9a8;font-size:13px"></p>' +
+      '<p style="margin:26px 0 0;padding-top:16px;border-top:1px solid #3d5a4e"><button type="button" id="mdVout" style="background:none;border:1px solid #6f8a7e;border-radius:8px;color:#d6e2dc;cursor:pointer;font-size:14px;padding:9px 18px">Log out</button></p></div>';
+    document.body.appendChild(ov);
+    var ap = $('app'); if (ap) { try { ap.inert = true; } catch (x) {} }
+    var msg = function (m) { $('mdVmsg').textContent = m; };
+    $('mdVgo').onclick = async function () { msg('Checking…'); try { var r = await vCall('status', em); if (r.code === 200 && r.body.status === 'pending') { msg('Not confirmed yet. Press the button in the email first.'); return; } } catch (e) { msg('Could not check. Check you are online, then try again.'); return; } vState = 'ok'; ov.remove(); if (ap) { try { ap.inert = false; } catch (x) {} } setTimeout(pinWarnMaybe, 50); };
+    $('mdVre').onclick = async function () { msg('Sending…'); try { var r = await vCall('start', em); msg(r.code === 200 && r.body.wait ? 'An email was sent a moment ago. Wait a minute before asking again.' : r.code === 200 ? 'Sent. Check your inbox.' : r.code === 429 ? 'Too many emails today. Try again tomorrow.' : 'Could not send the email. Try again later.'); } catch (e) { msg('Could not send. Check you are online.'); } };
+    $('mdVout').onclick = function () { wipeAndReload(false); };
+  }
   function pinWarnMaybe() {
     if (!tok() || setupSkipped) return;
+    if (vState !== 'ok') { if (!vState) { vState = 'wait'; vRun(); } return; }
     if (!firstPullDone && pwWait++ < ((sget('cd.reg') || sget('cd.intent')) ? 60 : 10)) { setTimeout(pinWarnMaybe, 1000); return; }
     if (afterSignIn()) return;
     if (ls('cd.guide') && !$('mdProf') && (!lockable() || !profGet().name)) { openProfile(true); return; }
