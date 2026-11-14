@@ -1738,7 +1738,7 @@
   function vOn() { return suOn() && location.protocol !== 'file:' && !window.CD_DEMO; }
   function vMail() { var r = sget('cd.reg'); return (r && r.email) || ((tok() || {}).account || {}).mail || ''; }
   async function vCall(action, email) {
-    var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
+    var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, alt: (profGet().email || ''), name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
     return { code: r.status, body: await r.json().catch(function () { return {}; }) };
   }
   async function vRun() {
@@ -1746,10 +1746,23 @@
     if (!vOn() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { vState = 'ok'; return; }
     try {
       var r = await vCall('status', em);
+      if (r.code === 200 && r.body.suspended) { vState = 'blocked'; susBlock(); return; }
       if (r.code === 200 && r.body.status === 'pending') { vState = 'blocked'; vBlock(em); return; }
     } catch (e) {}
     vState = 'ok'; var b = $('mdVerify'); if (b) b.remove(); var ap = $('app'); if (ap) { try { ap.inert = false; } catch (x) {} }
     setTimeout(pinWarnMaybe, 50);
+  }
+  function susBlock() {
+    var ov = $('mdVerify'); if (ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'mdVerify';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:410;background:#0f1f1a;color:#fff;display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,sans-serif';
+    var sm = CFG.ownerEmail || '';
+    ov.innerHTML = '<div style="width:min(400px,100%);text-align:center"><div style="font-size:40px">&#9888;&#65039;</div><h2 style="margin:8px 0 6px;font-size:22px">Your account is suspended</h2>' +
+      '<p style="margin:0 0 14px;color:#d6e2dc;font-size:14px;line-height:1.5">You cannot use ' + esc(APPN) + ' at the moment. Your records are safe in your own ' + SNAME() + ' and have not been changed.' + (sm ? ' To ask about this, email <a href="mailto:' + esc(sm) + '" style="color:#9fe0c4">' + esc(sm) + '</a>.' : '') + '</p>' +
+      '<button type="button" id="mdVout" style="background:none;border:1px solid #6f8a7e;border-radius:8px;color:#d6e2dc;cursor:pointer;font-size:14px;padding:9px 18px">Log out</button></div>';
+    document.body.appendChild(ov);
+    var ap = $('app'); if (ap) { try { ap.inert = true; } catch (x) {} }
+    $('mdVout').onclick = function () { wipeAndReload(false); };
   }
   function vBlock(em) {
     var ov = $('mdVerify'); if (ov) ov.remove();

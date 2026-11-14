@@ -48,7 +48,10 @@ export async function onRequestPost({ request, env }) {
   if (!EMAIL.test(email)) return json({ error: 'bad email' }, 400);
   await table(env.DB);
   const row = await env.DB.prepare('SELECT sent_at, sent_day, sent_n, confirmed_at FROM verify WHERE email = ?1').bind(email).first();
-  if (d.action === 'status') return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : 'pending' });
+  if (d.action === 'status') {
+    let sus = false; try { const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email; const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL LIMIT 1').bind(email, alt).first(); sus = !!u; } catch (e) {}
+    return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : 'pending', suspended: sus });
+  }
   if (d.action !== 'start') return json({ error: 'bad request' }, 400);
   if (!env.RESEND_API_KEY) return json({ error: 'email sending is not set up' }, 503);
   if (row && row.confirmed_at) return json({ status: 'confirmed' });
