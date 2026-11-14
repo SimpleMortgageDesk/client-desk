@@ -215,7 +215,7 @@
     /* no Tasks or Pipeline tabs: an Appointments tab and a Reminders tab instead (to-dos with a date show as reminders) */
     landing: 'appointments', hideTabs: ['pipeline', 'tasks'], noTasks: true, apptTab: true, remTab: true,
     /* each job gets its own folder (Jobs › customer - address) for photos and documents saved as PDF, and its own receipts and expenses */
-    jobDocs: true, expCats: ['Parts and materials', 'Tools and equipment', 'Fuel and travel', 'Parking', 'Subcontractor', 'Waste disposal', 'Other'],
+    flatPrice: '£1.99', jobDocs: true, expCats: ['Parts and materials', 'Tools and equipment', 'Fuel and travel', 'Parking', 'Subcontractor', 'Waste disposal', 'Other'],
     dob: false, stages: JOB_STAGES, defaultStage: 'enquiry', doneStage: 'paid',
     types: ['Boiler service', 'Boiler repair / breakdown', 'Boiler installation', 'Landlord gas safety record (CP12)', 'Gas safety check', 'Cooker or hob', 'Gas fire', 'Central heating', 'Other'],
     sections: [siteSection(), { id: 'appliance', title: 'Appliance, service and safety', fields: [
@@ -411,7 +411,7 @@
     dontRecord: 'Do not type bank or card details, passwords or anyone’s health details here.', msgFoot: FOOT, msgs: tradeMsgs('next appointment')
   };
 
-  var ORDER = ['gas', 'plumber', 'electrician', 'builder', 'beauty', 'landlord', 'architect', 'accountant', 'solicitor', 'mortgage', 'general'];
+  var ORDER = ['landlord', 'gas', 'plumber', 'electrician', 'builder', 'beauty', 'architect', 'accountant', 'solicitor', 'mortgage', 'general'];
   ORDER.forEach(function (id) {
     var t = T[id]; t.id = id; t.fields = [];
     t.sections.forEach(function (s) { s.fields.forEach(function (f) { t.fields.push(f); }); });
@@ -429,7 +429,7 @@
   /* OPEN TRADES: the kinds of work people can choose right now. Every other trade is still listed,
      greyed out as "Coming soon". To open another trade, add its id here, e.g. ['landlord', 'gas'].
      [] = all trades can be chosen. People already set up with another trade keep it. */
-  var OPEN = ['landlord'].filter(function (id) { return T[id]; });
+  var OPEN = ['landlord', 'gas'].filter(function (id) { return T[id]; });
   var isOpen = function (id) { return !OPEN.length || OPEN.indexOf(id) > -1; };
   ORDER = ORDER.filter(isOpen).concat(ORDER.filter(function (id) { return !isOpen(id); }));
   window.CD_TRADES = { order: ORDER, all: T, only: ONLY, open: OPEN };

@@ -47,7 +47,7 @@ th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}
   }
   /* which plan they would be on: home owners free, landlords 0.99 up to 5 let properties, 1.99 above */
   function ll(u) { return /landlord/i.test(u.trade || ''); }
-  function plan(u) { if (!ll(u)) return u.trade ? 'Price not set yet' : ''; if (u.props == null) return ''; return u.props === 0 ? 'Home owner (free)' : u.props <= 5 ? '£0.99' : '£1.99'; }
+  function plan(u) { if (/gas/i.test(u.trade || '')) return '£1.99'; if (!ll(u)) return u.trade ? 'Price not set yet' : ''; if (u.props == null) return ''; return u.props === 0 ? 'Home owner (free)' : u.props <= 5 ? '£0.99' : '£1.99'; }
   var PAY = { trial: ['Trial', '#EAF4EF', '#0A6B50'], paid: ['Paid', '#DCEFE8', '#07543f'], due: ['Due', '#FADDD9', '#A3261F'] };
   function payOf(u) { return PAY[u.pay] ? u.pay : 'trial'; }
   function paySel(u) { var p = payOf(u); return '<select data-pay="' + esc(u.email) + '" aria-label="Payment status" style="padding:5px 8px;border-radius:8px;border:1px solid #c9d2d6;font:inherit;font-weight:700;background:' + PAY[p][1] + ';color:' + PAY[p][2] + '">' + ['trial', 'paid', 'due'].map(function (k) { return '<option value="' + k + '"' + (k === p ? ' selected' : '') + '>' + PAY[k][0] + '</option>'; }).join('') + '</select>'; }

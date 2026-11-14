@@ -1205,7 +1205,7 @@
     document.head.appendChild(st);
   }
   function signAside() {
-    return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For home owners and landlords</div>' +
+    return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For home owners, landlords and gas engineers</div>' +
       '<h2>Your rentals, organised. Your records, yours.</h2>' +
       '<div class="pt"><i>1</i><div><b>See what needs doing today</b><span>Overdue rent, expiring certificates and tasks are waiting on your first screen.</span></div></div>' +
       '<div class="pt"><i>2</i><div><b>Each property in one place</b><span>Tenants, rent, deposit, repairs and documents together, ready when you need them.</span></div></div>' +
@@ -1243,7 +1243,7 @@
     var foot = '<p style="color:#58697A;font-size:12px;margin:14px 0 0"><a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>';
     var err = '<div id="mdErr" role="alert" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div>';
     var back = '<a href="#" data-sp="home" style="color:#0A6B50;font-size:13px">&larr; Back</a>';
-    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>For home owners and landlords</small></span></a>' +
+    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>For home owners, landlords and gas engineers</small></span></a>' +
       '<a href="#" class="sw" data-sp="' + other + '">' + (other === 'login' ? 'Log in' : 'Register') + '</a></div>'; };
     var legal = '<p class="mdlegal"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>';
     var msLbl = (CFG.tenant || 'consumers') === 'consumers' ? 'Outlook or Hotmail' : 'Outlook, Hotmail or Microsoft 365';
@@ -1263,7 +1263,7 @@
       var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
       var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
       html = '<form id="rgForm" novalidate class="mdl">' + hdr('login') + '<h1>Free to start. No card needed.</h1>' +
-        '<p class="lead"><b>Free forever for home owners.</b> Landlords: free for your first year (a promotional offer), then from £0.99 a month (<a href="home.html#pricing" target="_blank" rel="noopener" style="color:#0A6B50">see pricing</a>). Every feature included. Set up your account in a few minutes. Your records are saved in your own ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, never on our computers.</p>' +
+        '<p class="lead"><b>Free forever for home owners.</b> Landlords and gas engineers: free for your first year (a promotional offer), then from £0.99 a month (<a href="home.html#pricing" target="_blank" rel="noopener" style="color:#0A6B50">see pricing</a>). Every feature included. Set up your account in a few minutes. Your records are saved in your own ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, never on our computers.</p>' +
         '<p id="rgTop" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
         '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
@@ -1761,13 +1761,13 @@
   window.CD_userNo = function () { return planInfo && planInfo.no ? 'MSD-' + planInfo.no : ''; };
   function trialNote() {
     try {
-      if (!planInfo || planInfo.pay === 'paid' || !tok() || !TR().tenancyMode || $('mdTrial')) return;
+      var flat = TR().flatPrice || ''; if (!planInfo || planInfo.pay === 'paid' || !tok() || (!TR().tenancyMode && !flat) || $('mdTrial')) return;
       var props = Object.keys(mem.cases).filter(function (id) { var d = (mem.cases[id] || {}).data; return d && d.stage !== 'lost'; }).length;
-      if (!props) return;
+      if (!props && !flat) return;
       var end = new Date(planInfo.since); if (isNaN(end)) return; end.setFullYear(end.getFullYear() + 1);
       var left = Math.ceil((end - Date.now()) / 864e5), due = planInfo.pay === 'due'; if (left > 30 && !due) return;
       var today = new Date().toISOString().slice(0, 10); if (ls('cd.trialHide') === today) return;
-      var price = props <= 5 ? '£0.99' : '£1.99', ref = planInfo.no ? 'MSD-' + planInfo.no : '', when = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      var price = flat || (props <= 5 ? '£0.99' : '£1.99'), ref = planInfo.no ? 'MSD-' + planInfo.no : '', when = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
       var pay = String(CFG.payDetails || '').trim(), sm = CFG.ownerEmail || '';
       var b = document.createElement('div'); b.id = 'mdTrial'; b.setAttribute('role', 'status');
       b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:200;max-width:720px;margin:0 auto;background:#FFE9B8;color:#3d2800;border:2px solid #D98A00;border-left-width:8px;border-radius:12px;padding:14px 16px;font:14.5px/1.45 system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.25)';
