@@ -17,6 +17,6 @@ window.MD_CONFIG = {
   googleClientId: 'PASTE-GOOGLE-CLIENT-ID-HERE',
   tenant: 'consumers',
   ownerName: 'MySimpleDesk',
-  ownerEmail: 'hello@mysimpledesk.co.uk',
+  ownerEmail: 'support@mysimpledesk.co.uk',
   signupUrl: '/api/signup'
 };
