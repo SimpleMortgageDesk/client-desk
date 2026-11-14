@@ -256,8 +256,8 @@ var navMore=false;
 function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
   var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
-  var tools={logout:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
-  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
+  var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
+  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['tradesmen','My tradesmen'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
@@ -305,7 +305,7 @@ function render(){
   if((view==='calculator'&&!T.calculator)||(view==='birthdays'&&!T.dob))view='tasks';
   if(T.hideTabs&&T.hideTabs.indexOf(view)>-1)view=T.landing||'tasks';
   if(T.tenancyMode&&(view==='invoices'||view==='marketing'))view='cases';
-  if(!T.tenancyMode&&view==='myhome')view=T.landing||'tasks';
+  if(!T.tenancyMode&&(view==='myhome'||view==='tradesmen'))view=T.landing||'tasks';
   if(view==='tasks'){if((!T.tenancyMode&&(!$('#trList')||!v.contains($('#trList'))))||(T.tenancyMode&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(T.tenancyMode?' nocal':'')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(T.tenancyMode?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!T.tenancyMode)renderTray();renderRem()}
   else if(view==='notebook'){if(!$('#nbMain')||!v.contains($('#nbMain'))){v.innerHTML=nbShell();nbShown=null}renderNotebook()}
   else if(view==='calculator'){if(!$('#calcMain')||!v.contains($('#calcMain'))){v.innerHTML=calcShell();calcUpdate()}}
@@ -316,6 +316,7 @@ function render(){
   else if(view==='invoices')v.innerHTML=invoicesHTML();
   else if(view==='pipeline')v.innerHTML=pipelineHTML();
   else if(view==='cases')v.innerHTML=casesHTML();
+  else if(view==='tradesmen')v.innerHTML=tmHTML();
   else if(view==='myhome')v.innerHTML='<div class="pagehead"><h1>My residential house</h1></div>'+homeCard(true);
   else v.innerHTML=remindersHTML();
 }
@@ -1293,7 +1294,7 @@ var sideLater=false;
 function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
-  if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
+  if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-v="tradesmen"'+(view==='tradesmen'?' aria-current="page"':'')+'>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
   var items=toolItems([['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   s.innerHTML='<div id="sideTools"><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
@@ -3706,6 +3707,35 @@ function mcRender(){
 }
 document.addEventListener('input',function(e){var t=e.target;if(t&&/^f-mort(Rate|Balance|Payment|Method)$/.test(t.id||''))mcRender()});
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.id==='f-mortMethod')mcRender()});
+/* ---------- My tradesmen (home owners and landlords): preferred tradespeople, name and phone only ---------- */
+var tmItems=[],tmEdit=null;
+function tmIntl(p){var w=String(p||'').replace(/[^\d+]/g,'');return w.charAt(0)==='+'?w.slice(1):w.charAt(0)==='0'?'44'+w.slice(1):w}
+function tmSave(items){tmItems=items;if(setCol)write('set-tradesmen',function(){return setCol.doc('tradesmen').set({items:items,updatedAt:Date.now()})});if(view==='tradesmen')render()}
+function tmHTML(){
+  var l=tmItems.slice().sort(function(a,b){return String(a.name||'').localeCompare(String(b.name||''))}),ed=tmEdit?tmItems.filter(function(x){return x.id===tmEdit})[0]:null;if(!ed)tmEdit=null;
+  return '<div class="pagehead"><h1>My tradesmen</h1><span class="muted">'+l.length+' saved</span></div>'+
+   '<div class="tmpage"><p class="muted" style="margin:0 0 12px">Keep the name and phone number of the tradespeople you trust, so they are to hand when something needs fixing.</p>'+
+   '<form id="tmForm" class="tmadd" novalidate><label class="f">Name<input id="tm-name" maxlength="80" autocomplete="off" placeholder="For example: Sam the plumber" value="'+esc(ed?ed.name:'')+'"></label>'+
+   '<label class="f">Phone number<input id="tm-phone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" placeholder="For example: 07700 900123" value="'+esc(ed?ed.phone:'')+'"></label>'+
+   '<div class="add" style="margin:0;align-self:end"><button type="submit" class="btn">'+(ed?'Save changes':'Add tradesman')+'</button>'+(ed?'<button type="button" class="btn ghost" data-tmcancel="1">Cancel</button>':'')+'</div></form>'+
+   '<p id="tmMsg" role="alert" class="tmmsg"></p>'+
+   (l.length?'<ul class="tmlist">'+l.map(function(x){var d=String(x.phone||'').replace(/[^\d+]/g,''),ok=d.replace(/\D/g,'').length>=7;return '<li><div class="tmwho"><b>'+esc(x.name)+'</b><span>'+esc(x.phone||'')+'</span></div><div class="tmact">'+(ok?'<a class="btn sm" href="tel:'+esc(d)+'">Call</a><a class="btn ghost sm" target="_blank" rel="noopener" href="https://wa.me/'+esc(tmIntl(x.phone))+'">WhatsApp</a>':'')+'<button type="button" class="btn ghost sm" data-tmedit="'+esc(x.id)+'">Edit</button><button type="button" class="btn ghost sm danger" data-tmdel="'+esc(x.id)+'">Delete</button></div></li>'}).join('')+'</ul>'
+    :'<div class="empty"><h2>No tradesmen saved yet</h2>Add your plumber, electrician, gas engineer or handyman above.</div>')+'</div>';
+}
+document.addEventListener('submit',function(e){
+  if(!e.target||e.target.id!=='tmForm')return;e.preventDefault();
+  var nm=($('#tm-name').value||'').trim(),ph=($('#tm-phone').value||'').trim(),msg=$('#tmMsg');
+  if(!nm){msg.textContent='Add a name.';$('#tm-name').focus();return}
+  if(ph.replace(/\D/g,'').length<7){msg.textContent=ph?'That does not look like a phone number.':'Add a phone number.';$('#tm-phone').focus();return}
+  var items=tmEdit?tmItems.map(function(x){return x.id===tmEdit?Object.assign({},x,{name:nm,phone:ph}):x}):tmItems.concat([{id:'tm'+uid(),name:nm,phone:ph}]);
+  var was=tmEdit;tmEdit=null;tmSave(items);toast(was?'Saved':'Tradesman added');
+});
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;var b;
+  if((b=t.closest('[data-tmedit]'))){tmEdit=b.getAttribute('data-tmedit');render();var f=$('#tm-name');if(f)f.focus();return}
+  if(t.closest('[data-tmcancel]')){tmEdit=null;render();return}
+  if((b=t.closest('[data-tmdel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var id=b.getAttribute('data-tmdel');if(tmEdit===id)tmEdit=null;tmSave(tmItems.filter(function(x){return x.id!==id}));toast('Deleted')}
+});
 /* ---------- start ---------- */
 render();
 claude.use('db').then(function(d){
@@ -3716,6 +3746,7 @@ claude.use('db').then(function(d){
   apCol=db.collection('appointments');
   mkCol=db.collection('marketing');
   setCol=db.collection('settings');var tradeSeen=false;setCol.onSnapshot(bizSnap,function(){});
+  setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='tradesmen'})[0];tmItems=(d&&d.data().items)||[];if(view==='tradesmen'&&!(document.activeElement&&/^tm-/.test(document.activeElement.id||'')))render()},function(){});
   setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],tid=d0&&d0.data().trade;if(!tid||!window.CD_TRADES.all[tid])return;tradeSeen=true;if(window.CD_TRADES.only)return;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();if(tid!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(tid);if(openId!==undefined)closeDrawer();applyTrade();render();renderSide()}});
   (window.CD_firstPull||Promise.resolve()).then(function(){if(tradeSeen)return;if(window.CD_tradeChosen())write('set-trade',function(){return setCol.doc('trade').set({trade:T.id,updatedAt:Date.now()})});else openTradePicker(true)});
   mkCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='contacts'})[0];mkItems=(d&&d.data().items)||[];var dm=s.docs.filter(function(x){return x.id==='messages'})[0];mkMsgsDoc=(dm&&dm.data().items)||null;if(view==='marketing'&&!$('#mkOv')&&!mkMsgEdit)mkList()});
