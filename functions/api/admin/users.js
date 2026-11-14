@@ -1,5 +1,6 @@
 /* GET /api/admin/users          list everyone in the sign-up list
    DELETE /api/admin/users?email= remove one person (for deletion requests)
+   POST /api/admin/users?email=&pay=trial|paid|due  set one person's payment status
    POST /api/admin/users?email=&suspend=1|0  suspend or restore one person (the app then shows them a suspended screen)
    Protected twice: Cloudflare Access must cover /admin* and /api/admin*, and this code checks Access's signed
    token itself. Settings > Variables: ACCESS_TEAM (e.g. yourteam.cloudflareaccess.com) and ACCESS_AUD (the
@@ -48,6 +49,13 @@ export async function onRequest({ request, env }) {
   if (request.method === 'POST') {
     const u = new URL(request.url), email = (u.searchParams.get('email') || '').toLowerCase(), on = u.searchParams.get('suspend') === '1';
     if (!email) return json({ error: 'No email given' }, 400);
+    /* payment status set by the owner: trial (the default, stored as empty), paid or due */
+    const pay = u.searchParams.get('pay');
+    if (pay !== null) {
+      if (['trial', 'paid', 'due'].indexOf(pay) < 0) return json({ error: 'Unknown status' }, 400);
+      await env.DB.prepare('UPDATE users SET pay = ?2 WHERE email = ?1').bind(email, pay === 'trial' ? null : pay).run();
+      return json({ email, pay });
+    }
     await env.DB.prepare('UPDATE users SET suspended = ?2 WHERE email = ?1').bind(email, on ? new Date().toISOString() : null).run();
     return json({ email, suspended: on });
   }

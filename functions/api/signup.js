@@ -20,7 +20,7 @@ export async function ensureTable(db) {
     signed_up TEXT, first_seen TEXT, last_seen TEXT, days_active INTEGER DEFAULT 0, app_build TEXT)`).run();
   await db.prepare('CREATE TABLE IF NOT EXISTS hits (k TEXT PRIMARY KEY, hr TEXT, n INTEGER)').run();
   /* added later: del_key lets a person delete their own entry; delete_requested marks a request we could not verify */
-  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER', 'user_no INTEGER']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER', 'user_no INTEGER', 'pay TEXT']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   try { await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS users_no ON users (user_no)').run(); } catch (e) {}
   try { await db.prepare('CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, n INTEGER)').run(); } catch (e) {}
   ready = true;

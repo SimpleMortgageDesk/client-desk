@@ -1749,7 +1749,7 @@
     try {
       var r = await vCall('status', em);
       if (r.code === 200 && r.body.suspended) { vState = 'blocked'; susBlock(); return; }
-      if (r.code === 200 && r.body.since) { planInfo = { no: r.body.no, since: r.body.since }; setTimeout(trialNote, 8000); }
+      if (r.code === 200 && r.body.since) { planInfo = { no: r.body.no, since: r.body.since, pay: r.body.pay || 'trial' }; setTimeout(trialNote, 8000); }
       if (r.code === 200 && r.body.status === 'pending') { vState = 'blocked'; vBlock(em); return; }
     } catch (e) {}
     vState = 'ok'; var b = $('mdVerify'); if (b) b.remove(); var ap = $('app'); if (ap) { try { ap.inert = false; } catch (x) {} }
@@ -1760,17 +1760,17 @@
   window.CD_userNo = function () { return planInfo && planInfo.no ? 'MSD-' + planInfo.no : ''; };
   function trialNote() {
     try {
-      if (!planInfo || !tok() || !TR().tenancyMode || $('mdTrial')) return;
+      if (!planInfo || planInfo.pay === 'paid' || !tok() || !TR().tenancyMode || $('mdTrial')) return;
       var props = Object.keys(mem.cases).filter(function (id) { var d = (mem.cases[id] || {}).data; return d && d.stage !== 'lost'; }).length;
       if (!props) return;
       var end = new Date(planInfo.since); if (isNaN(end)) return; end.setFullYear(end.getFullYear() + 1);
-      var left = Math.ceil((end - Date.now()) / 864e5); if (left > 30) return;
+      var left = Math.ceil((end - Date.now()) / 864e5), due = planInfo.pay === 'due'; if (left > 30 && !due) return;
       var today = new Date().toISOString().slice(0, 10); if (ls('cd.trialHide') === today) return;
       var price = props <= 5 ? '£0.99' : '£1.99', ref = planInfo.no ? 'MSD-' + planInfo.no : '', when = end.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
       var pay = String(CFG.payDetails || '').trim(), sm = CFG.ownerEmail || '';
       var b = document.createElement('div'); b.id = 'mdTrial'; b.setAttribute('role', 'status');
       b.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:200;max-width:720px;margin:0 auto;background:#FFE9B8;color:#3d2800;border:2px solid #D98A00;border-left-width:8px;border-radius:12px;padding:14px 16px;font:14.5px/1.45 system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.25)';
-      b.innerHTML = '<div style="font-size:16px;font-weight:800;margin-bottom:4px">' + (left < 0 ? 'Your free year ended on ' + esc(when) : left === 0 ? 'Your free year ends today' : 'Your free year ends on ' + esc(when) + ' (in ' + left + ' day' + (left === 1 ? '' : 's') + ')') + '</div>' +
+      b.innerHTML = '<div style="font-size:16px;font-weight:800;margin-bottom:4px">' + (due ? 'Your payment is due' : left < 0 ? 'Your free year ended on ' + esc(when) : left === 0 ? 'Your free year ends today' : 'Your free year ends on ' + esc(when) + ' (in ' + left + ' day' + (left === 1 ? '' : 's') + ')') + '</div>' +
         'To keep using ' + esc(APPN) + ', set up a standing order of <b>' + price + ' a month</b>' + (ref ? ' with the reference <b>' + esc(ref) + '</b> (your user number)' : '') + '. ' +
         (pay ? 'Pay to: <b>' + esc(pay) + '</b>.' : (sm ? 'Email <a href="mailto:' + esc(sm) + '?subject=' + encodeURIComponent('Payment details ' + ref) + '" style="color:#3d2800;font-weight:700">' + esc(sm) + '</a> for the bank details.' : '')) +
         '<div style="margin-top:10px"><button type="button" id="mdTrialX" style="background:#fff;border:1px solid #D98A00;border-radius:8px;padding:7px 14px;font:inherit;font-weight:600;color:#3d2800;cursor:pointer">Remind me tomorrow</button></div>';
