@@ -214,6 +214,8 @@
     label: 'Gas engineer or heating engineer', noun: ['Job', 'Jobs'], person: ['Customer', 'Customers'], peopleTitle: 'Customer',
     /* no Tasks or Pipeline tabs: an Appointments tab and a Reminders tab instead (to-dos with a date show as reminders) */
     landing: 'appointments', hideTabs: ['pipeline', 'tasks'], noTasks: true, apptTab: true, remTab: true,
+    /* each job gets its own folder (Jobs › customer - address) for photos and documents saved as PDF, and its own receipts and expenses */
+    jobDocs: true, expCats: ['Parts and materials', 'Tools and equipment', 'Fuel and travel', 'Parking', 'Subcontractor', 'Waste disposal', 'Other'],
     dob: false, stages: JOB_STAGES, defaultStage: 'enquiry', doneStage: 'paid',
     types: ['Boiler service', 'Boiler repair / breakdown', 'Boiler installation', 'Landlord gas safety record (CP12)', 'Gas safety check', 'Cooker or hob', 'Gas fire', 'Central heating', 'Other'],
     sections: [siteSection(), { id: 'appliance', title: 'Appliance, service and safety', fields: [

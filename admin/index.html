@@ -46,13 +46,14 @@ th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}
       .catch(function (e) { $('out').innerHTML = '<div class="msg err">' + esc(e.message || 'Could not load the list.') + '</div>'; });
   }
   /* which plan they would be on: home owners free, landlords 0.99 up to 5 let properties, 1.99 above */
-  function plan(u) { if (u.props == null) return ''; return u.props === 0 ? 'Home owner (free)' : u.props <= 5 ? '£0.99' : '£1.99'; }
+  function ll(u) { return /landlord/i.test(u.trade || ''); }
+  function plan(u) { if (!ll(u)) return u.trade ? 'Price not set yet' : ''; if (u.props == null) return ''; return u.props === 0 ? 'Home owner (free)' : u.props <= 5 ? '£0.99' : '£1.99'; }
   var PAY = { trial: ['Trial', '#EAF4EF', '#0A6B50'], paid: ['Paid', '#DCEFE8', '#07543f'], due: ['Due', '#FADDD9', '#A3261F'] };
   function payOf(u) { return PAY[u.pay] ? u.pay : 'trial'; }
   function paySel(u) { var p = payOf(u); return '<select data-pay="' + esc(u.email) + '" aria-label="Payment status" style="padding:5px 8px;border-radius:8px;border:1px solid #c9d2d6;font:inherit;font-weight:700;background:' + PAY[p][1] + ';color:' + PAY[p][2] + '">' + ['trial', 'paid', 'due'].map(function (k) { return '<option value="' + k + '"' + (k === p ? ' selected' : '') + '>' + PAY[k][0] + '</option>'; }).join('') + '</select>'; }
   function no(u) { return u.user_no ? 'MSD-' + u.user_no : ''; }
   /* landlords: the free year runs 12 months from sign-up; home owners never pay */
-  function ends(u) { if (u.props === 0) return 'never (free)'; var s = u.signed_up || u.first_seen; if (!s) return ''; var d = new Date(s); d.setFullYear(d.getFullYear() + 1); var left = Math.ceil((d - Date.now()) / 864e5); return day(d) + (left < 0 ? '<div style="color:#A3261F;font-weight:700;font-size:12px">ended</div>' : left <= 30 ? '<div style="color:#8A5A00;font-weight:700;font-size:12px">in ' + left + ' days</div>' : ''); }
+  function ends(u) { if (ll(u) && u.props === 0) return 'never (free)'; var s = u.signed_up || u.first_seen; if (!s) return ''; var d = new Date(s); d.setFullYear(d.getFullYear() + 1); var left = Math.ceil((d - Date.now()) / 864e5); return day(d) + (left < 0 ? '<div style="color:#A3261F;font-weight:700;font-size:12px">ended</div>' : left <= 30 ? '<div style="color:#8A5A00;font-weight:700;font-size:12px">in ' + left + ' days</div>' : ''); }
   function draw() {
     var q = $('q').value.trim().toLowerCase();
     var pf = $('pf').value; var list = users.filter(function (u) { return (!pf || payOf(u) === pf) && (!q || [no(u), u.name, u.email, u.mobile, u.business, u.trade].join(' ').toLowerCase().indexOf(q) > -1); });

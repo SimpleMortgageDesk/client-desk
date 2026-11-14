@@ -573,14 +573,14 @@ function openDrawer(id,draft){
   d.innerHTML='<div class="bk" data-close></div><div class="panel" role="dialog" aria-modal="true" aria-label="'+esc(T.noun[0])+'">'+
   '<div class="dh"><div style="min-width:0"><div class="eyebrow">'+(id?esc(T.noun[0]):draft&&draft._from?'New '+N1()+' for an existing client. Add the details, then it saves automatically':'New '+N1())+'</div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><h2 id="dTitle" style="margin:0">'+esc(id?names(c):(T.tenancyMode?'Add a property':'Add a client'))+'</h2></div>'+(id?'<div id="nextAppt" class="muted" style="font-size:12px;margin-top:4px">'+apNextHtml(id)+'</div>':'')+(id&&c.oneDriveLink?'<div class="pl" style="margin-top:4px">'+odLink(c.oneDriveLink)+'</div>':'')+
   stripHtml(c)+(T.tenancyMode&&id?'<div id="rentHead"></div>':'')+'</div>'+
-  '<div class="dhb" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;flex:none">'+(id?(T.tenancyMode?'<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Receipts and expenses</button>':'<button type="button" class="btn" id="bookBtn">Book appointment</button>'):'')+(id&&!T.tenancyMode?'<button type="button" class="btn" id="dupBtn" title="Same client, another '+esc(N1())+'">New '+esc(N1())+' for this client</button>':'')+'<button type="button" class="btn" id="saveCloseBtn">Done</button></div></div>'+
+  '<div class="dhb" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;flex:none">'+(id?(T.tenancyMode?'<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Receipts and expenses</button>':(T.jobDocs?'<button type="button" class="btn ghost" id="expBtn">Receipts and expenses</button>':'')+'<button type="button" class="btn" id="bookBtn">Book appointment</button>'):'')+(id&&!T.tenancyMode?'<button type="button" class="btn" id="dupBtn" title="Same client, another '+esc(N1())+'">New '+esc(N1())+' for this client</button>':'')+'<button type="button" class="btn" id="saveCloseBtn">Done</button></div></div>'+
   '<form id="caseForm" class="db" autocomplete="off">'+
    (T.tenancyMode?llBody(c):(!id&&!draft?pickClient():'')+'<fieldset id="peopleFs"><legend>'+esc(T.peopleTitle)+'</legend><div class="appsplit"><div class="appleft"><div id="apps">'+(c.applicants&&c.applicants.length?c.applicants:[{}]).map(appRow).join('')+'</div><button type="button" class="btn ghost sm" id="addApp">Add '+esc(T.person[0].toLowerCase())+'</button><div class="grid" style="margin-top:10px">'+fld('clientNo','Client number',c.clientNo)+'</div></div><aside class="lkpane"><div class="lkt" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span id="lkTitle">Connected clients (0)</span><button type="button" class="btn ghost sm secbtn" id="lkToggle">Show</button></div><div id="linksBox" style="display:none"></div></aside></div></fieldset>'+
    (T.securities?'<fieldset class="secfs"><legend>Security addresses (buy to let and other properties)</legend><p class="muted" style="font-size:12px;margin:0 0 8px">Add the address of each property the mortgage is secured on.</p><div id="secs">'+(c.securities||[]).map(secRow).join('')+'</div><button type="button" class="btn ghost sm" id="addSec">Add security address</button></fieldset>':'')+
    sectionsHtml(c))+
    '<div id="liveNotes"></div>'+
    '<div id="live"></div>'+
-   (T.tenancyMode?'':'<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="'+esc(c.oneDriveLink)+'"><span class="pl" id="odl">'+odLink(c.oneDriveLink)+'</span></label></fieldset>')+
+   (T.tenancyMode?'':T.jobDocs?dzSide(c):'<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="'+esc(c.oneDriveLink)+'"><span class="pl" id="odl">'+odLink(c.oneDriveLink)+'</span></label></fieldset>')+
   '</form>'+
   '<div class="df"><div>'+(id?'<button type="button" class="btn danger" id="delBtn">Delete '+esc(N1())+'</button>':'')+'</div><span class="muted" id="autoMsg" role="status" style="font-size:12.5px">'+(id?'&#10003; Saved. Changes save by themselves.':'Saves by itself once the '+(T.tenancyMode?'address':'name')+' is in.')+'</span></div></div>';
   colOpen={};if(T.tenancyMode){if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=1}else if(!id)colOpen[(T.sections[0].title||'').toLowerCase()]=true;lkOpen=false;curLinks=((c&&c.links)||[]).map(function(l){return {id:l.id,cid:l.cid,rel:l.rel}});renderLive();renderLinks();
@@ -2764,8 +2764,12 @@ function tnCard(tn,isNew,others){
 /* ---------- property folder and uploaded documents (landlord) ---------- */
 var DZ_BTN='background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--accent);cursor:pointer;text-align:left',pfTried={},pfRun=false,dzBusy=false;
 function pfClean(s,n){return String(s||'').replace(/[\\\/:*?"<>|#%~&{}\u0000-\u001f]/g,' ').replace(/\s+/g,' ').replace(/^[ .]+|[ .]+$/g,'').slice(0,n||80).replace(/[ .]+$/,'')}
+/* where a record's folder sits: rental properties in Properties, a trade's jobs in Jobs */
+function dzRoot(){return T&&T.tenancyMode?undefined:'Jobs'}
+function dzRootL(){return T&&T.tenancyMode?'Properties':'Jobs'}
+function dzNoun(){return T&&T.tenancyMode?'property':N1().toLowerCase()}
 function pfName(c,used){
-  var a=pfClean(String(c.propertyAddress||'').split(/[\n,]/)[0])||('Property '+(c.clientNo||''));
+  var a=T&&T.tenancyMode?(pfClean(String(c.propertyAddress||'').split(/[\n,]/)[0])||('Property '+(c.clientNo||''))):(pfClean([pnames(c),String((T&&T.addr&&c[T.addr])||'').split(/[\n,]/)[0]].filter(Boolean).join(' - '))||(N1()+' '+(c.clientNo||'')));
   var clash=(used&&used[a.toLowerCase()])||cases.some(function(x){return x.id!==c.id&&x.folder&&String(x.folder.name||'').toLowerCase()===a.toLowerCase()});
   return clash?a+' ('+(c.clientNo||String(c.id||'').slice(0,4))+')':a;
 }
@@ -2783,10 +2787,10 @@ function dzInner(c,k,label){
 function dzSpan(c,f){return '<span class="pl dz" style="flex-wrap:wrap" data-dz="'+esc(f.k)+'" data-dzl="'+esc(f.doc)+'">'+dzInner(c,f.k,f.doc)+'</span>'}
 function dzFolderHtml(c){
   var f=c&&c.folder,w=window.CD_files?window.CD_files.where():'file storage';
-  if(f&&f.name)return '<p class="muted" style="margin:0 0 8px;font-size:12px">Folder in your '+esc(w)+': <b>Properties › '+esc(f.name)+'</b></p>'+(f.url?'<div class="pl" style="margin:0 0 6px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">Open property folder</a></div>':'')+'<p style="margin:0 0 10px;padding:7px 9px;background:#FBEFD2;color:#6b4700;border-radius:7px;font-size:12px"><b>Do not delete, move or rename folders in your '+esc(w)+'.</b> Your records and documents are kept there, and deleting them removes them from the app.</p>';
-  return '<p class="muted" style="margin:0 0 8px;font-size:12px">A folder for this property is made in your '+esc(w)+' when the property is saved. It is named after the first line of the address.</p>';
+  if(f&&f.name)return '<p class="muted" style="margin:0 0 8px;font-size:12px">Folder in your '+esc(w)+': <b>'+dzRootL()+' › '+esc(f.name)+'</b></p>'+(f.url?'<div class="pl" style="margin:0 0 6px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">Open '+dzNoun()+' folder</a></div>':'')+'<p style="margin:0 0 10px;padding:7px 9px;background:#FBEFD2;color:#6b4700;border-radius:7px;font-size:12px"><b>Do not delete, move or rename folders in your '+esc(w)+'.</b> Your records and documents are kept there, and deleting them removes them from the app.</p>';
+  return '<p class="muted" style="margin:0 0 8px;font-size:12px">'+(T.tenancyMode?'A folder for this property is made in your '+esc(w)+' when the property is saved. It is named after the first line of the address.':'A folder for this '+dzNoun()+' is made in your '+esc(w)+' when you save the first photo or document. It is named after the customer and the address.')+'</p>';
 }
-function dzSide(c){return '<fieldset data-sec="docs"><legend>Property documents</legend><div id="dzFolder">'+dzFolderHtml(c)+'</div><div data-dz="other" data-dzl="document">'+dzInner(c,'other','document')+'</div><p class="muted" style="margin:8px 0 0;font-size:12px">Certificates can also be uploaded next to their dates. Files up to 50 MB.</p></fieldset>'}
+function dzSide(c){return '<fieldset data-sec="docs"><legend>'+(T.tenancyMode?'Property':N1())+' documents</legend><div id="dzFolder">'+dzFolderHtml(c)+'</div><div data-dz="other" data-dzl="document">'+dzInner(c,'other','document')+'</div><p class="muted" style="margin:8px 0 0;font-size:12px">'+(T.tenancyMode?'Certificates can also be uploaded next to their dates. ':'Photograph a certificate, data plate or the finished work. Photos are saved as one PDF. ')+'Files up to 50 MB.</p></fieldset>'}
 function dzRefresh(c){document.querySelectorAll('#caseForm [data-dz]').forEach(function(el){el.innerHTML=el.hasAttribute('data-dzlg')?lgDocInner(c,el.getAttribute('data-dz')):dzInner(c,el.getAttribute('data-dz'),el.getAttribute('data-dzl'))});var ff=$('#dzFolder');if(ff)ff.innerHTML=dzFolderHtml(c)}
 function dzErr(e){
   if(e&&e.renew)return 'Google Drive needs reconnecting. Press the yellow bar at the bottom, then upload again.';
@@ -2794,7 +2798,7 @@ function dzErr(e){
   if(e&&e.status===507)return 'Your file storage is full.';
   return 'Could not upload the file ('+((e&&e.message)||'try again')+').';
 }
-function dzDest(k){var c=currentCase(),el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document',w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage',folder=c?((c.folder&&c.folder.name)||pfName(c)):'';return w+' › Properties › '+folder+(k==='other'?' › Property documents':' › '+label.charAt(0).toUpperCase()+label.slice(1))}
+function dzDest(k){var c=currentCase(),el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document',w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage',folder=c?((c.folder&&c.folder.name)||pfName(c)):'';return w+' › '+dzRootL()+' › '+folder+(k==='other'?'':' › '+label.charAt(0).toUpperCase()+label.slice(1))}
 function dzPick(k,lg,cam){
   if(!openId){toast('Add the property address first. It saves itself, then try again.');return}
   if(!window.CD_files||!window.CD_files.can()){toast('Could not reach your file storage. Check you are online, then try again.');return}
@@ -2827,7 +2831,7 @@ function dzSend(k,file,mode,cam){
     var fname=k==='other'?base+ext:label.charAt(0).toUpperCase()+label.slice(1)+' '+dt+ext;
     if(mode==='keep'&&k!=='other'&&dzFiles(c,k).some(function(f){return String(f.name).toLowerCase()===fname.toLowerCase()}))fname=fname.slice(0,fname.length-ext.length)+' (added '+iso(TODAY)+')'+ext;
     if(blob.size>window.CD_files.max)throw {big:true};
-    return window.CD_files.upload(folder,fname,blob).then(function(res){return {res:res,size:blob.size}});
+    return window.CD_files.upload(folder,fname,blob,undefined,dzRoot()).then(function(res){return {res:res,size:blob.size}});
   }).then(function(o){
     var res=o.res;dzBusy=false;
     var cur=cases.filter(function(x){return x.id===id})[0]||c;
@@ -2835,7 +2839,7 @@ function dzSend(k,file,mode,cam){
     var files=(cur.files||[]).filter(function(f){return k==='other'||mode==='keep'||f.k!==k});
     files.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:o.size,at:Date.now()});
     var up={files:files};if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
-    patch(id,up);toast('Uploaded to Properties › '+folder);
+    patch(id,up);toast('Uploaded to '+dzRootL()+' › '+folder);
     if(openId===id)dzRefresh(Object.assign({},cur,up));
     if(old.length&&window.CD_files.trash){var w=window.CD_files.where(),bin=w==='Google Drive'?'Google Drive bin':w+' recycle bin';
       Promise.all(old.map(function(f){return f.fid?window.CD_files.trash(f.fid).then(function(){return true},function(){return false}):Promise.resolve(false)})).then(function(rs){
@@ -3120,7 +3124,7 @@ var HOME_ID='__home';
 var EXP_CATS_HOME=['Repairs and maintenance','Insurance','Council tax, energy and water','Mortgage interest and fees','Furnishings and appliances','Cleaning and garden','Home improvements','Other'];
 function exSubj(id){if(id===HOME_ID)return HOME&&HOME.addr1?HOME:null;return cases.filter(function(x){return x.id===id})[0]}
 function exPatch(id,up){if(id===HOME_ID){homeWrite(Object.assign({},HOME,up));return Promise.resolve()}return patch(id,up)}
-function exCats(id){return id===HOME_ID?EXP_CATS_HOME:EXP_CATS}
+function exCats(id){return id===HOME_ID?EXP_CATS_HOME:(T&&!T.tenancyMode&&T.expCats)?T.expCats:EXP_CATS}
 function exCommit(){
   var c=exSubj(exCase);if(!c)return false;var amt=parseFloat(($('#ex-amt')||{}).value),dt=($('#ex-date')||{}).value;
   if(!dt||!(amt>0)){toast('Add the date and an amount, or clear the amount to close without saving');return false}
@@ -3356,7 +3360,7 @@ function rcUrl(u){u=String(u||'');return /^(https:\/\/|blob:)/.test(u)?u:''}
 function rcCase(){return exSubj(exCase)}
 function rcBox(c){
   var touch=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches),w=window.CD_files?window.CD_files.where():'file storage';
-  return '<div class="rcbox"><div class="rchd"><b>Receipt</b><span class="muted">Photograph it or choose photos. They are saved as one PDF in a folder called Receipts, inside this property\'s folder in your '+esc(w)+'.</span></div>'+
+  return '<div class="rcbox"><div class="rchd"><b>Receipt</b><span class="muted">Photograph it or choose photos. They are saved as one PDF in a folder called Receipts, inside this '+(T.tenancyMode||!T.jobDocs?'property':dzNoun())+'\'s folder in your '+esc(w)+'.</span></div>'+
    '<div class="add" style="margin:8px 0 0">'+(touch?'<button type="button" class="btn" data-rcpick="camera">Take photo of receipt</button>':'')+'<button type="button" class="btn'+(touch?' ghost':'')+'" data-rcpick="file">Upload receipt</button><button type="button" class="btn ghost" data-rcopen="1" aria-expanded="'+(rcListOpen?'true':'false')+'">Open receipt</button></div>'+
    '<div id="rcState" role="status" aria-live="polite">'+rcStateHtml()+'</div><div id="rcList">'+rcListHtml(c)+'</div></div>';
 }
@@ -3410,7 +3414,7 @@ function rcPick(mode){
   });
   inp.click();
 }
-function rcDest(caseId){var c=exSubj(caseId),home=caseId===HOME_ID,w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage',folder=c?((c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c))):'';return w+' › '+(home?'Home':'Properties')+' › '+folder+' › Receipts'}
+function rcDest(caseId){var c=exSubj(caseId),home=caseId===HOME_ID,w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage',folder=c?((c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c))):'';return w+' › '+(home?'Home':dzRootL())+' › '+folder+' › Receipts'}
 function rcSend(caseId,file,thumb,named){
   var c=exSubj(caseId);if(!c)return;
   if(!file.size){rcMsg='That file is empty.';rcDraw();return}
@@ -3420,7 +3424,7 @@ function rcSend(caseId,file,thumb,named){
     if(blob.size>window.CD_files.max)throw {big:true};
     var d=new Date(),z=function(n){return String(n).padStart(2,'0')},dt=(($('#ex-date')||{}).value)||iso(TODAY),fname=named?'Receipt '+dt+' '+pfClean(file.name.replace(/\.[A-Za-z0-9]{1,8}$/,''),60)+' '+z(d.getHours())+z(d.getMinutes())+ext:'Receipt '+dt+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+ext,home=caseId===HOME_ID,folder=(c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c));
     rcMsg='Saving to your '+window.CD_files.where()+'…';rcDraw();
-    return window.CD_files.upload(folder,fname,blob,'Receipts',home?'Home':undefined).then(function(res){return {res:res,blob:blob}});
+    return window.CD_files.upload(folder,fname,blob,'Receipts',home?'Home':dzRoot()).then(function(res){return {res:res,blob:blob}});
   }).then(function(o){
     rcBusy=false;
     if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}
@@ -3449,11 +3453,11 @@ function expOpen(caseId,editId){
   var rk=caseId+':'+(exEdit||'new');if(rcFor!==rk){rcFor=rk;rcPend=ed?(ed.receipt||null):null;rcMsg='';rcListOpen=false;if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}}
   var l=expList(c),ty=taxYear(iso(TODAY)),tyTot=l.filter(function(e){return e.date>=ty.from&&e.date<=ty.to}).reduce(function(a,e){return a+(+e.amount||0)},0);
   overlay('exOv','<div class="dhd"><h2>Receipts and expenses · '+esc(caseId===HOME_ID?'My residential house · '+short(c.addr1):names(c))+'</h2><button type="button" class="btn" data-exclose="1">Save and close</button></div>'+
-   '<p class="muted" style="margin:4px 0 10px">Tax year '+ty.label+' so far: <b>'+gbp(tyTot)+'</b> · '+l.length+' expense'+(l.length===1?'':'s')+' in total. '+(caseId===HOME_ID?'These are kept apart from your rental properties and are not in the rent and expenses report.':'These go into the rent and expenses report for your accountant (Reports and agreements).')+'</p>'+
+   '<p class="muted" style="margin:4px 0 10px">Tax year '+ty.label+' so far: <b>'+gbp(tyTot)+'</b> · '+l.length+' expense'+(l.length===1?'':'s')+' in total. '+(caseId===HOME_ID?'These are kept apart from your rental properties and are not in the rent and expenses report.':(T.tenancyMode?'These go into the rent and expenses report for your accountant (Reports and agreements).':'What you spent on this '+dzNoun()+', with the receipts.'))+'</p>'+
    rcBox(c)+
    (ed?'<p style="margin:0 0 6px;font-weight:600">Editing the expense from '+fd(ed.date)+'</p>':'')+'<div class="exadd grid'+(ed?' editing':'')+'"><label class="f">Date<input id="ex-date" type="date" value="'+(ed?esc(ed.date):iso(TODAY))+'"></label><label class="f">Category<select id="ex-cat">'+exCats(caseId).concat(ed&&exCats(caseId).indexOf(ed.cat)<0&&ed.cat?[ed.cat]:[]).map(function(k){return '<option'+(ed&&ed.cat===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></label>'+
    '<label class="f">Amount<span class="ig"><i>£</i><input id="ex-amt" type="number" step="any" inputmode="decimal" value="'+(ed?esc(ed.amount):'')+'"></span></label><label class="f">Paid to<input id="ex-to" placeholder="Supplier or tradesperson" value="'+(ed?esc(ed.to||''):'')+'"></label>'+
-   '<label class="f wide">Description<input id="ex-desc" placeholder="For example: boiler repair, annual landlord insurance" value="'+(ed?esc(ed.desc||''):'')+'"></label></div>'+
+   '<label class="f wide">Description<input id="ex-desc" placeholder="'+(T.tenancyMode?'For example: boiler repair, annual landlord insurance':'For example: fan, gasket, flue parts')+'" value="'+(ed?esc(ed.desc||''):'')+'"></label></div>'+
    '<div class="add" style="margin:6px 0 12px"><button type="button" class="btn" data-exadd="1">'+(ed?'Save changes':'Add expense')+'</button>'+(ed?'<button type="button" class="btn ghost" data-excancel="1">Cancel edit</button>':'')+'<span class="muted" style="font-size:12px;align-self:center">Do not type bank or card numbers here.</span></div>'+
    (l.length?'<div class="tw"><table class="extab"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Paid to</th><th>Amount</th><th>Receipt</th><th></th></tr></thead><tbody>'+l.map(function(e){return '<tr><td>'+fd(e.date)+'</td><td>'+esc(e.cat||'')+'</td><td>'+esc(e.desc||'')+'</td><td>'+esc(e.to||'')+'</td><td class="num">'+gbp(e.amount)+'</td><td>'+(e.receipt&&rcUrl(e.receipt.url)?'<a href="'+esc(e.receipt.url)+'" target="_blank" rel="noopener">Show</a>':'<span class="muted">—</span>')+'</td><td class="exact"><button type="button" class="exed" data-exedit="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-exdel="'+esc(e.id)+'" aria-label="Delete expense">×</button></td></tr>'}).join('')+'</tbody></table></div>':'<p class="muted">No receipts or expenses recorded for this property yet.</p>'),true);
 }
@@ -3635,7 +3639,7 @@ function gnPreview(){var g=gnRead(),p=$('#gnPrev');if(!p)return;if(!g.from||!g.t
 function gnFile(g,ext,c){return 'Rent-and-expenses-'+(c?pfClean(names(c),50).replace(/[\s,]+/g,'-')+'-':'')+g.from+'-to-'+g.to+'.'+ext}
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;var b;
-  if(t.id==='expBtn'){if(!openId){toast('Add the property address first. It saves itself, then try again.');return}patch(openId,collectForm());lastAuto=JSON.stringify(collectForm());expOpen(openId);return}
+  if(t.id==='expBtn'){if(!openId){toast(T.tenancyMode?'Add the property address first. It saves itself, then try again.':'Add the customer name first. It saves itself, then try again.');return}patch(openId,collectForm());lastAuto=JSON.stringify(collectForm());expOpen(openId);return}
   if(t.closest('[data-exclose]')||t.id==='exOv'){if(rcBusy){toast('Still saving the receipt. Wait a moment, then close.');return}var pend=(($('#ex-amt')||{}).value||'').trim();if(rcPend&&!pend&&!exEdit&&!confirm('This receipt is not saved as an expense yet, because there is no amount. Close anyway? The file stays in your Receipts folder, and you can use it later from Open receipt.'))return;if(pend||exEdit){if(!exCommit())return}closeOv('exOv');exEdit=null;rcFor=null;rcPend=null;return}
   if(t.closest('[data-exadd]')){if(exCommit())setTimeout(function(){expOpen(exCase)},60);return}
   if((b=t.closest('[data-exedit]'))){expOpen(exCase,b.getAttribute('data-exedit'));var f=$('#ex-amt');if(f)f.focus();return}
