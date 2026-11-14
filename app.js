@@ -2794,6 +2794,7 @@ function dzErr(e){
   if(e&&e.status===507)return 'Your file storage is full.';
   return 'Could not upload the file ('+((e&&e.message)||'try again')+').';
 }
+function dzDest(k){var c=currentCase(),el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document',w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage',folder=c?((c.folder&&c.folder.name)||pfName(c)):'';return w+' › Properties › '+folder+(k==='other'?' › Property documents':' › '+label.charAt(0).toUpperCase()+label.slice(1))}
 function dzPick(k,lg,cam){
   if(!openId){toast('Add the property address first. It saves itself, then try again.');return}
   if(!window.CD_files||!window.CD_files.can()){toast('Could not reach your file storage. Check you are online, then try again.');return}
@@ -2805,7 +2806,7 @@ function dzPick(k,lg,cam){
     var imgs=files.filter(scIsImg),after=function(f,c){if(lg&&dzFiles(currentCase(),k).length)lgAsk(k,f,c);else dzSend(k,f,lg?'keep':'',c)};
     if(imgs.length){
       if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF or Word file on its own.');
-      scOpen({files:imgs,source:cam?'camera':'file',ask:k==='other'?'Document name':'',hint:'For example: Boiler service 2026',done:function(f,th,named){after(f,!named)},fallback:function(f){after(f,false)}});
+      scOpen({files:imgs,source:cam?'camera':'file',dest:dzDest(k),ask:k==='other'?'Document name':'',hint:'For example: Boiler service 2026',done:function(f,th,named){after(f,!named)},fallback:function(f){after(f,false)}});
     }else if(files.length>1)toast('Choose one PDF or Word file at a time.');
     else after(files[0],false);
   });
@@ -3286,6 +3287,7 @@ function scDraw(msg){
   var n=scPages.length,touch=dzTouch(),dis=scWork?' disabled':'';
   overlay('scOv','<div class="dhd"><h2>Save as one PDF</h2></div>'+
    '<p class="muted" style="margin:4px 0 10px">Each photo becomes a page. The app finds the document in each photo and crops it. Add more pages for a longer document, then save.</p>'+
+   (scOpts&&scOpts.dest?'<p class="scdest"><b>Will be saved to:</b> '+esc(scOpts.dest)+'</p>':'')+
    (scOpts&&scOpts.ask?'<label class="f" style="margin:0 0 10px">'+esc(scOpts.ask)+' <span class="muted">(optional, becomes the file name)</span><input id="scName" type="text" maxlength="80" autocomplete="off" placeholder="'+esc(scOpts.hint||'')+'" value="'+esc(scName)+'"'+(scSaving?' disabled':'')+'></label>':'')+
    (msg?'<p class="rcmsg" role="status"><span class="rcspin" aria-hidden="true"></span>'+esc(msg)+'</p>':'')+
    (n?'<ul class="sclist">'+scPages.map(function(p,i){return scRowHtml(p,i,n,dis)}).join('')+'</ul>':'')+
@@ -3402,12 +3404,13 @@ function rcPick(mode){
     var imgs=files.filter(scIsImg);
     if(imgs.length){
       if(imgs.length<files.length)toast('Only the photos were used. Upload a PDF on its own.');
-      scOpen({files:imgs,source:mode==='camera'?'camera':'file',ask:'Receipt name',hint:'For example: Boiler repair',name:(($('#ex-desc')||{}).value||'').trim(),done:function(f,th,named){rcSend(subj,f,th,named)},fallback:function(f){rcSend(subj,f)}});
+      scOpen({files:imgs,source:mode==='camera'?'camera':'file',dest:rcDest(subj),ask:'Receipt name',hint:'For example: Boiler repair',name:(($('#ex-desc')||{}).value||'').trim(),done:function(f,th,named){rcSend(subj,f,th,named)},fallback:function(f){rcSend(subj,f)}});
     }else if(files.length>1)toast('Choose one PDF at a time.');
     else rcSend(subj,files[0]);
   });
   inp.click();
 }
+function rcDest(caseId){var c=exSubj(caseId),home=caseId===HOME_ID,w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage',folder=c?((c.folder&&c.folder.name)||(home?(pfClean(String(c.addr1||'').split(/[\n,]/)[0])||'My home'):pfName(c))):'';return w+' › '+(home?'Home':'Properties')+' › '+folder+' › Receipts'}
 function rcSend(caseId,file,thumb,named){
   var c=exSubj(caseId);if(!c)return;
   if(!file.size){rcMsg='That file is empty.';rcDraw();return}

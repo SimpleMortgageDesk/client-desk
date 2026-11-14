@@ -851,3 +851,5 @@ header.top .in{padding-block:12px}}
 
 .homesplit.nocal #homeCal{max-height:none;height:auto}
 @media (min-width:1100px){.homesplit.nocal{grid-template-areas:"cal rem";grid-template-rows:auto;height:auto}.homesplit.nocal .hrem{height:calc(100vh - var(--hh,64px) - 56px)}}
+
+.scdest{margin:0 0 10px;padding:9px 12px;background:var(--accent-soft);border-radius:10px;font-size:13.5px;overflow-wrap:anywhere}
