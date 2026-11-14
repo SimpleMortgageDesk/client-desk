@@ -18,5 +18,8 @@ window.MD_CONFIG = {
   tenant: 'consumers',
   ownerName: 'MySimpleDesk',
   ownerEmail: 'support@mysimpledesk.co.uk',
-  signupUrl: '/api/signup'
+  signupUrl: '/api/signup',
+  /* where landlords pay by standing order after the free year, shown in the app's end-of-free-year notice.
+     Example: 'MySimpleDesk, sort code 00-00-00, account 00000000'. Leave empty and the notice asks them to email you instead. */
+  payDetails: ''
 };

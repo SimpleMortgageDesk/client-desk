@@ -20,8 +20,18 @@ export async function ensureTable(db) {
     signed_up TEXT, first_seen TEXT, last_seen TEXT, days_active INTEGER DEFAULT 0, app_build TEXT)`).run();
   await db.prepare('CREATE TABLE IF NOT EXISTS hits (k TEXT PRIMARY KEY, hr TEXT, n INTEGER)').run();
   /* added later: del_key lets a person delete their own entry; delete_requested marks a request we could not verify */
-  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER', 'user_no INTEGER']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  try { await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS users_no ON users (user_no)').run(); } catch (e) {}
+  try { await db.prepare('CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, n INTEGER)').run(); } catch (e) {}
   ready = true;
+}
+/* every account gets a user number, starting at 1001, used as the payment reference. One statement, so two sign-ups cannot get the same number. */
+export async function giveNumber(db, email) {
+  try {
+    await db.prepare("UPDATE users SET user_no = MAX(COALESCE((SELECT MAX(user_no) FROM users), 1000), COALESCE((SELECT n FROM counters WHERE k = 'user_no'), 1000)) + 1 WHERE email = ?1 AND user_no IS NULL").bind(email).run();
+    /* remember the highest number ever given, so a deleted account's number is never used again */
+    await db.prepare("INSERT INTO counters (k, n) VALUES ('user_no', (SELECT COALESCE(MAX(user_no), 1000) FROM users)) ON CONFLICT(k) DO UPDATE SET n = MAX(counters.n, excluded.n)").run();
+  } catch (e) {}
 }
 /* true when this sender has made too many calls this hour */
 export async function tooMany(db, request, now) {
@@ -82,6 +92,7 @@ export async function onRequestPost({ request, env }) {
     .bind(email, clean(d.name, 100), clean(d.accountEmail, 160).toLowerCase(), clean(d.mobile, 30), clean(d.business, 120),
       clean(d.trade, 60), clean(d.account, 20), d.event === 'signup' ? now : null, now, clean(d.build, 40))
     .run();
+  await giveNumber(env.DB, email);
   /* how many properties they manage: a number only, sent by the app so the right plan can be shown */
   if (Number.isInteger(d.props) && d.props >= 0 && d.props < 10000) { try { await env.DB.prepare('UPDATE users SET props = ?2, home = ?3 WHERE email = ?1').bind(email, d.props, d.home ? 1 : 0).run(); } catch (e) {} }
   if (key) await env.DB.prepare("UPDATE users SET del_key = ?2 WHERE email = ?1 AND (del_key IS NULL OR del_key = '')").bind(email, key).run();

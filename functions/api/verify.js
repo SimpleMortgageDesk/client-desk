@@ -49,8 +49,10 @@ export async function onRequestPost({ request, env }) {
   await table(env.DB);
   const row = await env.DB.prepare('SELECT sent_at, sent_day, sent_n, confirmed_at FROM verify WHERE email = ?1').bind(email).first();
   if (d.action === 'status') {
-    let sus = false; try { const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email; const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL LIMIT 1').bind(email, alt).first(); sus = !!u; } catch (e) {}
-    return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : 'pending', suspended: sus });
+    let sus = false, no = null, since = null; try { const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email; const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL LIMIT 1').bind(email, alt).first(); sus = !!u;
+      const me = await env.DB.prepare('SELECT user_no, COALESCE(signed_up, first_seen) AS since FROM users WHERE email IN (?1, ?2) OR lower(account_email) IN (?1, ?2) ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1').bind(email, alt).first();
+      if (me) { no = me.user_no; since = me.since; } } catch (e) {}
+    return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : 'pending', suspended: sus, no, since });
   }
   if (d.action !== 'start') return json({ error: 'bad request' }, 400);
   if (!env.RESEND_API_KEY) return json({ error: 'email sending is not set up' }, 503);

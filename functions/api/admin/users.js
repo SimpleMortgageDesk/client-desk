@@ -4,7 +4,7 @@
    Protected twice: Cloudflare Access must cover /admin* and /api/admin*, and this code checks Access's signed
    token itself. Settings > Variables: ACCESS_TEAM (e.g. yourteam.cloudflareaccess.com) and ACCESS_AUD (the
    Application Audience tag from the Access application). Optional ADMIN_EMAILS: comma-separated allowed emails. */
-import { ensureTable } from '../signup.js';
+import { ensureTable, giveNumber } from '../signup.js';
 
 const json = (o, s) => new Response(JSON.stringify(o), { status: s || 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 const b64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
@@ -34,6 +34,8 @@ export async function onRequest({ request, env }) {
   if (!who) return json({ error: 'Not signed in as an admin. Check the Cloudflare Access settings.' }, 401);
   await ensureTable(env.DB);
   if (request.method === 'GET') {
+    const none = await env.DB.prepare('SELECT email FROM users WHERE user_no IS NULL ORDER BY COALESCE(signed_up, first_seen) ASC').all();
+    for (const u of (none.results || [])) await giveNumber(env.DB, u.email);
     const r = await env.DB.prepare('SELECT * FROM users ORDER BY COALESCE(signed_up, first_seen) DESC').all();
     return json({ admin: who, users: r.results || [] });
   }
