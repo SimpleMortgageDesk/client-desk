@@ -1,0 +1,99 @@
+<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MySimpleDesk in under a minute</title><meta name="description" content="A short look at what MySimpleDesk does for home owners, landlords and gas engineers.">
+<link rel="icon" href="icon-192.png"><style>
+:root{--muted:#4f6070}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;background:#F6F8F7;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:#101C26}
+.exwrap{width:min(1100px,100%)}a.home{color:#0A6B50;font-weight:700}
+body.rec{padding:0;background:#07483a}body.rec .exwrap{width:100vw;max-width:none}body.rec .ex{border-radius:0;box-shadow:none;height:100vh;aspect-ratio:auto}body.rec .exbar,body.rec a.home{display:none}
+/* explainer: six scenes, each plays its own small animation when shown */
+.exwrap{max-width:860px;margin:0 auto}
+.ex{container-type:inline-size;position:relative;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:linear-gradient(160deg,#0A6B50,#07483a);color:#fff;box-shadow:0 18px 50px rgba(16,28,38,.22)}
+.ex .sc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2cqw;padding:5cqw 6cqw 9cqw;text-align:center;opacity:0;visibility:hidden;transition:opacity .6s ease,visibility 0s linear .6s}
+.ex .sc.on{opacity:1;visibility:visible;transition:opacity .6s ease,visibility 0s}
+.ex h3{margin:0;font-size:5.2cqw;line-height:1.12;letter-spacing:-.02em;font-weight:800;color:#fff}
+.ex p{margin:0;font-size:2.7cqw;line-height:1.35;color:#d9efe7;max-width:76cqw}
+.ex .k{font-size:1.9cqw;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#9fe0c4}
+.ex .row{display:flex;gap:2.4cqw;align-items:center;justify-content:center;flex-wrap:nowrap}
+.ex .tile{background:#fff;color:#101C26;border-radius:2cqw;padding:1.8cqw 2.2cqw;font-size:2.1cqw;font-weight:700;box-shadow:0 1cqw 3cqw rgba(0,0,0,.2);display:flex;flex-direction:column;gap:.6cqw;align-items:center;min-width:17cqw}
+.ex .tile svg{width:6cqw;height:6cqw;fill:none;stroke:#0A6B50;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.ex .tile small{font-size:1.6cqw;font-weight:500;color:#58697A}
+.ex .sc.on .pop{animation:expop .6s cubic-bezier(.2,1.3,.4,1) both}
+.ex .sc.on .rise{animation:exrise .7s ease both}
+.ex .sc.on .d1{animation-delay:.25s}.ex .sc.on .d2{animation-delay:.7s}.ex .sc.on .d3{animation-delay:1.15s}.ex .sc.on .d4{animation-delay:1.6s}.ex .sc.on .d5{animation-delay:2.2s}
+.ex .sc.on .wob{animation:expop .6s cubic-bezier(.2,1.3,.4,1) both,exwob 1.6s ease-in-out .9s infinite alternate}
+.ex .w1{--r:-7deg}.ex .w2{--r:5deg}.ex .w3{--r:-4deg}
+@keyframes expop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes exrise{from{opacity:0;transform:translateY(2.4cqw)}to{opacity:1;transform:none}}
+@keyframes exwob{from{transform:rotate(0)}to{transform:rotate(var(--r,4deg)) translateY(-.8cqw)}}
+/* scene 2: photo becomes a PDF in the folder */
+.ex .phone{width:15cqw;height:25cqw;border:.7cqw solid #fff;border-radius:2.6cqw;position:relative;background:#0b3d31;overflow:hidden;flex:none}
+.ex .phone i{position:absolute;left:18%;top:16%;width:64%;height:62%;background:#fff;border-radius:.6cqw;transform:rotate(-8deg)}
+.ex .phone i:before{content:"";position:absolute;left:14%;right:14%;top:16%;height:8%;background:#cfd7da;box-shadow:0 2.2cqw 0 #cfd7da,0 4.4cqw 0 #cfd7da,0 6.6cqw 0 #cfd7da}
+.ex .sc.on .phone i{animation:exstraight 1s ease .9s both}
+.ex .phone b{position:absolute;inset:12% 12% 18%;border:.5cqw dashed #9fe0c4;border-radius:.8cqw;opacity:0}
+.ex .sc.on .phone b{animation:exfade .5s ease .5s both}
+@keyframes exstraight{to{transform:rotate(0)}}
+@keyframes exfade{to{opacity:1}}
+.ex .arrow{font-size:5cqw;color:#9fe0c4;font-weight:800}
+.ex .pdf{background:#fff;color:#A3261F;font-weight:800;font-size:2.4cqw;border-radius:1.2cqw;padding:2.6cqw 1.8cqw;box-shadow:0 1cqw 3cqw rgba(0,0,0,.2)}
+.ex .folder{background:#FBEFD2;color:#5a3b00;border-radius:1.6cqw;padding:2cqw 2.4cqw;font-weight:800;font-size:2.2cqw;box-shadow:0 1cqw 3cqw rgba(0,0,0,.2)}
+.ex .folder small{display:block;font-size:1.6cqw;font-weight:600;color:#8A5A00}
+/* scene 3: reminders */
+.ex .rem{background:#fff;color:#101C26;border-radius:1.6cqw;padding:1.5cqw 2.2cqw;font-size:2.2cqw;font-weight:700;display:flex;justify-content:space-between;gap:4cqw;width:62cqw;box-shadow:0 1cqw 3cqw rgba(0,0,0,.2);text-align:left}
+.ex .rem span{color:#8A5A00;white-space:nowrap}
+.ex .col{display:flex;flex-direction:column;gap:1.4cqw;align-items:center}
+.ex .bell{font-size:6cqw;line-height:1}
+.ex .sc.on .bell{animation:exring 1s ease-in-out .3s 3}
+@keyframes exring{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+/* scene 4: who it's for */
+.ex .who3 .tile{min-width:23cqw;align-items:flex-start;text-align:left;padding:2cqw}
+.ex .who3 .tile b{font-size:2.4cqw}
+.ex .who3 .tile em{font-style:normal;font-size:1.5cqw;font-weight:800;color:#0A6B50;background:#DCEFE8;border-radius:9cqw;padding:.3cqw 1.1cqw}
+.ex .who3 .tile small{font-size:1.65cqw;line-height:1.35;text-align:left}
+/* scene 6 and controls */
+.ex .cta{display:inline-block;background:#fff;color:#0A6B50;font-weight:800;font-size:2.8cqw;padding:1.6cqw 3.6cqw;border-radius:1.6cqw;text-decoration:none}
+.ex .lock{font-size:7cqw;line-height:1}
+.exbar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:1.4cqw;padding:1.6cqw 2.4cqw;background:linear-gradient(transparent,rgba(0,0,0,.28))}
+.exbar button{background:rgba(255,255,255,.16);color:#fff;border:0;border-radius:99px;width:5.4cqw;height:5.4cqw;min-width:30px;min-height:30px;font-size:max(11px,1.9cqw);cursor:pointer;flex:none}
+.exbar .exsnd{width:auto;padding:0 max(12px,2cqw);font-weight:700;white-space:nowrap}
+.exbar button:hover{background:rgba(255,255,255,.3)}
+.exbar button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.exprog{flex:1;height:max(4px,.7cqw);background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden}
+.exprog i{display:block;height:100%;width:0;background:#fff;border-radius:99px}
+.exprog.run i{animation:exfill var(--dur,30s) linear forwards}
+.exprog.hold i{animation-play-state:paused}
+@keyframes exfill{to{width:100%}}
+.exnote{text-align:center;color:var(--muted);font-size:13px;margin:10px 0 0}
+@media (prefers-reduced-motion:reduce){.ex .sc,.ex .sc.on{transition:none}.ex .sc.on *{animation:none!important;opacity:1!important;transform:none!important}}
+</style></head><body>
+<div class="exwrap"><div class="ex" id="ex" role="group" aria-roledescription="animation" aria-label="How MySimpleDesk works, in under a minute">
+<div class="sc on"><div class="k rise">Sound familiar?</div><div class="row"><div class="tile wob w1"><svg viewBox="0 0 24 24"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/></svg>Receipts<small>in a drawer</small></div><div class="tile wob w2 d1"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Certificates<small>lost in emails</small></div><div class="tile wob w3 d2"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Renewal dates<small>forgotten</small></div></div><h3 class="rise d3">Paperwork everywhere?</h3></div>
+<div class="sc" aria-hidden="true"><div class="k rise">Step 1</div><div class="row"><div class="phone pop"><i></i><b></b></div><div class="arrow rise d3">&rarr;</div><div class="pdf pop d3">PDF</div><div class="arrow rise d4">&rarr;</div><div class="folder pop d4">Your OneDrive<small>Receipts folder</small></div></div><h3 class="rise d1">Photograph it</h3><p class="rise d4">It is cropped, straightened and saved as a PDF in your own OneDrive.</p></div>
+<div class="sc" aria-hidden="true"><div class="k rise">Step 2</div><div class="bell">&#128276;</div><div class="col"><div class="rem rise d1">Gas safety certificate <span>in 25 days</span></div><div class="rem rise d2">Home insurance renewal <span>in 3 weeks</span></div><div class="rem rise d3">Boiler service <span>this month</span></div></div><h3 class="rise d4">Reminded before it is due</h3></div>
+<div class="sc" aria-hidden="true"><div class="k rise">Made for you</div><div class="row who3"><div class="tile pop d1"><em>Free forever</em><b>Home owners</b><small>Receipts, documents and renewal dates for your home</small></div><div class="tile pop d2"><em>First year free</em><b>Landlords</b><small>Rent, tenants, agreements and reports for your accountant</small></div><div class="tile pop d3"><em>First year free</em><b>Gas engineers</b><small>Customers, jobs, appointments and certificates</small></div></div><h3 class="rise d4">One simple place</h3></div>
+<div class="sc" aria-hidden="true"><div class="lock pop">&#128274;</div><h3 class="rise d1">Your records stay yours</h3><p class="rise d2">Everything is saved in your own Outlook account. We never see your documents, tenants or customers.</p></div>
+<div class="sc" aria-hidden="true"><div class="k rise">MySimpleDesk</div><h3 class="rise d1">Free to start. No card needed.</h3><p class="rise d2">Works on your phone, tablet and computer. Nothing to install.</p><a class="cta pop d3" href="./?p=register">Start free</a><p class="rise d4" style="font-weight:800;color:#fff">mysimpledesk.co.uk</p></div>
+<div class="exbar"><button type="button" id="exPlay" aria-label="Pause">&#10074;&#10074;</button><button type="button" id="exSnd" class="exsnd" aria-pressed="false">&#128263; Turn sound on</button><div class="exprog run" id="exProg"><i></i></div><button type="button" id="exAgain" aria-label="Play again from the start">&#8635;</button></div>
+</div></div>
+<a class="home" href="home.html">Go to MySimpleDesk</a>
+<script>if(/[?&]rec=1/.test(location.search))document.body.className='rec';
+/* explainer: six scenes timed to the narration; pause, replay and a sound switch (off until pressed); starts when scrolled into view */
+(function(){
+  var ex=document.getElementById('ex'); if(!ex) return;
+  var sc=[].slice.call(ex.querySelectorAll('.sc')), play=document.getElementById('exPlay'), prog=document.getElementById('exProg'), again=document.getElementById('exAgain'), snd=document.getElementById('exSnd');
+  var DUR=[8700,8300,8800,7300,8000,5000], i=0, t=null, paused=false, left=DUR[0], at=0, seen=false, sound=false, au=null;
+  prog.style.setProperty('--dur',(DUR.reduce(function(a,b){return a+b},0)/1000)+'s');
+  function quiet(){ if(au){ try{au.pause()}catch(e){} au=null; } }
+  function say(n){ quiet(); if(!sound) return; try{ au=new Audio('media/ex'+(n+1)+'.mp3'); var p=au.play(); if(p&&p.catch)p.catch(function(){}); }catch(e){} }
+  function show(n){ sc[i].classList.remove('on'); sc[i].setAttribute('aria-hidden','true'); void ex.offsetWidth; i=n; sc[i].classList.add('on'); sc[i].removeAttribute('aria-hidden'); say(n); }
+  function arm(ms){ clearTimeout(t); left=ms; at=Date.now(); if(i<sc.length-1) t=setTimeout(function(){ show(i+1); arm(DUR[i]); },ms); }
+  function setBtn(){ play.innerHTML=paused?'&#9654;':'&#10074;&#10074;'; play.setAttribute('aria-label',paused?'Play':'Pause'); prog.classList.toggle('hold',paused); }
+  function setSnd(){ snd.innerHTML=sound?'&#128266; Sound on':'&#128263; Turn sound on'; snd.setAttribute('aria-pressed',sound?'true':'false'); }
+  function restart(){ paused=false; setBtn(); prog.classList.remove('run'); void prog.offsetWidth; prog.classList.add('run'); window.__exT0=Date.now(); show(0); arm(DUR[0]); }
+  play.onclick=function(){ if(paused){ paused=false; arm(left); if(au){var p=au.play(); if(p&&p.catch)p.catch(function(){});} } else { paused=true; clearTimeout(t); left=Math.max(200,left-(Date.now()-at)); if(au){try{au.pause()}catch(e){}} } setBtn(); };
+  again.onclick=restart;
+  snd.onclick=function(){ sound=!sound; setSnd(); if(sound) restart(); else quiet(); };
+  document.addEventListener('visibilitychange',function(){ if(document.hidden&&!paused) play.onclick(); });
+  setSnd(); prog.classList.remove('run');
+  if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ if(es[0].isIntersecting&&!seen){ seen=true; restart(); } },{threshold:.5}).observe(ex); } else restart();
+})();
+</script></body></html>
