@@ -1740,7 +1740,8 @@
   function vOn() { return suOn() && location.protocol !== 'file:' && !window.CD_DEMO; }
   function vMail() { var r = sget('cd.reg'); return (r && r.email) || ((tok() || {}).account || {}).mail || ''; }
   async function vCall(action, email) {
-    var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, alt: (profGet().email || ''), name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
+    var k = ''; try { k = await suKey(); } catch (e) {}
+    var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, k: k, alt: (profGet().email || ''), name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
     return { code: r.status, body: await r.json().catch(function () { return {}; }) };
   }
   async function vRun() {

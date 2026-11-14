@@ -33,6 +33,8 @@ export async function onRequest({ request, env }) {
   if (!env.DB) return json({ error: 'The sign-up database is not connected yet.' }, 503);
   let who = null; try { who = await adminEmail(request, env); } catch (e) { who = null; }
   if (!who) return json({ error: 'Not signed in as an admin. Check the Cloudflare Access settings.' }, 401);
+  /* changes must come from the admin page itself, not from another website */
+  if (request.method !== 'GET') { let oh = ''; try { oh = new URL(request.headers.get('Origin')).host; } catch (e) {} if (oh !== new URL(request.url).host) return json({ error: 'Forbidden' }, 403); }
   await ensureTable(env.DB);
   if (request.method === 'GET') {
     const none = await env.DB.prepare('SELECT email FROM users WHERE user_no IS NULL ORDER BY COALESCE(signed_up, first_seen) ASC').all();

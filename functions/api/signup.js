@@ -92,10 +92,11 @@ export async function onRequestPost({ request, env }) {
     .bind(email, clean(d.name, 100), clean(d.accountEmail, 160).toLowerCase(), clean(d.mobile, 30), clean(d.business, 120),
       clean(d.trade, 60), clean(d.account, 20), d.event === 'signup' ? now : null, now, clean(d.build, 40))
     .run();
+  if (key) await env.DB.prepare("UPDATE users SET del_key = ?2 WHERE email = ?1 AND (del_key IS NULL OR del_key = '')").bind(email, key).run();
   await giveNumber(env.DB, email);
   /* how many properties they manage: a number only, sent by the app so the right plan can be shown */
-  if (Number.isInteger(d.props) && d.props >= 0 && d.props < 10000) { try { await env.DB.prepare('UPDATE users SET props = ?2, home = ?3 WHERE email = ?1').bind(email, d.props, d.home ? 1 : 0).run(); } catch (e) {} }
-  if (key) await env.DB.prepare("UPDATE users SET del_key = ?2 WHERE email = ?1 AND (del_key IS NULL OR del_key = '')").bind(email, key).run();
+  /* only from the app signed in to that account (it holds the matching key), so nobody else can change someone's count */
+  if (key && Number.isInteger(d.props) && d.props >= 0 && d.props < 10000) { try { await env.DB.prepare('UPDATE users SET props = ?2, home = ?3 WHERE email = ?1 AND del_key = ?4').bind(email, d.props, d.home ? 1 : 0, key).run(); } catch (e) {} }
   return say('ok');
 }
 export const onRequest = () => say('use POST', 405);

@@ -13,6 +13,7 @@ const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f
 const hex = buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 const sha = async s => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const DAY_CAP = 300; /* most confirmation emails sent in one day, to all addresses together */
 let ready = false;
 async function table(db) {
   await ensureTable(db);
@@ -49,10 +50,14 @@ export async function onRequestPost({ request, env }) {
   await table(env.DB);
   const row = await env.DB.prepare('SELECT sent_at, sent_day, sent_n, confirmed_at FROM verify WHERE email = ?1').bind(email).first();
   if (d.action === 'status') {
-    let sus = false, no = null, since = null, pay = 'trial'; try { const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email; const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL LIMIT 1').bind(email, alt).first(); sus = !!u;
-      const me = await env.DB.prepare('SELECT user_no, pay, COALESCE(signed_up, first_seen) AS since FROM users WHERE email IN (?1, ?2) OR lower(account_email) IN (?1, ?2) ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1').bind(email, alt).first();
-      if (me) { no = me.user_no; since = me.since; pay = me.pay || 'trial'; } } catch (e) {}
-    return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : 'pending', suspended: sus, no, since, pay });
+    const key = /^[a-f0-9]{32,64}$/.test(String(d.k || '')) ? String(d.k) : '';
+    let sus = false, no = null, since = null, pay = 'trial', old = false; try { const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email; const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL LIMIT 1').bind(email, alt).first(); sus = !!u;
+      /* an account that existed before the confirmation email was asked for is never held back: stops someone locking out an existing user by asking for a link in their name */
+      if (row && !row.confirmed_at) { const o = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND first_seen < ?3 LIMIT 1').bind(email, alt, new Date(Date.parse(row.sent_at) - 3600e3).toISOString()).first(); old = !!o; }
+      const me = await env.DB.prepare('SELECT user_no, pay, del_key, COALESCE(signed_up, first_seen) AS since FROM users WHERE email IN (?1, ?2) OR lower(account_email) IN (?1, ?2) ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1').bind(email, alt).first();
+      /* the user number, dates and payment status go only to the app signed in to that account (it holds the matching key) */
+      if (me && key && me.del_key && me.del_key === key) { no = me.user_no; since = me.since; pay = me.pay || 'trial'; } } catch (e) {}
+    return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : old ? 'none' : 'pending', suspended: sus, no, since, pay });
   }
   if (d.action !== 'start') return json({ error: 'bad request' }, 400);
   if (!env.RESEND_API_KEY) return json({ error: 'email sending is not set up' }, 503);
@@ -60,6 +65,8 @@ export async function onRequestPost({ request, env }) {
   const now = new Date(), nowIso = now.toISOString(), day = nowIso.slice(0, 10);
   if (await tooMany(env.DB, request, nowIso)) return json({ error: 'too many requests' }, 429);
   if (row && Date.now() - Date.parse(row.sent_at) < 60e3) return json({ status: 'pending', wait: true });
+  const all = await env.DB.prepare('SELECT COALESCE(SUM(sent_n), 0) AS c FROM verify WHERE sent_day = ?1').bind(day).first();
+  if (all && all.c >= DAY_CAP) return json({ error: 'too many emails today' }, 429);
   const n = row && row.sent_day === day ? (row.sent_n || 0) : 0;
   if (n >= 5) return json({ error: 'too many emails today' }, 429);
   const token = hex(crypto.getRandomValues(new Uint8Array(32)));
