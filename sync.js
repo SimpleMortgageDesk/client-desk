@@ -87,15 +87,21 @@
   }
   /* ---------- Google sign-in (OAuth 2.0 for browser apps, no Google script loaded) ---------- */
   function gUrl(mode, hint) {
-    var s = rand(16); lset('cd.gstate', s);
-    return GAUTH + '?' + form(Object.assign({ client_id: CFG.googleClientId || '', redirect_uri: REDIRECT, response_type: 'token', scope: GSCOPE, state: s, include_granted_scopes: 'true' },
+    var s = rand(16), n = rand(16); lset('cd.gstate', s); lset('cd.gnonce', n);
+    return GAUTH + '?' + form(Object.assign({ client_id: CFG.googleClientId || '', redirect_uri: REDIRECT, response_type: 'token id_token', nonce: n, scope: GSCOPE, state: s, include_granted_scopes: 'true' },
       mode === 'login' ? { prompt: 'select_account' } : {}, hint ? { login_hint: hint } : {}));
   }
   function gStart(hint) {
     if (window.CD_DEMO_LOGIN) return window.CD_DEMO_LOGIN('google');
     lset('cd.prov', 'google'); location.href = gUrl('login', hint);
   }
-  function gParse(h) { var p = new URLSearchParams(h); return { at: p.get('access_token'), exp: +p.get('expires_in') || 3600, st: p.get('state'), err: p.get('error'), scope: p.get('scope') || '' }; }
+  function gParse(h) { var p = new URLSearchParams(h); return { at: p.get('access_token'), exp: +p.get('expires_in') || 3600, st: p.get('state'), err: p.get('error'), scope: p.get('scope') || '', idt: p.get('id_token') || '' }; }
+  /* Google's proof of sign-in: kept only if it carries the one-time code this device sent. Returns { idt, sub } or {}. */
+  function gProof(idt) {
+    var want = ls('cd.gnonce'); lset('cd.gnonce', null);
+    try { var b = idt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), pl = JSON.parse(decodeURIComponent(escape(atob(b + '==='.slice((b.length + 3) % 4))))); if (want && pl.nonce === want) return { idt: idt, sub: pl.sub || '' }; } catch (e) {}
+    return {};
+  }
   var gWaiting = null;
   function gRenew() {
     var acc = (tok() || {}).account || {};
@@ -114,7 +120,8 @@
     fetch(GAPI + '/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + r.at } }).then(function (x) { return x.ok ? x.json() : {}; }, function () { return {}; }).then(function (u) {
       var now = String(u.email || '').toLowerCase();
       if (old && now && old !== now) { gBanner('That was a different Google account (' + now + '). Reconnect with ' + old + '.'); return; }
-      setTok({ access: r.at, exp: Date.now() + r.exp * 1000, prov: 'google', account: t.account });
+      var gp = gProof(r.idt);
+      setTok({ access: r.at, exp: Date.now() + r.exp * 1000, prov: 'google', account: t.account, idt: gp.idt || t.idt || '' });
       gBannerOff(); st.err = ''; setState(); flush(); pull();
       if (window.CD_gAfter) { var f = window.CD_gAfter; window.CD_gAfter = null; f(); }
     });
@@ -2053,9 +2060,10 @@
       if (!/drive\.file/.test(gr.scope)) throw new Error('Google did not give access to Drive. Sign in again and tick the box that lets ' + APPN + ' see and manage the files it creates.');
       var prevG = (tok() || {}).account || {}, wasG = (tok() || {}).prov === 'google';
       lset('cd.prov', 'google'); PROV = 'google';
-      setTok({ access: gr.at, exp: Date.now() + gr.exp * 1000, prov: 'google', account: prevG });
+      var gp0 = gProof(gr.idt);
+      setTok({ access: gr.at, exp: Date.now() + gr.exp * 1000, prov: 'google', account: prevG, idt: gp0.idt || '' });
       var gu = {}; try { var ur = await gfetch(GAPI + '/oauth2/v3/userinfo'); if (ur.ok) gu = await ur.json(); } catch (e) {}
-      var t0 = tok(); t0.account = { name: gu.name || '', mail: gu.email || '' }; setTok(t0); if (gu.email) lset('cd.lastMail', gu.email);
+      var t0 = tok(); t0.account = { name: gu.name || '', mail: gu.email || '', id: gu.sub || gp0.sub || '' }; setTok(t0); if (gu.email) lset('cd.lastMail', gu.email);
       if (ls('cd.gunlock') === '1') {
         lset('cd.gunlock', null);
         if (prevG.mail && String(prevG.mail).toLowerCase() !== String(t0.account.mail).toLowerCase()) { setTok(null); throw new Error('That was a different Google account (' + t0.account.mail + '), so the app stayed locked. Log in with ' + prevG.mail + '.'); }

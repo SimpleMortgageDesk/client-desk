@@ -53,12 +53,30 @@ const MS_ISS = 'https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304
 const MS_KEYS = 'https://login.microsoftonline.com/consumers/discovery/v2.0/keys';
 const ub64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
 let msKeys = null, msKeysAt = 0;
+/* Google's proof of sign-in is checked the same way, against Google's published keys. It needs the Cloudflare variable GOOGLE_CLIENT_ID
+   (the same client ID as in config.js); without it no Google proof is accepted. The account identifier is prefixed g: to keep it apart from Microsoft's. */
+const G_KEYS = 'https://www.googleapis.com/oauth2/v3/certs';
+let gKeys = null, gKeysAt = 0;
+async function verifyGoogle(parts, head, body, env) {
+  const aud = env && env.GOOGLE_CLIENT_ID;
+  if (!aud || body.aud !== aud) return null;
+  const now = Date.now() / 1000;
+  if (!(body.exp > now) || !body.sub) return null;
+  if (body.email_verified === false || body.email_verified === 'false') return null;
+  let jwk = gKeys && (gKeys.keys || []).find(k => k.kid === head.kid);
+  if (!jwk || Date.now() - gKeysAt > 6 * 3600e3) { gKeys = await (await fetch(G_KEYS)).json(); gKeysAt = Date.now(); jwk = (gKeys.keys || []).find(k => k.kid === head.kid); }
+  if (!jwk) return null;
+  const key = await crypto.subtle.importKey('jwk', { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+  const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, ub64(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+  return ok ? { sub: 'g:' + String(body.sub), email: String(body.email || '').toLowerCase() } : null;
+}
 export async function verifyMs(idt, env) {
   try {
     if (typeof idt !== 'string' || idt.length > 5000) return null;
     const parts = idt.split('.'); if (parts.length !== 3) return null;
     const head = JSON.parse(new TextDecoder().decode(ub64(parts[0]))), body = JSON.parse(new TextDecoder().decode(ub64(parts[1])));
     if (head.alg !== 'RS256' || !head.kid) return null;
+    if (body.iss === 'https://accounts.google.com' || body.iss === 'accounts.google.com') return await verifyGoogle(parts, head, body, env);
     const aud = (env && env.MS_CLIENT_ID) || MS_CLIENT;
     if (body.aud !== aud || body.iss !== MS_ISS) return null;
     const now = Date.now() / 1000;
