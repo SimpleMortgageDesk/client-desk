@@ -9,8 +9,12 @@
   /* a registration in progress chose a kind of work: use it before the app draws anything */
   try { var reg0 = JSON.parse(sessionStorage.getItem('cd.reg') || 'null'); if (reg0 && reg0.trade && window.CD_tradeSet) window.CD_tradeSet(reg0.trade); } catch (e) {}
   var BASE_SCOPES = 'Files.ReadWrite.AppFolder User.Read offline_access';
-  var ls = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  var lset = function (k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} };
+  /* SHARED COMPUTER: chosen on the login screen. Nothing is then kept on the device: the sign-in and settings live only in this browser tab
+     (gone when it closes) and no working copy of the records is stored. Records are read from and saved to the person's own storage each time. */
+  var SHARED = false; try { SHARED = sessionStorage.getItem('cd.shared') === '1'; } catch (e) {}
+  var store = function () { return SHARED ? sessionStorage : localStorage; };
+  var ls = function (k) { try { return store().getItem(k); } catch (e) { return null; } };
+  var lset = function (k, v) { try { if (v == null) store().removeItem(k); else store().setItem(k, v); } catch (e) {} };
   function scopes() { return BASE_SCOPES + ((ls('cd.cal') === '1' || ls('cd.calwant') === '1') ? ' Calendars.ReadWrite' : '') + ((ls('cd.mail') === '1' || ls('cd.mailwant') === '1') ? ' Mail.Send' : ''); }
   var AUTH = 'https://login.microsoftonline.com/' + (CFG.tenant || 'common') + '/oauth2/v2.0/';
   var GRAPH = 'https://graph.microsoft.com/v1.0';
@@ -52,8 +56,8 @@
   window.mdToast = toast;
 
   /* ---------- tokens (Microsoft sign-in, PKCE, no library) ---------- */
-  function readTok() { try { return JSON.parse(localStorage.getItem('cd.tok2') || 'null'); } catch (e) { return null; } }
-  function writeTok(t) { try { if (t) localStorage.setItem('cd.tok2', JSON.stringify(t)); else localStorage.removeItem('cd.tok2'); } catch (e) {} }
+  function readTok() { try { return JSON.parse(store().getItem('cd.tok2') || 'null'); } catch (e) { return null; } }
+  function writeTok(t) { try { if (t) store().setItem('cd.tok2', JSON.stringify(t)); else store().removeItem('cd.tok2'); } catch (e) {} }
   var memTok = null;
   function tok() { return memTok || (memTok = readTok()); }
   function setTok(t) { memTok = t; writeTok(t); }
@@ -1258,6 +1262,7 @@
       html = '<form id="lgForm" novalidate class="mdl">' + hdr('register') + '<h1>Welcome back</h1>' +
       '<p class="lead">Log in with the email you registered with. Your records load from your own ' + (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') + '.</p>' +
       '<label style="font-size:14px">User ID (your email address)<input id="lgMail" type="email" name="username" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" value="' + esc(lastMail) + '" style="' + lgInp + '"></label>' +
+      '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' + (SHARED ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>This is a shared or public computer</b><br><span style="color:#58697A;font-size:13px">Nothing is kept on this computer. You are logged out when the browser tab is closed.</span></span></label>' +
       '<p style="margin:0 0 4px;padding:9px 11px;background:#EEF6F2;border-radius:8px;font-size:13.5px;color:#234"><b>Your password is next.</b> ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' asks for it on its own secure page, with your email already filled in. This app never sees your password.</p>' +
       '<button type="submit" id="lgGo" style="' + pri + '">Log in' + sub('Then type your password on ' + (ok.g ? 'their' : 'Microsoft\'s') + ' page', 1) + '</button>' +
       '<div style="margin:22px 0 0;padding:12px 14px;border:1px solid #D4DBDF;border-radius:10px;font-size:13.5px;color:#2b3b47"><b>Forgot your password?</b><br>Your password belongs to your ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' account, so it is reset there. They email a reset link to the recovery address on your account. We cannot see or reset it.<div role="note" style="margin:14px 0 4px;padding:14px 16px;background:#FFE9B8;border:2px solid #D98A00;border-left-width:8px;border-radius:10px;color:#3d2800;font-size:15px;line-height:1.45"><div style="font-size:17px;font-weight:800;margin-bottom:4px">&#9888;&#65039; Important: read before you reset</div>This is the <b>same password as your ' + (ok.g ? 'Outlook or Gmail email' : 'Outlook email') + '</b>. If you change it here, <b>your email password changes too</b>, on every device where you use it.</div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px"><a href="https://account.live.com/password/reset" target="_blank" rel="noopener" style="padding:7px 12px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Microsoft password</a>' + (ok.g ? '<a href="https://accounts.google.com/signin/recovery" target="_blank" rel="noopener" style="padding:7px 12px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Google password</a>' : '') + '</div></div>' +
@@ -1303,6 +1308,7 @@
         er.textContent = '';
         var gm = /@(gmail|googlemail)\./i.test(em), useG = ok.g && (gm || !ok.ms);
         lf.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+        var shc = o.querySelector('#lgShared'); try { if (shc && shc.checked) { sessionStorage.setItem('cd.shared', '1'); SHARED = true; } else { sessionStorage.removeItem('cd.shared'); SHARED = false; } } catch (x) {}
         lset('cd.lastMail', em); sset('cd.intent', 'login');
         if (useG) gStart(em); else { lset('cd.prov', 'ms'); startLogin(false, em); }
       });
@@ -1497,6 +1503,7 @@
     try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
     try { if (navigator.serviceWorker) { var rg = await navigator.serviceWorker.getRegistrations(); await Promise.all(rg.map(function (r) { return r.unregister(); })); } } catch (e) {}
     await idbClearAll(); setTok(null);
+    if (SHARED) { try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('cd.') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
     ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.owner', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel'].forEach(function (k) { lset(k, null); });
     if (auto) { try { localStorage.setItem('cd.idleMsg', '1'); } catch (e) {} }
     location.replace(location.pathname + '?fresh=' + Date.now());
@@ -1504,8 +1511,8 @@
   /* ---------- automatic log out after a period with no activity (default 2 hours) ---------- */
   var IDLE_MS = Math.max(0.05, +(CFG.idleMinutes || 120)) * 60000, idleBusy = false, lastW = 0;
   function idleLabel() { var m = IDLE_MS / 60000; return m >= 60 ? (m / 60 === 1 ? '1 hour' : (m / 60) + ' hours') : m + ' minutes'; }
-  function markAct() { if (locked) return; try { localStorage.setItem('cd.act', String(Date.now())); } catch (e) {} }
-  function lastAct() { var v = 0; try { v = +localStorage.getItem('cd.act') || 0; } catch (e) {} return v || Date.now(); }
+  function markAct() { if (locked) return; try { store().setItem('cd.act', String(Date.now())); } catch (e) {} }
+  function lastAct() { var v = 0; try { v = +store().getItem('cd.act') || 0; } catch (e) {} return v || Date.now(); }
   function isIdle() { return Date.now() - lastAct() >= IDLE_MS; }
   async function autoSignOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
@@ -2215,7 +2222,12 @@
   async function boot() {
     addSyncBadge();
     if (window.CD_TEST) { testBoot(); return; }
-    await openIdb(); await loadCache();
+    if (SHARED) {
+      /* remove any working copy left here earlier, unless it still holds changes that never reached the person's storage */
+      await openIdb(); var left = await idbAll('dirty');
+      if (idb) { try { idb.close(); } catch (e) {} } idb = null;
+      if (!left.length) { try { indexedDB.deleteDatabase('client-desk'); } catch (e) {} }
+    } else { await openIdb(); await loadCache(); }
     try { await handleRedirect(); } catch (e) { showSignIn(e.message); return; }
     if (!tok()) { showSignIn(''); return; }
     if (isIdle()) { await autoSignOut(); return; }
@@ -2229,6 +2241,10 @@
     }
     startIdleWatch(); startLockWatch(); setTimeout(pinWarnMaybe, 2500);
     var o = $('mdSign'); if (o) o.remove();
+    if (SHARED) {
+      setTimeout(function () { toast('Shared computer: nothing is kept on this device. Log out when you finish.'); }, 3500);
+      window.addEventListener('beforeunload', function (e) { if (pending()) { e.preventDefault(); e.returnValue = ''; } });
+    }
     readyRes({ collection: collection });
     setState();
     flush(); pull();
