@@ -1504,7 +1504,8 @@
     try { if (navigator.serviceWorker) { var rg = await navigator.serviceWorker.getRegistrations(); await Promise.all(rg.map(function (r) { return r.unregister(); })); } } catch (e) {}
     await idbClearAll(); setTok(null);
     if (SHARED) { try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('cd.') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
-    ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.owner', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel'].forEach(function (k) { lset(k, null); });
+    /* cd.owner is kept on purpose: it records whose settings are still on this device, so that if a different account signs in next, ownerCheck removes them */
+    ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel'].forEach(function (k) { lset(k, null); });
     if (auto) { try { localStorage.setItem('cd.idleMsg', '1'); } catch (e) {} }
     location.replace(location.pathname + '?fresh=' + Date.now());
   }
@@ -2029,7 +2030,10 @@
         setTok(null); throw new Error('Sign in with ' + prev.split(':').slice(1).join(':') + ' to upload those changes first.');
       }
       await idbClearAll(); COLS.forEach(function (c) { mem[c] = {}; }); dirty = {};
-      ['cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.pin', 'cd.profile', 'cd.auth', 'cd.locked'].forEach(function (k) { lset(k, null); }); gcols = {};
+      /* everything the last account left on this device goes: its profile, app password, backup password and backup folders, calendar and email choices */
+      ['cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.pin', 'cd.profile', 'cd.auth', 'cd.locked',
+        'cd.bkpw', 'cd.bk', 'cd.bkrec', 'cd.bkq', 'cd.bkhint', 'cd.bkwa', 'cd.calkd', 'cd.calwant', 'cd.mailwant', 'cd.calnote', 'cd.su', 'cd.trialHide', 'cd.readme', 'cd.reopen', 'cd.reauthNext', 'cd.reauthOk'].forEach(function (k) { lset(k, null); }); gcols = {};
+      try { indexedDB.deleteDatabase('cd-bk'); } catch (e) {}
     }
     lset('cd.owner', cur);
   }
