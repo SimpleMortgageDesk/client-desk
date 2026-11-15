@@ -5,7 +5,7 @@
    Optional variable MAIL_FROM, default "MySimpleDesk <support@mysimpledesk.co.uk>".
    Only an address that has asked for a link can be 'pending'. People who registered before this existed have no row, so are never locked out.
    Tokens are stored only as a hash and expire after 48 hours. */
-import { ensureTable, tooMany } from './signup.js';
+import { ensureTable, tooMany, verifyMs } from './signup.js';
 
 const say = (t, s, h) => new Response(t, { status: s || 200, headers: Object.assign({ 'Cache-Control': 'no-store' }, h || {}) });
 const json = (o, s) => say(JSON.stringify(o), s, { 'Content-Type': 'application/json' });
@@ -43,7 +43,7 @@ export async function onRequestPost({ request, env }) {
   const site = request.headers.get('Sec-Fetch-Site');
   if (site && site !== 'same-origin') return json({ error: 'forbidden' }, 403);
   const raw = await request.text();
-  if (raw.length > 2000) return json({ error: 'too large' }, 413);
+  if (raw.length > 8000) return json({ error: 'too large' }, 413);
   let d; try { d = JSON.parse(raw); } catch (e) { return json({ error: 'bad request' }, 400); }
   const email = clean(d.email, 160).toLowerCase();
   if (!EMAIL.test(email)) return json({ error: 'bad email' }, 400);
@@ -54,9 +54,11 @@ export async function onRequestPost({ request, env }) {
     let sus = false, no = null, since = null, pay = 'trial', old = false; try { const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email; const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL LIMIT 1').bind(email, alt).first(); sus = !!u;
       /* an account that existed before the confirmation email was asked for is never held back: stops someone locking out an existing user by asking for a link in their name */
       if (row && !row.confirmed_at) { const o = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND first_seen < ?3 LIMIT 1').bind(email, alt, new Date(Date.parse(row.sent_at) - 3600e3).toISOString()).first(); old = !!o; }
-      const me = await env.DB.prepare('SELECT user_no, pay, del_key, COALESCE(signed_up, first_seen) AS since FROM users WHERE email IN (?1, ?2) OR lower(account_email) IN (?1, ?2) ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1').bind(email, alt).first();
+      const me = await env.DB.prepare('SELECT user_no, pay, del_key, ms_sub, COALESCE(signed_up, first_seen) AS since FROM users WHERE email IN (?1, ?2) OR lower(account_email) IN (?1, ?2) ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1').bind(email, alt).first();
       /* the user number, dates and payment status go only to the app signed in to that account (it holds the matching key) */
-      if (me && key && me.del_key && me.del_key === key) { no = me.user_no; since = me.since; pay = me.pay || 'trial'; } } catch (e) {}
+      /* once the account is tied to a Microsoft sign-in, only Microsoft's proof of that sign-in will do */
+      const id = me && me.ms_sub && d.idt ? await verifyMs(String(d.idt), env) : null;
+      if (me && (me.ms_sub ? (id && id.sub === me.ms_sub) : (key && me.del_key && me.del_key === key))) { no = me.user_no; since = me.since; pay = me.pay || 'trial'; } } catch (e) {}
     return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : old ? 'none' : 'pending', suspended: sus, no, since, pay });
   }
   if (d.action !== 'start') return json({ error: 'bad request' }, 400);

@@ -15,7 +15,11 @@
   var store = function () { return SHARED ? sessionStorage : localStorage; };
   var ls = function (k) { try { return store().getItem(k); } catch (e) { return null; } };
   var lset = function (k, v) { try { if (v == null) store().removeItem(k); else store().setItem(k, v); } catch (e) {} };
-  function scopes() { return BASE_SCOPES + ((ls('cd.cal') === '1' || ls('cd.calwant') === '1') ? ' Calendars.ReadWrite' : '') + ((ls('cd.mail') === '1' || ls('cd.mailwant') === '1') ? ' Mail.Send' : ''); }
+  /* 'openid email profile' asks Microsoft for a signed proof of who signed in (an ID token). Our server checks it, and it cannot open any files.
+     It is asked for at every fresh sign-in; refreshes ask for it only once such a sign-in has succeeded (cd.oidc). */
+  var OIDC = ' openid email profile';
+  function noOidc() { try { return localStorage.getItem('cd.nooidc') === '1'; } catch (e) { return false; } }
+  function scopes() { return BASE_SCOPES + (ls('cd.oidc') === '1' ? OIDC : '') + ((ls('cd.cal') === '1' || ls('cd.calwant') === '1') ? ' Calendars.ReadWrite' : '') + ((ls('cd.mail') === '1' || ls('cd.mailwant') === '1') ? ' Mail.Send' : ''); }
   var AUTH = 'https://login.microsoftonline.com/' + (CFG.tenant || 'common') + '/oauth2/v2.0/';
   var GRAPH = 'https://graph.microsoft.com/v1.0';
   var APP = '/me/drive/special/approot';
@@ -70,14 +74,15 @@
     var v = rand(48), st = rand(16);
     var h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
     try { localStorage.setItem('cd.pkce', JSON.stringify({ v: v, st: st })); } catch (e) {}
-    location.href = AUTH + 'authorize?' + form(Object.assign({ client_id: CFG.clientId, response_type: 'code', redirect_uri: REDIRECT, response_mode: 'query', scope: scopes(), state: st, code_challenge: b64url(h), code_challenge_method: 'S256', prompt: reauth ? 'login' : 'select_account' }, hint ? { login_hint: hint } : {}, reauth && ((tok() || {}).account || {}).mail ? { login_hint: tok().account.mail } : {}));
+    location.href = AUTH + 'authorize?' + form(Object.assign({ client_id: CFG.clientId, response_type: 'code', redirect_uri: REDIRECT, response_mode: 'query', scope: scopes() + (ls('cd.oidc') === '1' || noOidc() ? '' : OIDC), state: st, code_challenge: b64url(h), code_challenge_method: 'S256', prompt: reauth ? 'login' : 'select_account' }, hint ? { login_hint: hint } : {}, reauth && ((tok() || {}).account || {}).mail ? { login_hint: tok().account.mail } : {}));
   }
   async function tokenRequest(params) {
-    var r = await fetch(AUTH + 'token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form(Object.assign({ client_id: CFG.clientId, scope: scopes() }, params)) });
+    var r = await fetch(AUTH + 'token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form(Object.assign({ client_id: CFG.clientId, scope: scopes() + (params.grant_type === 'authorization_code' && ls('cd.oidc') !== '1' && !noOidc() ? OIDC : '') }, params)) });
     var j = await r.json().catch(function () { return {}; });
     if (!r.ok || j.error) { var e = new Error(j.error_description || j.error || 'Sign-in failed'); e.auth = true; e.code = j.error; throw e; }
     var old = tok() || {};
-    setTok({ access: j.access_token, refresh: j.refresh_token || old.refresh, exp: Date.now() + (j.expires_in || 3600) * 1000, account: old.account });
+    setTok({ access: j.access_token, refresh: j.refresh_token || old.refresh, exp: Date.now() + (j.expires_in || 3600) * 1000, account: old.account, idt: j.id_token || old.idt || '' });
+    if (params.grant_type === 'authorization_code' && j.id_token) lset('cd.oidc', '1');
     return j;
   }
   /* ---------- Google sign-in (OAuth 2.0 for browser apps, no Google script loaded) ---------- */
@@ -1505,7 +1510,7 @@
     await idbClearAll(); setTok(null);
     if (SHARED) { try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('cd.') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
     /* cd.owner is kept on purpose: it records whose settings are still on this device, so that if a different account signs in next, ownerCheck removes them */
-    ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel'].forEach(function (k) { lset(k, null); });
+    ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.oidc'].forEach(function (k) { lset(k, null); });
     if (auto) { try { localStorage.setItem('cd.idleMsg', '1'); } catch (e) {} }
     location.replace(location.pathname + '?fresh=' + Date.now());
   }
@@ -1645,6 +1650,7 @@
       try { if (firstPullDone) { body.props = Object.keys(mem.cases).filter(function (id) { var d = (mem.cases[id] || {}).data; return d && d.stage !== 'lost'; }).length; var hm = (mem.settings.home && mem.settings.home.data) || null; body.home = hm && String(hm.addr1 || '').trim() ? 1 : 0; } } catch (x) {}
       suKey().then(function (k) {
         if (k) body.k = k;
+        var it = (tok() || {}).idt; if (it) body.idt = it;
         return fetch(CFG.signupUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), keepalive: true });
       }).then(function () { lset('cd.su', today); }).catch(function () {});
     } catch (e) {}
@@ -1668,7 +1674,7 @@
       try {
         var p = profGet(), a = (tok() || {}).account || {}, email = String(p.email || a.mail || a.email || '').trim(), k = await suKey();
         if (email) {
-          var r = await fetch(CFG.signupUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ event: 'delete', email: email, accountEmail: a.mail || a.email || '', k: k }) });
+          var r = await fetch(CFG.signupUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ event: 'delete', email: email, accountEmail: a.mail || a.email || '', k: k, idt: (tok() || {}).idt || '' }) });
           out.list = r.status === 200 ? 'deleted' : r.status === 202 ? 'requested' : 'fail';
         } else out.list = 'deleted';
       } catch (e) { out.list = 'fail'; }
@@ -1755,7 +1761,7 @@
   function vMail() { var r = sget('cd.reg'); return (r && r.email) || ((tok() || {}).account || {}).mail || ''; }
   async function vCall(action, email) {
     var k = ''; try { k = await suKey(); } catch (e) {}
-    var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, k: k, alt: (profGet().email || ''), name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
+    var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, k: k, idt: (tok() || {}).idt || '', alt: (profGet().email || ''), name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
     return { code: r.status, body: await r.json().catch(function () { return {}; }) };
   }
   async function vRun() {
@@ -2063,6 +2069,7 @@
     if (p.get('fresh') && !p.get('code') && !p.get('error')) { history.replaceState(null, '', location.pathname); return; }
     if (!p.get('code') && !p.get('error')) { lset('cd.calwant', null); lset('cd.mailwant', null); lset('cd.reauth', null); return; }
     var clean = function () { history.replaceState(null, '', location.pathname); };
+    if (p.get('error') && !noOidc() && /scope/i.test((p.get('error') || '') + ' ' + (p.get('error_description') || ''))) { try { localStorage.setItem('cd.nooidc', '1'); } catch (e) {} clean(); lset('cd.oidc', null); await startLogin(); await new Promise(function () {}); }
     if (p.get('error')) { var m = p.get('error_description') || p.get('error'); lset('cd.calwant', null); lset('cd.mailwant', null); lset('cd.reauth', null); clean(); throw new Error(m); }
     var pk = null; try { pk = JSON.parse(localStorage.getItem('cd.pkce') || 'null'); } catch (e) {}
     var code = p.get('code'), state = p.get('state'); clean();
