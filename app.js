@@ -1764,7 +1764,7 @@ function saveTrade(id){
 }
 function openTradePicker(first){
   if($('#tpOv')||window.CD_TRADES.only)return;var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';
-  o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trade"><h2>'+(first?'Welcome. What kind of work do you do?':'Change your trade')+'</h2><p class="muted" style="margin:4px 0 12px">This sets the fields, stages and reminders on your records. You can change it later in Settings.'+(first?'':' Your saved records keep all their details. Fields that do not belong to the new trade are hidden, not deleted.')+'</p><div class="tpgrid">'+
+  o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trade"><h2>'+(first?'Welcome. I am…':'Change your trade')+'</h2><p class="muted" style="margin:4px 0 12px">This sets the fields, stages and reminders on your records. You can change it later in Settings.'+(first?'':' Your saved records keep all their details. Fields that do not belong to the new trade are hidden, not deleted.')+'</p><div class="tpgrid">'+
     A.order.map(function(id){var x=A.all[id],op=!window.CD_tradeOpen||window.CD_tradeOpen(id);return '<button type="button" class="tpb'+(!first&&id===T.id?' on':'')+(op?'':' soon')+'" data-trade="'+id+'"'+(op?'':' disabled aria-disabled="true"')+'><b>'+esc(x.label)+(op?'':' <em class="tpsoon">Coming soon</em>')+'</b><span>'+esc(x.noun[1])+' · '+esc(x.stages.map(function(s){return s.label.replace(/^\d /,'')}).slice(0,4).join(', '))+'…</span></button>'}).join('')+
     '</div>'+(first?'':'<div class="mkact"><button type="button" class="btn ghost" data-tpclose="1">Cancel</button></div>')+'</div>';
   document.body.appendChild(o);
