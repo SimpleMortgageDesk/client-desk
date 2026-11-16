@@ -879,3 +879,11 @@ header.top .in{padding-block:12px}}
 .tmact{display:flex;gap:6px;flex-wrap:wrap}
 .tmact a.btn{text-decoration:none;display:inline-flex;align-items:center}
 @media (max-width:620px){.tmadd{grid-template-columns:1fr}}
+
+/* import */
+.imlist{border:1px solid var(--line);border-radius:12px;overflow:hidden;max-height:52vh;overflow-y:auto}
+.imrow{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.2fr) minmax(0,1.5fr);gap:10px;align-items:center;padding:9px 12px;border-top:1px solid var(--line)}
+.imrow:first-child{border-top:0}.imrow b,.imrow span{overflow-wrap:anywhere}
+.imhd{background:var(--surface2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);position:sticky;top:0}
+.imrow select{width:100%;min-width:0}
+@media (max-width:620px){.imrow{grid-template-columns:1fr;gap:4px;padding:10px 12px}.imhd{display:none}.imrow span:empty{display:none}.imrow .muted{font-size:13px}}

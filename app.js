@@ -321,7 +321,7 @@ function render(){
   else v.innerHTML=remindersHTML();
 }
 function emptyHTML(){
-  return '<div class="empty"><h2>No '+NS()+' yet</h2>Add your first '+N1()+' to track it from enquiry to the end, with tasks, notes, appointments and reminders for key dates.<br><button class="btn" data-act="new">Add your first '+N1()+'</button></div>';
+  return '<div class="empty"><h2>No '+NS()+' yet</h2>Add your first '+N1()+' to track it from enquiry to the end, with tasks, notes, appointments and reminders for key dates.<br><button class="btn" data-act="new">Add your first '+N1()+'</button>'+(imKind()?' <button class="btn ghost" data-act="import">Import from Excel or CSV</button>':'')+'</div>';
 }
 
 /* ---------- pipeline ---------- */
@@ -362,8 +362,8 @@ function casesHTML(){
   var CASE_COLS=T.cols,list=sortList(visible());
   var opts='<option value="">All stages</option>'+STAGES.concat([{id:'lost',label:'Closed lost'}]).map(function(s){return '<option value="'+s.id+'"'+(stageFilter===s.id?' selected':'')+'>'+s.label+'</option>'}).join('');
   var llSum=T.tenancyMode?(function(){var let_=cases.filter(function(c){return c.stage!=='lost'&&tnCurrent(c).length}).length,roll=cases.reduce(function(a,c){return a+rentSum(c)},0);return '<div class="stats"><div class="stat"><b>'+cases.length+'</b><span>Properties</span></div><div class="stat"><b>'+let_+'</b><span>Let</span></div><div class="stat"><b>'+(cases.length-let_)+'</b><span>Vacant</span></div><div class="stat"><b>'+money(Math.round(roll*100)/100)+'</b><span>Rent a month</span></div></div>'})():'';
-  var h='<div class="pagehead"><h1>'+(T.tenancyMode?'Buy to let properties':'All '+NS())+'</h1>'+llSum+'<button class="btn ghost" data-act="export">Export CSV</button></div>'+
-    '<div class="filters"><button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>'+(T.tenancyMode?'':'<select id="stageSel" aria-label="Filter by stage">'+opts+'</select> ')+'<select id="sortSel" aria-label="Sort clients">'+[['updated','Sort: recently updated'],['first','Sort: first name A–Z'],['review','Sort: next '+T.reviewWord.toLowerCase()+' date'],['task','Sort: next task due date'],['clientno','Sort: client number']].map(function(o){return '<option value="'+o[0]+'"'+(sortBy===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'+lenderSelHTML()+revSelHTML()+'<details class="colpick"><summary class="btn ghost">Columns</summary><div class="colbox">'+CASE_COLS.map(function(c){return '<label><input type="checkbox" data-colk="'+c[0]+'"'+(colOn(c[0])?' checked':'')+'> '+c[1]+'</label>'}).join('')+'</div></details>'+((stageFilter||lenderFilter||revFilter)?' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>':'')+'</div>';
+  var h='<div class="pagehead"><h1>'+(T.tenancyMode?'Buy to let properties':'All '+NS())+'</h1>'+llSum+(imKind()?'<button class="btn ghost" data-act="import">Import</button>':'')+'<button class="btn ghost" data-act="export">Export CSV</button></div>'+
+    '<div class="filters">'+(imKind()?'<button type="button" class="btn ghost xpm" data-act="import">Import</button>':'')+'<button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>'+(T.tenancyMode?'':'<select id="stageSel" aria-label="Filter by stage">'+opts+'</select> ')+'<select id="sortSel" aria-label="Sort clients">'+[['updated','Sort: recently updated'],['first','Sort: first name A–Z'],['review','Sort: next '+T.reviewWord.toLowerCase()+' date'],['task','Sort: next task due date'],['clientno','Sort: client number']].map(function(o){return '<option value="'+o[0]+'"'+(sortBy===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'+lenderSelHTML()+revSelHTML()+'<details class="colpick"><summary class="btn ghost">Columns</summary><div class="colbox">'+CASE_COLS.map(function(c){return '<label><input type="checkbox" data-colk="'+c[0]+'"'+(colOn(c[0])?' checked':'')+'> '+c[1]+'</label>'}).join('')+'</div></details>'+((stageFilter||lenderFilter||revFilter)?' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>':'')+'</div>';
   h='<div class="caseswrap">'+h;
   if(!cases.length)return h+emptyHTML()+mtdCard()+'</div>';
   var shown=CASE_COLS.filter(function(x){return colOn(x[0])});
@@ -3735,6 +3735,205 @@ document.addEventListener('click',function(e){
   if((b=t.closest('[data-tmedit]'))){tmEdit=b.getAttribute('data-tmedit');render();var f=$('#tm-name');if(f)f.focus();return}
   if(t.closest('[data-tmcancel]')){tmEdit=null;render();return}
   if((b=t.closest('[data-tmdel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var id=b.getAttribute('data-tmdel');if(tmEdit===id)tmEdit=null;tmSave(tmItems.filter(function(x){return x.id!==id}));toast('Deleted')}
+});
+/* ---------- import from Excel (.xlsx) or CSV ---------- */
+var imRows=[],imHead=[],imMap=[],imName='',imSheet='',imBusy=false;
+var IM_TRADE={
+  landlord:{noun:'propert',fields:[
+    ['addr','Property address (line one)',['address','propertyaddress','addressline1','address1','property','street','propertyaddressline1']],
+    ['pc','Postcode',['postcode','postalcode','zip','zipcode']],
+    ['type','Property type',['propertytype','type']],
+    ['beds','Bedrooms',['bedrooms','beds','bedroom']],
+    ['agent','Letting agent',['lettingagent','agent']],
+    ['tname','Tenant name',['tenant','tenantname','tenants','tenantsname','name','customer']],
+    ['tphone','Tenant phone',['tenantphone','phone','mobile','telephone','tel','tenantmobile','phonenumber','mobilenumber']],
+    ['temail','Tenant email',['tenantemail','email','emailaddress']],
+    ['rent','Rent',['rent','monthlyrent','rentamount','rentpcm','rentpm']],
+    ['rfreq','Rent paid (monthly, weekly)',['rentfrequency','frequency','rentperiod','rentpaid']],
+    ['rday','Rent due day (1 to 31)',['rentday','rentdueday','dueday','rentdue']],
+    ['tstart','Tenancy start date',['tenancystart','tenancystartdate','startdate','tenancystarted','start']],
+    ['deposit','Deposit',['deposit','depositamount']],
+    ['gsr','Gas safety record date',['gassafety','gassafetydate','gsr','cp12','gassafetyrecord','gassafetycertificate']],
+    ['eicr','EICR date',['eicr','eicrdate','electrical','electricalreport','electricalsafety']],
+    ['epcr','EPC rating',['epcrating','epc']],
+    ['epcd','EPC issued date',['epcdate','epcissued','epcissuedate']],
+    ['ins','Insurance renewal date',['insurancerenewal','insurance','insurancerenewaldate','landlordinsurance']]],
+    req:['addr'],reqL:'a property address'},
+  gas:{noun:'job',fields:[
+    ['name','Customer name',['customer','customername','name','client','clientname','fullname']],
+    ['phone','Phone',['phone','mobile','telephone','tel','phonenumber','mobilenumber','customerphone']],
+    ['email','Email',['email','emailaddress','customeremail']],
+    ['addr','Job address',['address','jobaddress','siteaddress','property','street','addressline1']],
+    ['pc','Postcode',['postcode','postalcode','zip']],
+    ['type','Job type',['jobtype','type','service','work']],
+    ['appliance','Boiler or appliance',['appliance','boiler','makeandmodel','boilermodel','model']],
+    ['last','Last service date',['lastservice','lastserviced','servicedate','lastservicedate']],
+    ['next','Next service due',['nextservice','nextservicedue','servicedue','duedate']],
+    ['gsr','Gas safety record date',['gassafety','gsr','cp12','gassafetyrecord','gassafetydate']],
+    ['quote','Quote or price',['quote','price','amount','cost','quoted']]],
+    req:['name','addr'],reqL:'a customer name or an address',any:1}
+};
+function imKind(){return T.tenancyMode?'landlord':(T.id==='gas'?'gas':'')}
+function imNorm(s){return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,'')}
+/* CSV: quotes, commas, semicolons or tabs, a byte-order mark */
+function imCsv(t){
+  t=String(t||'').replace(/^﻿/,'');var first=t.split(/\r?\n/)[0]||'',d=[',',';','\t'].map(function(c){return [c,(first.match(new RegExp(c==='\t'?'\t':'\\'+c,'g'))||[]).length]}).sort(function(a,b){return b[1]-a[1]})[0][0];
+  var rows=[],row=[],cur='',q=false,i=0;
+  for(;i<t.length;i++){var ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){cur+='"';i++}else q=false}else cur+=ch}
+    else if(ch==='"')q=true;else if(ch===d){row.push(cur);cur=''}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&t[i+1]==='\n')i++;row.push(cur);cur='';rows.push(row);row=[]}
+    else cur+=ch}
+  if(cur!==''||row.length){row.push(cur);rows.push(row)}
+  return rows;
+}
+/* Excel (.xlsx) is a zip of XML files: read it here, nothing is uploaded anywhere */
+async function imInflate(u8){var ds=new DecompressionStream('deflate-raw'),w=ds.writable.getWriter();w.write(u8);w.close();return new Uint8Array(await new Response(ds.readable).arrayBuffer())}
+function imZip(buf){
+  var v=new DataView(buf),u=new Uint8Array(buf),e=-1,i;
+  for(i=u.length-22;i>=Math.max(0,u.length-70000);i--){if(v.getUint32(i,true)===0x06054b50){e=i;break}}
+  if(e<0)throw new Error('zip');
+  var n=v.getUint16(e+10,true),p=v.getUint32(e+16,true),out={};
+  for(i=0;i<n;i++){
+    if(v.getUint32(p,true)!==0x02014b50)throw new Error('zip');
+    var method=v.getUint16(p+10,true),cs=v.getUint32(p+20,true),nl=v.getUint16(p+28,true),xl=v.getUint16(p+30,true),cl=v.getUint16(p+32,true),lo=v.getUint32(p+42,true),name=new TextDecoder().decode(u.subarray(p+46,p+46+nl));
+    var ln=v.getUint16(lo+26,true),lx=v.getUint16(lo+28,true),st=lo+30+ln+lx;
+    out[name]={method:method,data:u.subarray(st,st+cs)};p+=46+nl+xl+cl;
+  }
+  return out;
+}
+async function imEntry(z,name){var f=z[name];if(!f)return null;var d=f.method===0?f.data:await imInflate(f.data);return new TextDecoder().decode(d)}
+function imXml(s){var d=new DOMParser().parseFromString(s,'application/xml');if(d.getElementsByTagName('parsererror').length)throw new Error('xml');return d}
+function imCol(ref){var m=/^([A-Z]+)/.exec(ref||''),n=0;if(!m)return 0;for(var i=0;i<m[1].length;i++)n=n*26+m[1].charCodeAt(i)-64;return n-1}
+async function imXlsx(buf){
+  var z=imZip(buf),shared=[],ss=await imEntry(z,'xl/sharedStrings.xml');
+  if(ss){var sd=imXml(ss).getElementsByTagName('si');for(var i=0;i<sd.length;i++){var ts=sd[i].getElementsByTagName('t'),s='';for(var j=0;j<ts.length;j++){if(ts[j].parentNode.nodeName!=='rPh')s+=ts[j].textContent}shared.push(s)}}
+  var wb=imXml(await imEntry(z,'xl/workbook.xml')),sheets=wb.getElementsByTagName('sheet'),rels=imXml(await imEntry(z,'xl/_rels/workbook.xml.rels')).getElementsByTagName('Relationship'),rmap={};
+  for(var r=0;r<rels.length;r++)rmap[rels[r].getAttribute('Id')]=rels[r].getAttribute('Target');
+  var best=null;
+  for(var k=0;k<sheets.length;k++){
+    var rid=sheets[k].getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id')||sheets[k].getAttribute('r:id'),tg=rmap[rid]||'',path=tg.charAt(0)==='/'?tg.slice(1):'xl/'+tg.replace(/^\.\//,''),xml=await imEntry(z,path);if(!xml)continue;
+    var rows=[],rs=imXml(xml).getElementsByTagName('row');
+    for(var a=0;a<rs.length;a++){
+      var cs=rs[a].getElementsByTagName('c'),row=[];
+      for(var b=0;b<cs.length;b++){
+        var c=cs[b],t=c.getAttribute('t'),ve=c.getElementsByTagName('v')[0],val='';
+        if(t==='s')val=ve?(shared[+ve.textContent]||''):'';
+        else if(t==='inlineStr'){var it=c.getElementsByTagName('t');for(var x=0;x<it.length;x++)val+=it[x].textContent}
+        else if(t==='b')val=ve&&ve.textContent==='1'?'TRUE':'FALSE';
+        else val=ve?ve.textContent:'';
+        row[imCol(c.getAttribute('r'))]=val;
+      }
+      for(var y=0;y<row.length;y++)if(row[y]==null)row[y]='';
+      rows.push(row);
+    }
+    var filled=rows.filter(function(rw){return rw.some(function(c){return String(c).trim()})}).length;
+    if(!best||filled>best.n)best={n:filled,rows:rows,name:sheets[k].getAttribute('name')||''};
+    if(filled>1)break;
+  }
+  if(!best)throw new Error('empty');
+  imSheet=best.name;return best.rows;
+}
+function imDate(v){
+  v=String(v==null?'':v).trim();if(!v)return '';
+  if(/^\d{5}(\.\d+)?$/.test(v)&&+v>20000&&+v<80000){var d=new Date(Date.UTC(1899,11,30)+Math.floor(+v)*864e5);return d.toISOString().slice(0,10)}
+  var m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(v);if(m)return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+  m=/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/.exec(v);if(m){var y=+m[3];if(y<100)y+=y<70?2000:1900;var dd=+m[1],mm=+m[2];if(mm<1||mm>12||dd<1||dd>31)return '';return y+'-'+('0'+mm).slice(-2)+'-'+('0'+dd).slice(-2)}
+  var t=Date.parse(v+' UTC');if(!isNaN(t)){var x=new Date(t);return x.toISOString().slice(0,10)}
+  return '';
+}
+function imNum(v){var s=String(v==null?'':v).replace(/[£€\s]/g,'');s=/^-?\d+,\d{1,2}$/.test(s)?s.replace(',','.'):s.replace(/,/g,'');return /^-?\d+(\.\d+)?$/.test(s)?String(+s):''}
+function imPhone(v){var s=String(v==null?'':v).trim();if(/^\d{10}$/.test(s)&&s.charAt(0)==='7')s='0'+s;if(/^\d{12}$/.test(s)&&s.slice(0,2)==='44')s='+'+s;return s}
+function imFreq(v){var s=String(v||'').toLowerCase();return /4|four/.test(s)?'Every 4 weeks':/week/.test(s)?'Weekly':/quarter/.test(s)?'Quarterly':'Monthly'}
+function imType(v){var s=String(v||'').trim().toLowerCase();if(!s)return '';var ex=T.types.filter(function(t){return t.toLowerCase()===s})[0]||T.types.filter(function(t){return t.toLowerCase().indexOf(s)>-1||s.indexOf(t.toLowerCase())>-1})[0];return ex||''}
+function imAuto(h){var n=imNorm(h),k=imKind(),def=IM_TRADE[k];if(!n||!def)return '';var hit='';def.fields.forEach(function(f){if(!hit&&f[2].indexOf(n)>-1)hit=f[0]});return hit}
+function imRecord(row){
+  var k=imKind(),g=function(key){var i=imMap.indexOf(key);return i<0?'':String(row[i]==null?'':row[i]).trim()};
+  var d;
+  if(k==='landlord'){
+    var addr=g('addr');if(!addr)return null;
+    d={propertyAddress:addr,postcode:g('pc'),type:imType(g('type'))||T.types[0],tasks:[],notes:[],expenses:[],tenancies:[]};
+    var bd=imNum(g('beds'));if(bd)d.bedrooms=+bd;if(g('agent'))d.agent=g('agent');
+    var gs=imDate(g('gsr'));if(gs)d.gsrDate=gs;var ei=imDate(g('eicr'));if(ei)d.eicrDate=ei;var ep=imDate(g('epcd'));if(ep)d.epcDate=ep;if(g('epcr'))d.epcRating=g('epcr').toUpperCase().slice(0,1);var ir=imDate(g('ins'));if(ir)d.insuranceRenewal=ir;
+    var tn=g('tname'),rent=imNum(g('rent'));
+    if(tn||rent){var tt={id:'t'+uid(),status:'current',tenantType:'private',people:tn?[{name:tn,phone:imPhone(g('tphone')),email:g('temail')}]:[],rent:rent,rentFreq:imFreq(g('rfreq'))};var rd=imNum(g('rday'));if(rd&&+rd>=1&&+rd<=31)tt.rentDay=rd;var st=imDate(g('tstart'));if(st)tt.tenancyStart=st;var dp=imNum(g('deposit'));if(dp)tt.deposit=dp;d.tenancies.push(tt)}
+    d.stage=d.tenancies.length?'let':'vacant';
+  }else{
+    var nm=g('name'),ad=g('addr');if(!nm&&!ad)return null;
+    d={applicants:nm?[{name:nm,phone:imPhone(g('phone')),email:g('email')}]:[],jobAddress:ad,postcode:g('pc'),type:imType(g('type'))||T.types[0],stage:T.defaultStage,tasks:[],notes:[],expenses:[]};
+    if(g('appliance'))d.appliance=g('appliance');var l=imDate(g('last'));if(l)d.lastService=l;var nx=imDate(g('next'));if(nx)d.nextService=nx;var gr=imDate(g('gsr'));if(gr)d.gsrDate=gr;var qt=imNum(g('quote'));if(qt)d.quote=+qt;
+  }
+  return d;
+}
+function imKey(d){return imKind()==='landlord'?(String(d.propertyAddress||'')+'|'+String(d.postcode||'')).toLowerCase().replace(/\s+/g,''):((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d.jobAddress||'')).toLowerCase().replace(/\s+/g,'')}
+function imPlan(){
+  var have={};cases.forEach(function(c){have[imKey(c)]=1});var seen={},add=[],dup=0,empty=0,def=IM_TRADE[imKind()];
+  imRows.forEach(function(r){var d=imRecord(r);if(!d){if(r.some(function(c){return String(c).trim()}))empty++;return}var k=imKey(d);if(have[k]||seen[k]){dup++;return}seen[k]=1;add.push(d)});
+  return {add:add,dup:dup,empty:empty,missing:def.req.filter(function(x){return imMap.indexOf(x)<0}),def:def};
+}
+function imHtml(){
+  var k=imKind(),def=IM_TRADE[k];
+  if(!imHead.length)return '<div class="dhd"><h2>Import from Excel or CSV</h2><button type="button" class="btn ghost" data-imclose="1">Close</button></div>'+
+   '<p class="muted" style="margin:6px 0 12px">Bring in a list you already keep, from an Excel (.xlsx) or CSV file. The file is read on this device. You choose which column is which before anything is added, and nothing is changed until you press Import.</p>'+
+   '<div class="add" style="margin:0 0 10px"><label class="btn imfile">Choose a file<input type="file" id="imFile" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none"></label><button type="button" class="btn ghost" data-imtemplate="1">Download an example file</button></div>'+
+   '<p id="imMsg" role="alert" class="tmmsg"></p>'+
+   '<p class="muted" style="font-size:12.5px;margin:0">The first row must be the column names. Older .xls files are not supported: in Excel choose Save As and pick .xlsx or CSV. Up to 500 rows at a time. Columns it recognises are matched for you, for example '+esc(def.fields.slice(0,5).map(function(f){return f[1]}).join(', '))+'.</p>';
+  var p=imPlan(),head='<div class="dhd"><h2>Import from Excel or CSV</h2><button type="button" class="btn ghost" data-imclose="1">Close</button></div>'+
+   '<p class="muted" style="margin:6px 0 10px"><b>'+esc(imName)+'</b>'+(imSheet?' · sheet “'+esc(imSheet)+'”':'')+' · '+imRows.length+' row'+(imRows.length===1?'':'s')+'. Check what each column is used for.</p>';
+  var opts=function(sel){return '<option value="">Do not import</option>'+def.fields.map(function(f){return '<option value="'+f[0]+'"'+(f[0]===sel?' selected':'')+'>'+esc(f[1])+'</option>'}).join('')};
+  var tbl='<div class="imlist"><div class="imrow imhd"><span>Column in your file</span><span>Example</span><span>Use it for</span></div>'+imHead.map(function(h,i){
+    var ex=imRows.slice(0,3).map(function(r){return String(r[i]==null?'':r[i]).trim()}).filter(Boolean).slice(0,2).join(' · ');
+    return '<div class="imrow"><b>'+esc(h||'(no name)')+'</b><span class="muted">'+esc(ex.slice(0,60))+'</span><select data-immap="'+i+'" aria-label="Use '+esc(h)+' for">'+opts(imMap[i])+'</select></div>'}).join('')+'</div>';
+  var msg=p.missing.length?'<p class="gnwarn">Choose a column for '+esc(def.reqL)+', then you can import.</p>':'<p style="margin:10px 0 0"><b>'+p.add.length+'</b> '+def.noun+(p.add.length===1?'y':(def.noun==='propert'?'ies':'s'))+' will be added'+(p.dup?', <b>'+p.dup+'</b> already here or repeated (skipped)':'')+(p.empty?', <b>'+p.empty+'</b> row'+(p.empty===1?'':'s')+' with nothing usable (skipped)':'')+'. Existing records are never changed.</p>';
+  return head+tbl+msg+'<div class="add" style="margin:12px 0 0"><button type="button" class="btn" data-imgo="1"'+(p.missing.length||!p.add.length||imBusy?' disabled':'')+'>'+(imBusy?'Importing…':'Import '+p.add.length+' '+def.noun+(p.add.length===1?'y':(def.noun==='propert'?'ies':'s')))+'</button><button type="button" class="btn ghost" data-imagain="1">Choose a different file</button></div><p id="imMsg" role="alert" class="tmmsg"></p>';
+}
+function imDraw(){overlay('imOv',imHtml(),true)}
+function imOpen(){if(!imKind()){toast('Import is not available for this kind of work yet.');return}imRows=[];imHead=[];imMap=[];imName='';imSheet='';imBusy=false;imDraw()}
+async function imLoad(file){
+  var m=$('#imMsg'),say=function(t){if(m)m.textContent=t};
+  if(!file)return;
+  if(file.size>10*1024*1024){say('That file is over 10 MB. Save a smaller one.');return}
+  if(/\.xls$/i.test(file.name)){say('Older .xls files are not supported. In Excel choose Save As, then .xlsx or CSV.');return}
+  say('Reading the file…');
+  try{
+    var rows,isX=/\.xlsx$/i.test(file.name)||file.type==='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    imSheet='';
+    if(isX){if(typeof DecompressionStream==='undefined'){say('This browser cannot read .xlsx files. Save the sheet as CSV instead.');return}rows=await imXlsx(await file.arrayBuffer())}
+    else rows=imCsv(await file.text());
+    rows=rows.filter(function(r){return r.some(function(c){return String(c==null?'':c).trim()})});
+    if(rows.length<2){say('No data found. The first row must be the column names, with the records below it.');return}
+    imHead=rows[0].map(function(h){return String(h==null?'':h).trim()});imRows=rows.slice(1,501).map(function(r){var o=[];for(var i=0;i<imHead.length;i++)o.push(r[i]==null?'':r[i]);return o});
+    imMap=imHead.map(imAuto);var used={};imMap=imMap.map(function(x){if(x&&used[x])return '';if(x)used[x]=1;return x});
+    imName=file.name;imDraw();
+    if(rows.length>501)toast('Only the first 500 rows are used. Import the rest in a second file.');
+  }catch(e){say('That file could not be read. Check it is a normal Excel (.xlsx) or CSV file, with the column names in the first row.')}
+}
+function imRun(){
+  if(imBusy||!col)return;var p=imPlan();if(p.missing.length||!p.add.length)return;imBusy=true;imDraw();
+  var now=Date.now(),n=0,chain=Promise.resolve(),list=p.add,base=+nextClientNo().slice(1);
+  /* numbers are given here, one after another, from the highest in use; the list updates itself as each record is saved */
+  list.forEach(function(d,i){chain=chain.then(function(){var ref=col.doc();d.clientNo='C'+String(base+i).padStart(3,'0');d.createdAt=now;d.updatedAt=now;return write(ref.id,function(){return ref.set(d)}).then(function(){n++})})});
+  chain.then(function(){imBusy=false;closeOv('imOv');toast('Imported '+n+' '+(IM_TRADE[imKind()].noun==='propert'?(n===1?'property':'properties'):(n===1?'job':'jobs'))+'. Open one to check it, and add anything the file did not have.',true);render();renderNav()},function(){imBusy=false;imDraw();var m=$('#imMsg');if(m)m.textContent='Could not save everything. Check you are online and try again. Records already added are kept, and repeats are skipped.'});
+}
+function imTemplate(){
+  var def=IM_TRADE[imKind()],q=function(v){v=csvCell(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  var ex=imKind()==='landlord'?['1 Example Road','AB1 2CD','House','3','A. Sample','07700 900123','a.sample@example.com','1150','Monthly','1','01/03/2025','1150','01/06/2026','15/02/2022','C','10/05/2020','20/09/2026']:['A. Sample','07700 900123','a.sample@example.com','14 Example Road','AB1 2CD','Boiler service','Worcester Greenstar 30i','14/11/2025','14/11/2026','','95'];
+  var heads=imKind()==='landlord'?['Address','Postcode','Property type','Bedrooms','Tenant name','Tenant phone','Tenant email','Rent','Rent frequency','Rent due day','Tenancy start','Deposit','Gas safety date','EICR date','EPC rating','EPC date','Insurance renewal']:def.fields.map(function(f){return f[1]});
+  var blob=new Blob(['﻿'+heads.map(q).join(',')+'\r\n'+ex.map(q).join(',')+'\r\n'],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=(imKind()==='landlord'?'properties':'jobs')+'-import-example.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
+}
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;
+  if(t.closest('[data-act="import"]')){imOpen();return}
+  if(t.closest('[data-imclose]')||t.id==='imOv'){closeOv('imOv');return}
+  if(t.closest('[data-imtemplate]')){imTemplate();return}
+  if(t.closest('[data-imagain]')){imOpen();return}
+  if(t.closest('[data-imgo]')){imRun();return}
+});
+document.addEventListener('change',function(e){
+  var t=e.target;if(!t)return;
+  if(t.id==='imFile'){var f=t.files&&t.files[0];t.value='';imLoad(f);return}
+  if(t.hasAttribute&&t.hasAttribute('data-immap')){var i=+t.getAttribute('data-immap');imMap[i]=t.value;if(t.value)imMap=imMap.map(function(x,j){return j!==i&&x===t.value?'':x});imDraw()}
 });
 /* ---------- start ---------- */
 render();
