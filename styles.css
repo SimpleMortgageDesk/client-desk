@@ -887,3 +887,13 @@ header.top .in{padding-block:12px}}
 .imhd{background:var(--surface2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);position:sticky;top:0}
 .imrow select{width:100%;min-width:0}
 @media (max-width:620px){.imrow{grid-template-columns:1fr;gap:4px;padding:10px 12px}.imhd{display:none}.imrow span:empty{display:none}.imrow .muted{font-size:13px}}
+
+/* two trades under one profile */
+.trsw{display:inline-flex;align-items:center;gap:2px;background:#E3EAE7;border-radius:99px;padding:3px;order:2;flex:none}
+.trsw .trl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:0 8px 0 10px}
+.trsw button{border:0;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--ink);padding:6px 12px;border-radius:99px;cursor:pointer}
+.trsw button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#fff)}
+.trsw button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (max-width:620px){.trsw{order:3;width:100%;justify-content:center}.trsw .trl{display:none}.trsw button{flex:1;padding:8px 10px}}
+.tpb[aria-pressed="true"]{border-color:var(--accent,#0A6B50);background:#F2FAF6;box-shadow:0 0 0 2px rgba(10,107,80,.18)}
+#tpOv .mkact{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}

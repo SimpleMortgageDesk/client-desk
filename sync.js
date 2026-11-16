@@ -6,6 +6,9 @@
   var CFG = window.MD_CONFIG || {};
   var APPN = CFG.appName || 'MySimpleDesk', APPF = APPN.replace(/[^A-Za-z0-9]+/g, '-'), DRIVE = CFG.driveFolder || APPN;
   var TR = function () { return (window.CD_T && window.CD_T()) || { noun: ['Record', 'Records'], fields: [], id: 'general' }; };
+  /* an account can work in up to two trades; the list is in the settings document */
+  function tradeIds() { try { var d = (mem.settings.trade && mem.settings.trade.data) || {}, all = (window.CD_TRADES || {}).all || {}, l = (d.trades && d.trades.length ? d.trades : [TR().id]).filter(function (id) { return all[id]; }).slice(0, 2); return l.length ? l : [TR().id]; } catch (e) { return [TR().id]; } }
+  function tradeLabels() { var all = (window.CD_TRADES || {}).all || {}; return tradeIds().map(function (id) { return (all[id] || {}).label || id; }).join(' + '); }
   /* a registration in progress chose a kind of work: use it before the app draws anything */
   try { var reg0 = JSON.parse(sessionStorage.getItem('cd.reg') || 'null'); if (reg0 && reg0.trade && window.CD_tradeSet) window.CD_tradeSet(reg0.trade); } catch (e) {}
   var BASE_SCOPES = 'Files.ReadWrite.AppFolder User.Read offline_access';
@@ -1293,7 +1296,7 @@
         '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Mobile number <span style="color:#b3261e">*</span><input id="rgPhone" type="tel" autocomplete="tel" placeholder="e.g. 07700 900123" value="' + esc(r.phoneRaw || '') + '" style="' + inp + '"></label>' +
-        (function () { var TT = window.CD_TRADES || { order: [], all: {} }; if (TT.only || !TT.order.length) return ''; return '<label style="font-size:14px">I am <span style="color:#b3261e">*</span><select id="rgTrade" style="' + inp + ';background:#fff">' + '<option value="">Choose…</option>' + TT.order.map(function (id) { var op = !window.CD_tradeOpen || window.CD_tradeOpen(id), one = TT.open && TT.open.length === 1 && TT.open[0] === id; return '<option value="' + id + '"' + (op ? ((r.trade === id || (one && !r.trade)) ? ' selected' : '') : ' disabled') + '>' + esc(TT.all[id].label) + (op ? '' : ' (coming soon)') + '</option>'; }).join('') + '</select></label><p style="margin:-6px 0 10px;color:#58697A;font-size:12.5px">This sets the fields, reminders and documents in the app. You can change it later in Settings.</p>'; })() +
+        (function () { var TT = window.CD_TRADES || { order: [], all: {} }; if (TT.only || !TT.order.length) return ''; return '<label style="font-size:14px">I am <span style="color:#b3261e">*</span><select id="rgTrade" style="' + inp + ';background:#fff">' + '<option value="">Choose…</option>' + TT.order.map(function (id) { var op = !window.CD_tradeOpen || window.CD_tradeOpen(id), one = TT.open && TT.open.length === 1 && TT.open[0] === id; return '<option value="' + id + '"' + (op ? ((r.trade === id || (one && !r.trade)) ? ' selected' : '') : ' disabled') + '>' + esc(TT.all[id].label) + (op ? '' : ' (coming soon)') + '</option>'; }).join('') + '</select></label><label style="font-size:14px">&hellip;and also <span style="color:#58697A;font-weight:400">(optional)</span><select id="rgTrade2" style="' + inp + ';background:#fff">' + '<option value="">No, just one</option>' + TT.order.filter(function (id) { return !window.CD_tradeOpen || window.CD_tradeOpen(id); }).map(function (id) { return '<option value="' + id + '"' + (r.trade2 === id ? ' selected' : '') + '>' + esc(TT.all[id].label) + '</option>'; }).join('') + '</select></label><p style="margin:-6px 0 10px;color:#58697A;font-size:12.5px">This sets the fields, reminders and documents in the app. You can add or change a trade later in Settings, and there is no extra charge for a second one.</p>'; })() +
         '<p style="margin:2px 0 12px;padding:9px 11px;background:#EEF6F2;border-radius:8px;font-size:13.5px;color:#234">No new password to remember. You sign in with your ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, on ' + (ok.g ? 'Microsoft\'s or Google\'s' : 'Microsoft\'s') + ' own page. This app never sees that password.</p>' +
         '<div id="rgMain"><button type="submit" data-rg="next" style="' + pri + '">Register' + sub((ok.ms && ok.g ? 'Next: choose Outlook or Gmail' : 'Next: sign in with ' + msLbl), 1) + '</button></div>' +
         '<div id="rgPick" hidden></div>' +
@@ -1353,7 +1356,10 @@
       var tsel = o.querySelector('#rgTrade'), trade = tsel ? tsel.value : '';
       if (tsel && !trade) return say('Choose which one you are.', 'rgTrade');
       if (tsel && window.CD_tradeOpen && !window.CD_tradeOpen(trade)) return say('That choice is coming soon. For now, choose ' + ((window.CD_TRADES.open || []).map(function (id) { return window.CD_TRADES.all[id].label; }).join(' or ') || 'another option') + '.', 'rgTrade');
-      var reg = { name: nm, email: mail, phone: ph, phoneRaw: raw, mode: mode, prov: which, trade: trade, t: Date.now() };
+      var t2s = o.querySelector('#rgTrade2'), trade2 = t2s ? t2s.value : '';
+      if (trade2 && trade2 === trade) return say('Choose two different ones, or leave the second as "No, just one".', 'rgTrade2');
+      if (trade2 && window.CD_tradeOpen && !window.CD_tradeOpen(trade2)) trade2 = '';
+      var reg = { name: nm, email: mail, phone: ph, phoneRaw: raw, mode: mode, prov: which, trade: trade, trade2: trade2, t: Date.now() };
       if (mode === 'pw') {
         var p1 = o.querySelector('#rgPw').value, p2 = o.querySelector('#rgPw2').value;
         if (!pwOk(p1, { name: nm, email: mail })) { var miss = pwRules(p1, { name: nm, email: mail }).filter(function (x) { return !x[0]; }).map(function (x) { return x[1].toLowerCase(); }); return say('The password still needs: ' + miss.join('; ') + '.', 'rgPw'); }
@@ -1443,7 +1449,7 @@
           row('My profile', esc(P.name ? P.name + (P.phone ? ' · ' + P.phone : '') + (P.email ? ' · ' + P.email : '') : 'Add your name, mobile number and email.'), btn('profile', P.name ? 'Edit' : 'Set up', !P.name)) +
           row('Business details and logo', 'Name, address, logo, VAT and payment details shown on your documents.', btn('biz', 'Edit')) +
           (TR().tenancyMode ? row('Your accountant', esc((ACCN() || 'Name, phone, email and address') + '. Used for the rent and expenses report.'), btn('acc', 'Edit')) : '') +
-          ((window.CD_TRADES || {}).only ? '' : row('Your trade', esc(TR().label || '') + '. Sets the fields, stages and reminders.', btn('trade', 'Change'))))
+          ((window.CD_TRADES || {}).only ? '' : row(tradeIds().length > 1 ? 'Your trades' : 'Your trade', esc(tradeLabels()) + '. Sets the fields, stages and reminders. You can work in up to two trades at no extra charge.', btn('trade', 'Change or add'))))
         +
         grp('Security', sec)
         +
@@ -1671,7 +1677,7 @@
       var p = profGet(), a = (tok() || {}).account || {}, email = String(p.email || a.mail || a.email || '').trim();
       if (!email && !a.mail) return;
       var body = { event: kind, name: p.name || a.name || '', email: email, accountEmail: a.mail || a.email || '', mobile: p.phone || '', business: p.biz || '',
-        trade: TR().label || '', account: PROV === 'google' ? 'Google' : 'Microsoft', app: APPN, build: window.MD_BUILD || '' };
+        trade: tradeLabels() || TR().label || '', account: PROV === 'google' ? 'Google' : 'Microsoft', app: APPN, build: window.MD_BUILD || '' };
       /* a count only, so the right plan can be shown: never an address or any detail of a property */
       try { if (firstPullDone) { body.props = Object.keys(mem.cases).filter(function (id) { var d = (mem.cases[id] || {}).data; return d && d.stage !== 'lost'; }).length; var hm = (mem.settings.home && mem.settings.home.data) || null; body.home = hm && String(hm.addr1 || '').trim() ? 1 : 0; } } catch (x) {}
       suKey().then(function (k) {
@@ -1751,7 +1757,7 @@
       if (reg.mode === 'pw' && reg.pin) { lset('cd.pin', JSON.stringify(reg.pin)); lset('cd.auth', null); }
       else { lset('cd.pin', null); lset('cd.auth', 'acct'); }
       markAct(); profPush();
-      if (reg.trade) { try { localWrite('settings', 'trade', { trade: reg.trade, updatedAt: Date.now() }, 'set'); } catch (e) {} }
+      if (reg.trade) { try { localWrite('settings', 'trade', { trade: reg.trade, trades: [reg.trade, reg.trade2].filter(Boolean), main: reg.trade, updatedAt: Date.now() }, 'set'); } catch (e) {} }
       toast('Welcome, ' + reg.name + '. Your account is ready.');
       setTimeout(function () { suSend('signup'); }, 2000);
       lset('cd.guide', '1'); setTimeout(openGuide, 600);
@@ -1807,7 +1813,8 @@
   window.CD_userNo = function () { return planInfo && planInfo.no ? 'MSD-' + planInfo.no : ''; };
   function trialNote() {
     try {
-      var flat = TR().flatPrice || ''; if (!planInfo || planInfo.pay === 'paid' || !tok() || (!TR().tenancyMode && !flat) || $('mdTrial')) return;
+      var tall = (window.CD_TRADES || {}).all || {}, flat = '', tenancy = false; tradeIds().forEach(function (id) { var t = tall[id] || {}; if (t.flatPrice && !flat) flat = t.flatPrice; if (t.tenancyMode) tenancy = true; });
+      if (!planInfo || planInfo.pay === 'paid' || !tok() || (!tenancy && !flat) || $('mdTrial')) return;
       var props = Object.keys(mem.cases).filter(function (id) { var d = (mem.cases[id] || {}).data; return d && d.stage !== 'lost'; }).length;
       if (!props && !flat) return;
       var end = new Date(planInfo.since); if (isNaN(end)) return; end.setFullYear(end.getFullYear() + 1);
@@ -2230,9 +2237,9 @@
     memTok = { access_token: 'test', expires: now + 864e7, exp: now + 864e7, account: { name: 'Test User', mail: 'test@example.com', id: 'test' }, prov: 'ms' };
     PROV = 'ms';
     var put = function (col, id, data) { data.updatedAt = now; mem[col][id] = { data: data, etag: null, itemId: null }; };
-    put('settings', 'trade', { trade: kind });
+    put('settings', 'trade', kind === 'both' ? { trade: 'landlord', trades: ['landlord', 'gas'], main: 'landlord' } : { trade: kind });
     put('settings', 'profile', { name: 'Test User', email: 'test@example.com', phone: '' });
-    if (kind === 'landlord') {
+    if (kind === 'landlord' || kind === 'both') {
       put('cases', 'p1', { clientNo: 'C001', type: 'House', propertyAddress: '1 Example Road', postcode: 'AB1 2CD', bedrooms: 3, stage: 'let', gsrDate: D(-340), gsrDue: D(25), eicrDate: D(-400), epcRating: 'C', tasks: [], notes: [{ id: 'n1', ts: now, text: 'Tenant prefers email.' }], expenses: [{ id: 'e1', date: D(-20), cat: 'Repairs and maintenance', amount: 120, to: 'A. Plumber', desc: 'Tap repair' }],
         tenancies: [{ id: 't1', status: 'current', tenantType: 'private', people: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }], rent: 1150, rentFreq: 'Monthly', rentDay: 1, tenancyStart: D(-300), deposit: 1150 }] });
       put('cases', 'p2', { clientNo: 'C002', type: 'Flat', propertyAddress: 'Flat 1, 2 Sample Street', postcode: 'AB3 4EF', bedrooms: 2, stage: 'let', gsrDate: D(-200), insuranceRenewal: D(40), tasks: [], notes: [], expenses: [],
@@ -2240,10 +2247,11 @@
       put('cases', 'p3', { clientNo: 'C003', type: 'House', propertyAddress: '3 Demo Lane', postcode: 'AB5 6GH', bedrooms: 4, stage: 'vacant', tasks: [], notes: [], expenses: [], tenancies: [] });
       put('settings', 'home', { addr1: '9 Home Close', postcode: 'AB7 8IJ', savedAt: now });
       put('appointments', 'a1', { date: D(2), time: '10:00', dur: 30, type: 'Viewing', who: 'J. Viewer', status: 'booked' });
-    } else {
-      put('cases', 'j1', { clientNo: 'C001', type: 'Boiler service', stage: 'booked', applicants: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }], jobAddress: '14 Example Road', postcode: 'AB1 2CD', appliance: 'Worcester Greenstar 30i', lastService: D(-350), nextService: D(15), quote: 95, tasks: [], notes: [{ id: 'n1', ts: now, text: 'Customer prefers mornings.' }], expenses: [] });
-      put('cases', 'j2', { clientNo: 'C002', type: 'Boiler installation', stage: 'quoted', applicants: [{ name: 'B. Test', phone: '07700900222' }], jobAddress: '2 Sample Street', appliance: 'Vaillant ecoTEC plus', quote: 2950, installDate: D(-10), notifyBy: D(20), tasks: [], notes: [], expenses: [] });
-      put('cases', 'j3', { clientNo: 'C003', type: 'Landlord gas safety record (CP12)', stage: 'invoiced', applicants: [{ name: 'C. Demo' }], jobAddress: '3 Demo Lane', gsrDate: D(-360), gsrDue: D(5), invoiceNo: 'INV-12', invoiceAmount: 80, tasks: [], notes: [], expenses: [] });
+    }
+    if (kind === 'gas' || kind === 'both') {
+      put('cases', 'j1', { tr: 'gas', clientNo: 'C004', type: 'Boiler service', stage: 'booked', applicants: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }], jobAddress: '14 Example Road', postcode: 'AB1 2CD', appliance: 'Worcester Greenstar 30i', lastService: D(-350), nextService: D(15), quote: 95, tasks: [], notes: [{ id: 'n1', ts: now, text: 'Customer prefers mornings.' }], expenses: [] });
+      put('cases', 'j2', { tr: 'gas', clientNo: 'C005', type: 'Boiler installation', stage: 'quoted', applicants: [{ name: 'B. Test', phone: '07700900222' }], jobAddress: '2 Sample Street', appliance: 'Vaillant ecoTEC plus', quote: 2950, installDate: D(-10), notifyBy: D(20), tasks: [], notes: [], expenses: [] });
+      put('cases', 'j3', { tr: 'gas', clientNo: 'C006', type: 'Landlord gas safety record (CP12)', stage: 'invoiced', applicants: [{ name: 'C. Demo' }], jobAddress: '3 Demo Lane', gsrDate: D(-360), gsrDue: D(5), invoiceNo: 'INV-12', invoiceAmount: 80, tasks: [], notes: [], expenses: [] });
       put('appointments', 'a1', { date: D(0), time: '09:00', dur: 60, type: 'Job', who: 'A. Sample', status: 'booked' });
       put('appointments', 'a2', { date: D(3), time: '14:00', dur: 60, type: 'Quote visit', who: 'B. Test', status: 'booked' });
     }

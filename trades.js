@@ -211,7 +211,7 @@
   };
 
   T.gas = {
-    label: 'Gas engineer or heating engineer', noun: ['Job', 'Jobs'], person: ['Customer', 'Customers'], peopleTitle: 'Customer',
+    short: 'Gas engineer', label: 'Gas engineer or heating engineer', noun: ['Job', 'Jobs'], person: ['Customer', 'Customers'], peopleTitle: 'Customer',
     /* no Tasks or Pipeline tabs: an Appointments tab and a Reminders tab instead (to-dos with a date show as reminders) */
     landing: 'appointments', hideTabs: ['pipeline', 'tasks'], noTasks: true, apptTab: true, remTab: true,
     /* each job gets its own folder (Jobs › customer - address) for photos and documents saved as PDF, and its own receipts and expenses */
@@ -321,7 +321,7 @@
   };
 
   T.landlord = {
-    label: 'Home owner / Landlord', noun: ['Property', 'Properties'], person: ['Tenant', 'Tenants'], peopleTitle: 'Tenants',
+    short: 'Landlord', label: 'Home owner / Landlord', noun: ['Property', 'Properties'], person: ['Tenant', 'Tenants'], peopleTitle: 'Tenants',
     dob: false, stages: [{ id: 'vacant', label: 'Vacant' }, { id: 'let', label: 'Let' }, { id: 'notice', label: 'Notice given' }],
     defaultStage: 'vacant', doneStage: 'let',
     tenancyMode: true, landing: 'cases', hideTabs: ['pipeline', 'clients'],

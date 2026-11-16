@@ -8,6 +8,10 @@ function brandHtml(an){
   var sp=String(an).lastIndexOf(' '),dk=/^(.+)(Desk)$/.exec(an);
   return sp>0?esc(an.slice(0,sp))+' <span class="bn-desk">'+esc(an.slice(sp+1))+'</span>':dk?esc(dk[1])+'<span class="bn-desk">'+esc(dk[2])+'</span>':esc(an);
 }
+/* one account can work in up to two trades. Each record is tagged with its trade (c.tr); records with no tag belong to the account's main trade. Only the active trade's records are shown. */
+function trOf(c){return c.tr||MAIN_TRADE||T.id}
+function setCases(){cases=casesAll.filter(function(c){return trOf(c)===T.id})}
+function tagTr(d){if(TRADES.length>1)d.tr=T.id;return d}
 function applyTrade(){
   T=window.CD_T();STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
   var nb=document.getElementById('newBtn');if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
@@ -20,6 +24,7 @@ function N1(){return T.noun[0].toLowerCase()}
 function NS(){return T.noun[1].toLowerCase()}
 applyTrade();
 
+var casesAll=[], TRADES=[], MAIN_TRADE=null;
 var db=null, col=null, cases=[], loaded=false, view=view||'tasks', query='', stageFilter='', lenderFilter='', revFilter='', sortBy=(function(){try{return localStorage.getItem('cd.ui.sortBy')||'task'}catch(e){return 'task'}})(), openId=undefined;
 var queues={};
 
@@ -57,7 +62,7 @@ function protFs(c){
 }
 function latestNoteCell(c,key){var n=(c[key||'notes']||[]).slice().sort(function(a,b){return b.ts-a.ts})[0];if(!n)return '<span class="muted">—</span>';var t=String(n.text||'');if(!t&&n.table)t='[Table]';if(t.length>140)t=t.slice(0,140)+'…';t=t.replace(/\s+/g,' ');return '<div class="nl1" title="'+esc(stampOf(n.ts)+' '+t)+'"><span class="muted" style="font-family:var(--mono);font-size:11px">'+stampOf(n.ts)+'</span> '+esc(t)+'</div>'}
 function cno(c){return c.clientNo?' <span class="cno">'+esc(c.clientNo)+'</span>':''}
-function nextClientNo(){var m=0;cases.forEach(function(c){var r=/^C(\d+)$/i.exec(c.clientNo||'');if(r)m=Math.max(m,+r[1])});return 'C'+String(m+1).padStart(3,'0')}
+function nextClientNo(){var m=0;(casesAll.length?casesAll:cases).forEach(function(c){var r=/^C(\d+)$/i.exec(c.clientNo||'');if(r)m=Math.max(m,+r[1])});return 'C'+String(m+1).padStart(3,'0')}
 /* full property address: line one plus the postcode (not repeated if the postcode is already typed in line one) */
 function pcFmt(raw){var v=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,''),m=/^([A-Z]{1,2}\d[A-Z\d]?)(\d[A-Z]{2})$/.exec(v);return m?m[1]+' '+m[2]:String(raw||'').toUpperCase().replace(/\s+/g,' ').trim()}
 function paddr(c){var a=String((c&&c.propertyAddress)||'').trim(),p=String((c&&c.postcode)||'').trim();if(!p)return a;var n=function(x){return x.toUpperCase().replace(/[^A-Z0-9]/g,'')};return n(a).indexOf(n(p))>-1?a:(a?a+', '+p:p)}
@@ -253,7 +258,7 @@ function visible(){
 /* ---------- render shell ---------- */
 /* landlords: Notebook and Book appointment sit under More, in the top menu (phone) and the side menu (computer) */
 var navMore=false;
-function renderNav(){updTrayBtn();if(view==='notebook')navMore=true;
+function renderNav(){renderSwitch();updTrayBtn();if(view==='notebook')navMore=true;
   var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
   var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
@@ -1231,7 +1236,7 @@ function qaSave(){
   if(!q.addr){if(m)m.textContent='Add address line one of the property.';var a=$('#qa-addr');if(a)a.focus();return}
   if(!col){if(m)m.textContent='Saving is not available. Sign in to store your properties.';return}
   if(go)go.disabled=true;
-  var d=qaData(q),ref=col.doc();d.createdAt=Date.now();d.updatedAt=d.createdAt;d.tasks=[];d.notes=[];
+  var d=tagTr(qaData(q)),ref=col.doc();d.createdAt=Date.now();d.updatedAt=d.createdAt;d.tasks=[];d.notes=[];
   write(ref.id,function(){return ref.set(d)}).then(function(){closeOv('qaOv');toast('Property added. Open it any time to add certificates, mortgage and documents.')},function(){if(go)go.disabled=false;if(m)m.textContent='Could not save the property. Check you are online, then try again.'});
 }
 document.addEventListener('submit',function(e){if(e.target&&e.target.id==='qaForm'){e.preventDefault();qaSave()}});
@@ -1248,7 +1253,7 @@ function saveCase(){
   if(openId){p=patch(openId,data)}
   else{
     if(!data.clientNo)data.clientNo=nextClientNo();
-    var ref=col.doc();data.createdAt=Date.now();data.updatedAt=data.createdAt;data.tasks=[];data.notes=pendingNotes;
+    tagTr(data);var ref=col.doc();data.createdAt=Date.now();data.updatedAt=data.createdAt;data.tasks=[];data.notes=pendingNotes;
     p=write(ref.id,function(){return ref.set(data)}).then(function(){openId=ref.id});
   }
   p.then(function(){toast(T.noun[0]+' saved');closeDrawer()});
@@ -1504,7 +1509,9 @@ document.addEventListener('click',function(e){
   if(rdn&&rdn.getAttribute('data-remdone').indexOf('__home|')===0){e.stopPropagation();var hp=rdn.getAttribute('data-remdone').split('|'),nh=Object.assign({},HOME||{});nh.remDone=Object.assign({},nh.remDone||{});nh.remDone[hp[1]]=hp[2];homeWrite(nh);toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'));return}
   if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc&&rp[1].indexOf('task:')===0){var tid=rp[1].slice(5);patch(rc.id,{tasks:(rc.tasks||[]).map(function(x){return x.id===tid?Object.assign({},x,{done:true,doneAt:Date.now()}):x})});toast('Reminder done');return}
   if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'))}return}
-  var tpb=t.closest('[data-trade]');if(tpb&&(tpb.disabled||(window.CD_tradeOpen&&!window.CD_tradeOpen(tpb.getAttribute('data-trade')))))return;if(tpb){saveTrade(tpb.getAttribute('data-trade'));var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+T.label);return}
+  var tpb=t.closest('[data-trade]');if(tpb&&(tpb.disabled||(window.CD_tradeOpen&&!window.CD_tradeOpen(tpb.getAttribute('data-trade')))))return;if(tpb){var tid=tpb.getAttribute('data-trade'),ix=tpSel.indexOf(tid),tm=$('#tpMsg');if(ix>-1)tpSel.splice(ix,1);else if(tpSel.length>=2){if(tm)tm.textContent='You can choose up to two. Take one off first.';return}else tpSel.push(tid);if(tm)tm.textContent='';document.querySelectorAll('#tpOv [data-trade]').forEach(function(b){var on=tpSel.indexOf(b.getAttribute('data-trade'))>-1;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});var go=$('#tpGo');if(go)go.disabled=!tpSel.length;return}
+  if(t.closest('[data-tpgo]')){if(!tpSel.length)return;saveTrades(tpSel.slice());var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+tpSel.map(function(id){return (window.CD_TRADES.all[id]||{}).label}).join(' and '));return}
+  var sw=t.closest('[data-trsw]');if(sw){switchTrade(sw.getAttribute('data-trsw'));return}
   if(t.closest('[data-tpclose]')){var ov2=$('#tpOv');if(ov2)ov2.remove();return}
   var adv=t.closest('[data-adv]');
   if(adv){e.stopPropagation();patch(adv.dataset.adv,{stage:adv.dataset.to});return}
@@ -1757,16 +1764,33 @@ function autoChain(k,depth){
 }
 /* ---------- trade (chosen once, kept in OneDrive so every device matches) ---------- */
 var setCol=null;
-function saveTrade(id){
-  window.CD_tradeSet(id);var was=openId;if(was!==undefined)closeDrawer();applyTrade();view=T.landing||'tasks';
-  if(setCol)write('set-trade',function(){return setCol.doc('trade').set({trade:id,updatedAt:Date.now()})});
-  render();renderSide();
+function saveTrades(list){
+  list=list.slice(0,2);var act=list.indexOf(T.id)>-1?T.id:list[0];
+  if(!MAIN_TRADE||list.indexOf(MAIN_TRADE)<0)MAIN_TRADE=list[0];
+  TRADES=list;window.CD_tradeSet(act);var was=openId;if(was!==undefined)closeDrawer();applyTrade();setCases();view=T.landing||'tasks';
+  if(setCol)write('set-trade',function(){return setCol.doc('trade').set({trade:act,trades:list,main:MAIN_TRADE,updatedAt:Date.now()})});
+  render();renderSide();renderNav();
 }
+function saveTrade(id){saveTrades([id])}
+/* a person with two trades switches between them here; the choice is kept on this device */
+function switchTrade(id){
+  if(id===T.id||TRADES.indexOf(id)<0)return;
+  window.CD_tradeSet(id);if(openId!==undefined)closeDrawer();applyTrade();setCases();view=T.landing||'tasks';
+  render();renderSide();renderNav();window.scrollTo(0,0);
+}
+function renderSwitch(){
+  var host=document.querySelector('header.top .in'),el=$('#trSw');if(!host)return;
+  if(TRADES.length<2){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.id='trSw';el.className='trsw';el.setAttribute('role','group');el.setAttribute('aria-label','Working as');var br=host.querySelector('.brand');if(br)br.insertAdjacentElement('afterend',el);else host.insertBefore(el,host.firstChild)}
+  var all=window.CD_TRADES.all;
+  el.innerHTML='<span class="trl">Working as</span>'+TRADES.map(function(id){var x=all[id]||{};return '<button type="button" data-trsw="'+esc(id)+'" aria-pressed="'+(id===T.id)+'">'+esc(x.short||x.label||id)+'</button>'}).join('');
+}
+var tpSel=[];
 function openTradePicker(first){
-  if($('#tpOv')||window.CD_TRADES.only)return;var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';
-  o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trade"><h2>'+(first?'Welcome. I am…':'Change your trade')+'</h2><p class="muted" style="margin:4px 0 12px">This sets the fields, stages and reminders on your records. You can change it later in Settings.'+(first?'':' Your saved records keep all their details. Fields that do not belong to the new trade are hidden, not deleted.')+'</p><div class="tpgrid">'+
-    A.order.map(function(id){var x=A.all[id],op=!window.CD_tradeOpen||window.CD_tradeOpen(id);return '<button type="button" class="tpb'+(!first&&id===T.id?' on':'')+(op?'':' soon')+'" data-trade="'+id+'"'+(op?'':' disabled aria-disabled="true"')+'><b>'+esc(x.label)+(op?'':' <em class="tpsoon">Coming soon</em>')+'</b><span>'+esc(x.noun[1])+' · '+esc(x.stages.map(function(s){return s.label.replace(/^\d /,'')}).slice(0,4).join(', '))+'…</span></button>'}).join('')+
-    '</div>'+(first?'':'<div class="mkact"><button type="button" class="btn ghost" data-tpclose="1">Cancel</button></div>')+'</div>';
+  if($('#tpOv')||window.CD_TRADES.only)return;var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';tpSel=first?[]:(TRADES.length?TRADES.slice():[T.id]);
+  o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trades"><h2>'+(first?'Welcome. I am…':'Your trades')+'</h2><p class="muted" style="margin:4px 0 12px">Choose one, or two if you work in both. Each has its own list, menu and reminders, and you switch between them with one tap. There is no extra charge for a second one.'+(first?'':' Your saved records keep all their details. A trade you take off is hidden, not deleted, and comes back if you add it again.')+'</p><div class="tpgrid">'+
+    A.order.map(function(id){var x=A.all[id],op=!window.CD_tradeOpen||window.CD_tradeOpen(id);return '<button type="button" class="tpb'+(tpSel.indexOf(id)>-1?' on':'')+(op?'':' soon')+'" data-trade="'+id+'" aria-pressed="'+(tpSel.indexOf(id)>-1)+'"'+(op?'':' disabled aria-disabled="true"')+'><b>'+esc(x.label)+(op?'':' <em class="tpsoon">Coming soon</em>')+'</b><span>'+esc(x.noun[1])+' · '+esc(x.stages.map(function(s){return s.label.replace(/^\d /,'')}).slice(0,4).join(', '))+'…</span></button>'}).join('')+
+    '</div><p id="tpMsg" class="tmmsg" role="alert"></p><div class="mkact">'+(first?'':'<button type="button" class="btn ghost" data-tpclose="1">Cancel</button>')+'<button type="button" class="btn" id="tpGo" data-tpgo="1"'+(tpSel.length?'':' disabled')+'>Continue</button></div></div>';
   document.body.appendChild(o);
 }
 window.CD_openTrade=function(){openTradePicker(false)};
@@ -1788,7 +1812,7 @@ function autoSave(){
       if(hasIdent(nd)&&JSON.stringify(nd)!==newBase){
         creatingNew=true;
         if(!nd.clientNo)nd.clientNo=nextClientNo();
-        var nref=col.doc();nd.createdAt=Date.now();nd.updatedAt=nd.createdAt;nd.tasks=[];nd.notes=pendingNotes;
+        tagTr(nd);var nref=col.doc();nd.createdAt=Date.now();nd.updatedAt=nd.createdAt;nd.tasks=[];nd.notes=pendingNotes;
         write(nref.id,function(){return nref.set(nd)}).then(function(){
           creatingNew=false;
           if(!openId&&dn&&!dn.hidden&&$('#caseForm')){openId=nref.id;var cf=$('#f-clientNo');if(cf&&!cf.value)cf.value=nd.clientNo;lastAuto=JSON.stringify(collectForm());var m=$('#autoMsg');if(m)m.textContent='\u2713 Saved '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
@@ -3912,7 +3936,7 @@ function imRun(){
   if(imBusy||!col)return;var p=imPlan();if(p.missing.length||!p.add.length)return;imBusy=true;imDraw();
   var now=Date.now(),n=0,chain=Promise.resolve(),list=p.add,base=+nextClientNo().slice(1);
   /* numbers are given here, one after another, from the highest in use; the list updates itself as each record is saved */
-  list.forEach(function(d,i){chain=chain.then(function(){var ref=col.doc();d.clientNo='C'+String(base+i).padStart(3,'0');d.createdAt=now;d.updatedAt=now;return write(ref.id,function(){return ref.set(d)}).then(function(){n++})})});
+  list.forEach(function(d,i){chain=chain.then(function(){tagTr(d);var ref=col.doc();d.clientNo='C'+String(base+i).padStart(3,'0');d.createdAt=now;d.updatedAt=now;return write(ref.id,function(){return ref.set(d)}).then(function(){n++})})});
   chain.then(function(){imBusy=false;closeOv('imOv');toast('Imported '+n+' '+(IM_TRADE[imKind()].noun==='propert'?(n===1?'property':'properties'):(n===1?'job':'jobs'))+'. Open one to check it, and add anything the file did not have.',true);render();renderNav()},function(){imBusy=false;imDraw();var m=$('#imMsg');if(m)m.textContent='Could not save everything. Check you are online and try again. Records already added are kept, and repeats are skipped.'});
 }
 function imTemplate(){
@@ -3944,15 +3968,15 @@ claude.use('db').then(function(d){
   nbCol=db.collection('notebook');
   apCol=db.collection('appointments');
   mkCol=db.collection('marketing');
-  setCol=db.collection('settings');var tradeSeen=false;setCol.onSnapshot(bizSnap,function(){});
+  setCol=db.collection('settings');var tradeSeen=false,tradeSig='';setCol.onSnapshot(bizSnap,function(){});
   setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='tradesmen'})[0];tmItems=(d&&d.data().items)||[];if(view==='tradesmen'&&!(document.activeElement&&/^tm-/.test(document.activeElement.id||'')))render()},function(){});
-  setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],tid=d0&&d0.data().trade;if(!tid||!window.CD_TRADES.all[tid])return;tradeSeen=true;if(window.CD_TRADES.only)return;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();if(tid!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(tid);if(openId!==undefined)closeDrawer();applyTrade();render();renderSide()}});
-  (window.CD_firstPull||Promise.resolve()).then(function(){if(tradeSeen)return;if(window.CD_tradeChosen())write('set-trade',function(){return setCol.doc('trade').set({trade:T.id,updatedAt:Date.now()})});else openTradePicker(true)});
+  setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],dd=d0&&d0.data(),tid=dd&&dd.trade,A0=window.CD_TRADES.all;if(!tid||!A0[tid])return;tradeSeen=true;if(window.CD_TRADES.only)return;var list=(dd.trades||[tid]).filter(function(id){return A0[id]}).slice(0,2);if(!list.length)list=[tid];var main=(dd.main&&A0[dd.main])?dd.main:list[0],sig=list.join('|')+'>'+main,changed=sig!==tradeSig;tradeSig=sig;TRADES=list;MAIN_TRADE=main;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();var keep=window.CD_tradeChosen()&&list.length>1&&list.indexOf(T.id)>-1,target=keep?T.id:(list.indexOf(tid)>-1?tid:list[0]);if(target!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(target);if(openId!==undefined)closeDrawer();applyTrade();setCases();render();renderSide();renderNav()}else if(changed){setCases();render();renderSide();renderNav()}});
+  (window.CD_firstPull||Promise.resolve()).then(function(){if(tradeSeen)return;if(window.CD_tradeChosen())write('set-trade',function(){return setCol.doc('trade').set({trade:T.id,trades:[T.id],main:T.id,updatedAt:Date.now()})});else openTradePicker(true)});
   mkCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='contacts'})[0];mkItems=(d&&d.data().items)||[];var dm=s.docs.filter(function(x){return x.id==='messages'})[0];mkMsgsDoc=(dm&&dm.data().items)||null;if(view==='marketing'&&!$('#mkOv')&&!mkMsgEdit)mkList()});
   apCol.onSnapshot(function(s){appts=s.docs.map(function(x){return Object.assign({id:x.id},x.data())});if(view==='appointments'&&!$('#apOv'))render();if(view==='tasks'&&!$('#apOv')){var hc2=$('#homeCal');if(hc2)hc2.innerHTML=apHome()}var na=$('#nextAppt');if(na&&openId)na.innerHTML=apNextHtml(openId);renderNav()},function(){});
   nbCol.onSnapshot(function(s){var all=s.docs.map(function(x){return Object.assign({id:x.id},x.data())}),tp=all.filter(function(x){return x.id==='bday-template'})[0];bdCfg=tp?(tp.messages&&tp.messages.length?{messages:tp.messages,signature:tp.signature!=null?tp.signature:''}:(tp.text?{messages:[tp.text],signature:''}:{messages:null,signature:null})):{messages:null,signature:null};bdCfg.islamic=(tp&&tp.islamic&&tp.islamic.length)?tp.islamic:null;var gdoc=all.filter(function(x){return x.id==='bday-gender'})[0];bdGen=(gdoc&&gdoc.map)||{};notes=all.filter(function(x){return x.id!=='bday-template'&&x.id!=='bday-gender'});if(view==='notebook')renderNotebook();if(view==='birthdays'){var a2=document.activeElement;if(!(a2&&a2.id==='bdTplText')){bdTplRender();bdRender()}}},function(){});
   col.onSnapshot(function(snap){
-    cases=snap.docs.map(function(x){return Object.assign({id:x.id},x.data())});
+    casesAll=snap.docs.map(function(x){return Object.assign({id:x.id},x.data())});setCases();
     loaded=true;
     var ae=document.activeElement;
     var typing=ae&&(ae.id==='q');
