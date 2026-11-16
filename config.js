@@ -16,7 +16,10 @@ window.MD_CONFIG = {
   /* the folder name records use in OneDrive (Apps › …) and Google Drive. Keep 'Client Desk' so existing users keep their records */
   driveFolder: 'Client Desk',
   clientId: 'e47f8292-11f2-469c-ad6b-0af918c885e1',
-  googleClientId: 'PASTE-GOOGLE-CLIENT-ID-HERE',
+  googleClientId: '1048467907620-domiae94b6hulg7katdrshsg3g64n9m9.apps.googleusercontent.com',
+  /* false = Gmail sign-in is hidden from visitors. To try it yourself, open the site once with ?gtest=1 on the end of the address.
+     Change to true once the Google app is published. */
+  googleLive: false,
   tenant: 'consumers',
   ownerName: 'MySimpleDesk',
   ownerEmail: 'support@mysimpledesk.co.uk',

@@ -473,8 +473,9 @@ footer .r{margin-left:auto}
   var mail = real(C.ownerEmail); if (mail) { var a = document.createElement('a'); a.href = 'mailto:' + mail; a.textContent = 'Contact: ' + mail; document.getElementById('contact').appendChild(a); }
   document.getElementById('yr').textContent = new Date().getFullYear();
   /* only mention Gmail and Google Drive once Google sign-in is switched on */
-  if (real(C.googleClientId)) document.querySelectorAll('[data-store]').forEach(function (e) { e.textContent = 'OneDrive or Google Drive'; });
-  if (!real(C.googleClientId)) {
+  var gOn = real(C.googleClientId) && (C.googleLive === true || (function () { try { return localStorage.getItem('cd.gtest') === '1'; } catch (e) { return false; } })());
+  if (gOn) document.querySelectorAll('[data-store]').forEach(function (e) { e.textContent = 'OneDrive or Google Drive'; });
+  if (!gOn) {
     document.querySelectorAll('[data-acct]').forEach(function (e) { e.textContent = 'Outlook'; });
     document.querySelectorAll('[data-acctlong]').forEach(function (e) { e.textContent = 'A personal Microsoft account (Outlook, Hotmail or Live).'; });
   }

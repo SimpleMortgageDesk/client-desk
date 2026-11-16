@@ -1192,7 +1192,9 @@
   /* ---------- landing page: Log in or Register (no server: the account is the user's own Microsoft or Google account) ---------- */
   function sget(k) { try { return JSON.parse(sessionStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function sset(k, v) { try { if (v == null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-  function provOk() { return { ms: !!CFG.clientId && !/PASTE/i.test(CFG.clientId), g: !!CFG.googleClientId && !/PASTE/i.test(CFG.googleClientId) }; }
+  /* Gmail sign-in shows when the client ID is set and either googleLive is true or this device was switched on for testing with ?gtest=1 */
+  try { if (/[?&]gtest=1\b/.test(location.search)) localStorage.setItem('cd.gtest', '1'); else if (/[?&]gtest=0\b/.test(location.search)) localStorage.removeItem('cd.gtest'); } catch (e) {}
+  function provOk() { return { ms: !!CFG.clientId && !/PASTE/i.test(CFG.clientId), g: !!CFG.googleClientId && !/PASTE/i.test(CFG.googleClientId) && (CFG.googleLive === true || ls('cd.gtest') === '1') }; }
   var signPage = null;
   /* split sign-up screen: form on the left, what the app does on the right (right side hidden on small screens) */
   function signCss() {
