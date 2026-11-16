@@ -897,3 +897,7 @@ header.top .in{padding-block:12px}}
 @media (max-width:620px){.trsw{order:3;width:100%;justify-content:center}.trsw .trl{display:none}.trsw button{flex:1;padding:8px 10px}}
 .tpb[aria-pressed="true"]{border-color:var(--accent,#0A6B50);background:#F2FAF6;box-shadow:0 0 0 2px rgba(10,107,80,.18)}
 #tpOv .mkact{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+
+/* more room between Settings and Log out in the left bar (all trades) */
+#sideTools .sbtn.acct{margin:auto 0 16px!important}
+#sideTools .sbtn.logout{margin-top:8px!important;margin-bottom:6px}
