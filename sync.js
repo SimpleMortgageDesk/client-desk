@@ -1227,13 +1227,15 @@
     document.head.appendChild(st);
   }
   function signAside() {
+    var gg = provOk().g;
     return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For home owners, landlords and gas engineers</div>' +
-      '<h2>Your rentals, organised. Your records, yours.</h2>' +
-      '<div class="pt"><i>1</i><div><b>See what needs doing today</b><span>Overdue rent, expiring certificates and tasks are waiting on your first screen.</span></div></div>' +
-      '<div class="pt"><i>2</i><div><b>Each property in one place</b><span>Tenants, rent, deposit, repairs and documents together, ready when you need them.</span></div></div>' +
-      '<div class="pt"><i>3</i><div><b>Reminded before it is urgent</b><span>Gas safety and insurance two months ahead, mortgage deals four months ahead, straight to your Outlook calendar.</span></div></div>' +
-      '<div class="ft">Your records stay in your own OneDrive, so they are still yours even if you stop using the app. We never see your tenants\' details.</div></aside>';
+      '<h2>Your paperwork, organised. Your records, yours.</h2>' +
+      '<div class="pt"><i>1</i><div><b>See what needs doing today</b><span>Rent due, certificates expiring and appointments are waiting on your first screen.</span></div></div>' +
+      '<div class="pt"><i>2</i><div><b>Everything for each home or job in one place</b><span>Receipts, certificates, tenants and customers together, ready when you need them.</span></div></div>' +
+      '<div class="pt"><i>3</i><div><b>Reminded before it is urgent</b><span>Gas safety, insurance and renewal dates are shown well ahead. Outlook users can add them to their calendar too.</span></div></div>' +
+      '<div class="ft">Your records stay in your own ' + (gg ? 'OneDrive or Google Drive' : 'OneDrive') + ', so they are still yours even if you stop using the app. We never see your tenants\' or customers\' details.</div></aside>';
   }
+
   /* passive = the person did not ask to log in: their saved sign-in simply ended (a day away, or logged out for inactivity) */
   /* the site name: "My" is quiet, "Simple" is bold and "Desk" is bold green */
   function brandHtml(n) {
@@ -1293,9 +1295,8 @@
         '<label style="font-size:14px">Mobile number <span style="color:#b3261e">*</span><input id="rgPhone" type="tel" autocomplete="tel" placeholder="e.g. 07700 900123" value="' + esc(r.phoneRaw || '') + '" style="' + inp + '"></label>' +
         (function () { var TT = window.CD_TRADES || { order: [], all: {} }; if (TT.only || !TT.order.length) return ''; return '<label style="font-size:14px">What kind of work do you do? <span style="color:#b3261e">*</span><select id="rgTrade" style="' + inp + ';background:#fff">' + '<option value="">Choose…</option>' + TT.order.map(function (id) { var op = !window.CD_tradeOpen || window.CD_tradeOpen(id), one = TT.open && TT.open.length === 1 && TT.open[0] === id; return '<option value="' + id + '"' + (op ? ((r.trade === id || (one && !r.trade)) ? ' selected' : '') : ' disabled') + '>' + esc(TT.all[id].label) + (op ? '' : ' (coming soon)') + '</option>'; }).join('') + '</select></label><p style="margin:-6px 0 10px;color:#58697A;font-size:12.5px">This sets the fields, reminders and documents in the app. You can change it later in Settings.</p>'; })() +
         '<p style="margin:2px 0 12px;padding:9px 11px;background:#EEF6F2;border-radius:8px;font-size:13.5px;color:#234">No new password to remember. You sign in with your ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, on ' + (ok.g ? 'Microsoft\'s or Google\'s' : 'Microsoft\'s') + ' own page. This app never sees that password.</p>' +
-        '<p style="margin:6px 0 0;font-size:14px;font-weight:600">Where should your records be kept?</p>' +
-        (ok.ms ? '<button type="submit" data-rg="ms" style="' + (gm && ok.g ? sec : pri) + '">Register with ' + msLbl + sub('Saved in your OneDrive', !(gm && ok.g)) + '</button>' : '') +
-        (ok.g ? '<button type="submit" data-rg="google" style="' + (gm || !ok.ms ? pri : sec) + '">Register with Gmail' + sub('Saved in your Google Drive', gm || !ok.ms) + '</button>' : '') +
+        '<div id="rgMain"><button type="submit" data-rg="next" style="' + pri + '">Register' + sub((ok.ms && ok.g ? 'Next: choose Outlook or Gmail' : 'Next: sign in with ' + msLbl), 1) + '</button></div>' +
+        '<div id="rgPick" hidden></div>' +
         '<ol class="mdsteps"><li>' + (ok.ms && ok.g ? 'Microsoft or Google' : ok.ms ? 'Microsoft' : 'Google') + ' asks you to sign in and to let the app use its own folder in your account.</li><li>Add your first property. That is all it takes to get set up.</li></ol>' +
         (suOn() ? '<p style="margin:10px 0 0;color:#58697A;font-size:12.5px">We keep your name, email, mobile and business name so we can run your account and contact you about ' + esc(APPN) + '. We never receive your tenants\', clients\' or properties\' details. <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>' : '') +
         '<p style="margin:14px 0 0;font-size:14px">Already registered? <a href="#" data-sp="login" style="color:#0A6B50;font-weight:600">Log in</a></p>' + err + legal + '</form>';
@@ -1342,7 +1343,8 @@
     f.addEventListener('change', function (e) { if (e.target.name === 'rgMode' && o.querySelector('#rgPwBox')) o.querySelector('#rgPwBox').style.display = modeNow() === 'acct' ? 'none' : ''; });
     f.addEventListener('submit', async function (e) {
       e.preventDefault();
-      var which = (e.submitter && e.submitter.getAttribute('data-rg')) || (ok.ms ? 'ms' : 'google');
+      if (e.submitter && e.submitter.getAttribute('data-rgpick')) return;
+      var which = ok.ms ? 'ms' : 'google';
       var nm = val('rgName'), mail = val('rgMail'), raw = val('rgPhone'), ph = waNorm(raw), mode = modeNow();
       if (!nm) return say('Add your full name.', 'rgName');
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return say(mail ? 'That email address does not look right.' : 'Add your email address.', 'rgMail');
@@ -1358,10 +1360,25 @@
         if (p1 !== p2) return say('The two passwords do not match. Type the same password in both boxes.', 'rgPw2');
         try { var salt = crypto.getRandomValues(new Uint8Array(16)); reg.pin = { kind: 'pw', s: b64(salt), h: await pinHash(p1, salt) }; } catch (x) { return say('This browser cannot store a password. Try another browser.'); }
       }
-      say(''); f.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
-      if (vOn()) { try { await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', email: mail, name: nm }) }); } catch (x) {} }
-      sset('cd.reg', reg); sset('cd.intent', 'register');
-      if (which === 'google') gStart(); else { lset('cd.prov', 'ms'); startLogin(); }
+      say('');
+      var proceed = async function (pick) {
+        reg.prov = pick; f.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+        if (vOn()) { try { await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', email: mail, name: nm }) }); } catch (x) {} }
+        sset('cd.reg', reg); sset('cd.intent', 'register');
+        if (pick === 'google') gStart(); else { lset('cd.prov', 'ms'); startLogin(); }
+      };
+      if (!(ok.ms && ok.g)) { proceed(which); return; }
+      /* both are available: the next screen asks which account, with the one that matches the email address shown first */
+      var dom = (mail.split('@')[1] || '').toLowerCase(), guess = /^(gmail|googlemail)\./.test(dom) ? 'google' : /^(outlook|hotmail|live|msn|passport)\./.test(dom) ? 'ms' : '';
+      var opt = function (k, title, where) { var rec = guess === k; return '<button type="button" data-rgpick="' + k + '" style="' + (rec ? pri : sec) + '">' + title + sub(where + (rec ? ' · matches your email address' : ''), rec) + '</button>'; };
+      var pk = o.querySelector('#rgPick');
+      pk.innerHTML = '<h2 style="margin:0 0 6px;font-size:20px">Which account will you sign in with?</h2><p style="margin:0 0 4px;color:#58697A;font-size:14px">Your records are kept in that account\'s own storage. Choose the account you use for <b>' + esc(mail) + '</b>.</p>' +
+        (guess === 'google' ? opt('google', 'Gmail', 'Saved in your Google Drive') + opt('ms', msLbl, 'Saved in your OneDrive') : opt('ms', msLbl, 'Saved in your OneDrive') + opt('google', 'Gmail', 'Saved in your Google Drive')) +
+        '<p style="margin:14px 0 0"><a href="#" id="rgBack" style="color:#0A6B50;font-size:14px;font-weight:600">&larr; Change my details</a></p>';
+      Array.prototype.forEach.call(f.children, function (c) { if (c !== pk && c.className !== 'mdhd') { c.setAttribute('data-hid', '1'); c.style.display = 'none'; } });
+      pk.hidden = false; pk.style.display = ''; try { pk.scrollIntoView({ block: 'start' }); } catch (x) {}
+      pk.querySelectorAll('[data-rgpick]').forEach(function (x) { x.onclick = function () { proceed(x.getAttribute('data-rgpick')); }; });
+      o.querySelector('#rgBack').onclick = function (ev) { ev.preventDefault(); pk.hidden = true; Array.prototype.forEach.call(f.children, function (c) { if (c.getAttribute('data-hid')) { c.style.display = ''; c.removeAttribute('data-hid'); } }); };
     });
   }
   function sessionExpired() { showSignIn('Your sign-in has expired. Please sign in again. Your unsaved changes are kept on this device.', undefined, !firstPullDone); }
