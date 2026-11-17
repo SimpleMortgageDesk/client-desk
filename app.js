@@ -1817,9 +1817,9 @@ function switchTrade(id){
 }
 function renderSwitch(){
   var host=document.querySelector('header.top .in'),el=$('#trSw');if(!host)return;
-  if(TRADES.length<2){if(el)el.remove();return}
+  if(TRADES.length<1){if(el)el.remove();return}
   if(!el){el=document.createElement('div');el.id='trSw';el.className='trsw';el.setAttribute('role','group');el.setAttribute('aria-label','Working as');var br=host.querySelector('.brand');if(br)br.insertAdjacentElement('afterend',el);else host.insertBefore(el,host.firstChild)}
-  var all=window.CD_TRADES.all;
+  var all=window.CD_TRADES.all;el.className='trsw'+(TRADES.length===1?' one':'');
   el.innerHTML='<span class="trl">Working as</span>'+TRADES.map(function(id){var x=all[id]||{};return '<button type="button" data-trsw="'+esc(id)+'" aria-pressed="'+(id===T.id)+'">'+esc(x.short||x.label||id)+'</button>'}).join('');
 }
 var tpSel=[];

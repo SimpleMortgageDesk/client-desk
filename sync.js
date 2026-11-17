@@ -1261,7 +1261,7 @@
     /* the full welcome page explains the app; this screen is only for logging in or registering */
     if (page === 'home' && !window.CD_DEMO && location.protocol !== 'file:' && CFG.welcomePage !== false) { location.replace('home.html'); return; }
     signPage = page;
-    var split = page === 'login' || page === 'register'; if (split) signCss();
+    var split = page === 'login' || page === 'register' || page === 'forgot'; if (split) signCss();
     var ok = provOk(), card = split ? '' : 'width:min(460px,100%);max-height:96vh;overflow:auto;box-sizing:border-box;background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)';
     var big = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:13px 16px;border-radius:10px;font:600 16px system-ui;cursor:pointer;text-align:left;margin-top:12px;box-sizing:border-box;';
     var pri = big + 'border:0;background:#0A6B50;color:#fff', sec = big + 'border:1px solid #2f4a40;background:#fff;color:#101C26';
@@ -1281,11 +1281,22 @@
       html = '<form id="lgForm" novalidate class="mdl">' + hdr('register') + '<h1>Welcome back</h1>' +
       '<p class="lead">Log in with the email you registered with. Your records load from your own ' + (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') + '.</p>' +
       '<label style="font-size:14px">User ID (your email address)<input id="lgMail" type="email" name="username" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" value="' + esc(lastMail) + '" style="' + lgInp + '"></label>' +
-      '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' + (SHARED ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>This is a shared or public computer</b><br><span style="color:#58697A;font-size:13px">Nothing is kept on this computer. You are logged out when the browser tab is closed.</span></span></label>' +
-      '<p style="margin:0 0 4px;padding:9px 11px;background:#EEF6F2;border-radius:8px;font-size:13.5px;color:#234"><b>Your password is next.</b> ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' asks for it on its own secure page, with your email already filled in. This app never sees your password.</p>' +
-      '<button type="submit" id="lgGo" style="' + pri + '">Log in' + sub('Then type your password on ' + (ok.g ? 'their' : 'Microsoft\'s') + ' page', 1) + '</button>' +
-      '<div style="margin:22px 0 0;padding:12px 14px;border:1px solid #D4DBDF;border-radius:10px;font-size:13.5px;color:#2b3b47"><b>Forgot your password?</b><br>Your password belongs to your ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' account, so it is reset there. They email a reset link to the recovery address on your account. We cannot see or reset it.<div role="note" style="margin:14px 0 4px;padding:14px 16px;background:#FFE9B8;border:2px solid #D98A00;border-left-width:8px;border-radius:10px;color:#3d2800;font-size:15px;line-height:1.45"><div style="font-size:17px;font-weight:800;margin-bottom:4px">&#9888;&#65039; Important: read before you reset</div>This is the <b>same password as your ' + (ok.g ? 'Outlook or Gmail email' : 'Outlook email') + '</b>. If you change it here, <b>your email password changes too</b>, on every device where you use it.</div><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px"><a href="https://account.live.com/password/reset" target="_blank" rel="noopener" style="padding:7px 12px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Microsoft password</a>' + (ok.g ? '<a href="https://accounts.google.com/signin/recovery" target="_blank" rel="noopener" style="padding:7px 12px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Google password</a>' : '') + '</div></div>' +
+      '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' + (SHARED ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>Shared or public computer</b><br><span style="color:#58697A;font-size:13px">Nothing is kept on this computer.</span></span></label>' +
+      '<button type="submit" id="lgGo" style="' + pri + '">Log in' + sub('You type your password on ' + (ok.g ? 'their' : 'Microsoft\'s') + ' own page', 1) + '</button>' +
+      '<p id="lgLock" role="alert" style="display:none;margin:12px 0 0;padding:10px 12px;background:#FDECEA;color:#A3261F;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
+      '<p style="margin:18px 0 0;font-size:14px"><a href="#" data-sp="forgot" style="color:#0A6B50;font-weight:600">Forgot your password or user ID?</a></p>' +
       '<p style="margin:26px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' + err + legal + '</form>';
+    }
+    else if (page === 'forgot') {
+      var fgLeft = (+ls('cd.lockUntil') || 0) - Date.now();
+      html = '<div class="mdl">' + hdr('register') + '<h1>Forgot your password or user ID?</h1>' +
+      '<p id="fgLock" role="alert" style="display:' + (fgLeft > 0 ? 'block' : 'none') + ';margin:0 0 12px;padding:12px 14px;background:#FDECEA;color:#A3261F;border:1px solid #F0B8B2;border-radius:10px;font-size:14px;font-weight:600"></p>' +
+      '<div style="padding:12px 14px;border:1px solid #D4DBDF;border-radius:10px;font-size:14px;color:#2b3b47;margin:0 0 12px"><b>User ID</b><br>Your user ID is the email address you registered with. If you are not sure which one it was, look for the confirmation email from support@mysimpledesk.co.uk, or email us and we will help.</div>' +
+      '<div style="padding:12px 14px;border:1px solid #D4DBDF;border-radius:10px;font-size:14px;color:#2b3b47"><b>Password</b><br>Your password belongs to your ' + (ok.g ? 'Microsoft or Google' : 'Microsoft') + ' account, so it is reset there. They email a reset link to the recovery address on your account. We cannot see or reset it.' +
+      '<div role="note" style="margin:14px 0 4px;padding:14px 16px;background:#FFE9B8;border:2px solid #D98A00;border-left-width:8px;border-radius:10px;color:#3d2800;font-size:15px;line-height:1.45"><div style="font-size:17px;font-weight:800;margin-bottom:4px">&#9888;&#65039; Important: read before you reset</div>This is the <b>same password as your ' + (ok.g ? 'Outlook or Gmail email' : 'Outlook email') + '</b>. If you change it here, <b>your email password changes too</b>, on every device where you use it.</div>' +
+      '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px"><a href="https://account.live.com/password/reset" target="_blank" rel="noopener" style="padding:9px 14px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Microsoft password</a>' + (ok.g ? '<a href="https://accounts.google.com/signin/recovery" target="_blank" rel="noopener" style="padding:9px 14px;border:1px solid #0A6B50;border-radius:8px;color:#0A6B50;font-weight:600;text-decoration:none">Reset Google password</a>' : '') + '</div></div>' +
+      '<button type="button" data-sp="login" style="' + pri + ';margin-top:16px">Back to log in' + sub(fgLeft > 0 ? 'You can try again when the pause ends' : 'Try again', 1) + '</button>' +
+      '<p style="margin:16px 0 0;font-size:13.5px;color:#58697A">Still stuck? Email <a href="mailto:support@mysimpledesk.co.uk" style="color:#0A6B50;font-weight:600">support@mysimpledesk.co.uk</a>.</p>' + err + legal + '</div>';
     }
     else if (page === 'register') {
       var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
@@ -1307,6 +1318,19 @@
       '<button data-sp="register" style="' + sec + '">Register' + sub('New here? Create your account') + '</button>' + err + foot + '</div>';
     if (split && (ok.ms || ok.g)) html = '<div class="mdsplit">' + html + signAside() + '</div>';
     var o = overlay(html);
+    /* after 3 unsuccessful log-ins the log-in is paused for 5 minutes, then there are 3 more chances */
+    (function () {
+      var lk = o.querySelector('#lgLock'), fk = o.querySelector('#fgLock'), go = o.querySelector('#lgGo'); if (!lk && !fk) return;
+      function tick() {
+        var left = (+ls('cd.lockUntil') || 0) - Date.now(), on = left > 0, mm = Math.floor(left / 60000), ss = String(Math.floor(left % 60000 / 1000)).padStart(2, '0');
+        var msgT = '3 unsuccessful attempts. For your security, logging in is paused. You can try again in ' + mm + ':' + ss + '. You will then have 3 more chances.';
+        if (lk) { lk.style.display = on ? 'block' : 'none'; lk.textContent = msgT; }
+        if (fk) { fk.style.display = on ? 'block' : 'none'; fk.textContent = msgT; }
+        if (go) go.disabled = on;
+        if (!on) { clearInterval(iv); if (go) go.disabled = false; }
+      }
+      var iv = setInterval(function () { if (!document.body.contains(o)) { clearInterval(iv); return; } tick(); }, 1000); tick();
+    })();
     o.onclick = function (e) {
       var a = e.target.closest && e.target.closest('[data-sp]'); if (!a) return; e.preventDefault();
       if (a.getAttribute('data-sp') === 'home') { sset('cd.reg', null); if (!window.CD_DEMO && location.protocol !== 'file:' && CFG.welcomePage !== false) { location.href = 'home.html'; return; } }
@@ -1332,6 +1356,7 @@
       var lm = o.querySelector('#lgMail'); try { if (lm && !lm.value) lm.focus(); } catch (e) {}
       lf.addEventListener('submit', function (e) {
         e.preventDefault();
+        if ((+ls('cd.lockUntil') || 0) > Date.now()) return;
         var em = ((lm || {}).value || '').trim(), er = o.querySelector('#mdErr');
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { er.textContent = em ? 'That email address does not look right.' : 'Enter the email address you registered with.'; try { lm.focus(); } catch (x) {} return; }
         er.textContent = '';
@@ -1627,6 +1652,13 @@
     document.body.appendChild(ov);
     var app = $('app'); if (app) { try { app.inert = true; } catch (e) {} }
     var inp = $('mdLockPin'), msg = $('mdLockMsg'); setTimeout(function () { inp.focus(); }, 30);
+    var pivt = null;
+    function pinPause() {
+      clearInterval(pivt); var go = $('mdLockGo');
+      function t() { var left = (+ls('cd.pinLock') || 0) - Date.now(); if (left <= 0) { clearInterval(pivt); inp.disabled = false; if (go) go.disabled = false; msg.textContent = ''; try { inp.focus(); } catch (x) {} return; } inp.disabled = true; if (go) go.disabled = true; msg.textContent = '3 wrong attempts. Try again in ' + Math.floor(left / 60000) + ':' + String(Math.floor(left % 60000 / 1000)).padStart(2, '0') + '. Then you get 3 more chances. Forgot it? Use the button below.'; }
+      pivt = setInterval(t, 1000); t();
+    }
+    if ((+ls('cd.pinLock') || 0) > Date.now()) pinPause();
     var autoSeq = 0;
     inp.addEventListener('input', async function () {
       var v = inp.value.trim(), my = ++autoSeq;
@@ -1639,8 +1671,8 @@
       var ok = false; try { ok = await pinCheck(v); } catch (x) { ok = false; }
       if (ok) { unlock(); return; }
       pinFails++; inp.value = '';
-      if (pinFails >= 5) { msg.textContent = 'Too many wrong attempts. Logging out…'; autoSignOut(); return; }
-      msg.textContent = 'Wrong password. ' + (5 - pinFails) + ' attempt' + (5 - pinFails === 1 ? '' : 's') + ' left.'; inp.focus();
+      if (pinFails >= 3) { pinFails = 0; lset('cd.pinLock', String(Date.now() + 5 * 60000)); pinPause(); return; }
+      msg.textContent = 'Wrong password. ' + (3 - pinFails) + ' attempt' + (3 - pinFails === 1 ? '' : 's') + ' left.'; inp.focus();
     });
     $('mdLockOut').addEventListener('click', function () { signOut(); });
   }
@@ -2294,6 +2326,13 @@
     b.innerHTML = '<span><b>Test mode.</b> Sample data. Nothing is saved or sent.</span><a href="home.html" style="color:#9fe0c4;font-weight:700;white-space:nowrap">Exit</a>';
     document.body.appendChild(b);
   }
+  /* an unsuccessful sign-in the app can see (cancelled, refused or the wrong account). Three in a row pause log-in for 5 minutes and show the Forgot screen. */
+  function failBump() {
+    if ((+ls('cd.lockUntil') || 0) > Date.now()) return true;
+    var n = (+ls('cd.fails') || 0) + 1;
+    if (n >= 3) { lset('cd.fails', null); lset('cd.lockUntil', String(Date.now() + 5 * 60000)); return true; }
+    lset('cd.fails', String(n)); return false;
+  }
   async function boot() {
     addSyncBadge();
     if (window.CD_TEST) { testBoot(); return; }
@@ -2303,7 +2342,8 @@
       if (idb) { try { idb.close(); } catch (e) {} } idb = null;
       if (!left.length) { try { indexedDB.deleteDatabase('client-desk'); } catch (e) {} }
     } else { await openIdb(); await loadCache(); }
-    try { await handleRedirect(); } catch (e) { showSignIn(e.message); return; }
+    try { await handleRedirect(); } catch (e) { var fb = failBump(); showSignIn(e.message, fb ? 'forgot' : undefined); return; }
+    if (tok()) { lset('cd.fails', null); lset('cd.lockUntil', null); }
     if (!tok()) { showSignIn(''); return; }
     if (isIdle()) { await autoSignOut(); return; }
     var rg0 = sget('cd.reg'); if (rg0 && !profGet().name) lset('cd.profile', JSON.stringify({ name: rg0.name, role: '', biz: '', reg: '', phone: rg0.phone, email: rg0.email }));

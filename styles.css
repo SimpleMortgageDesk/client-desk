@@ -980,3 +980,13 @@ header.top .in:has(.trsw){flex-wrap:wrap}
 body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#C62828;--side-hover:#A81F1F;--tint:#FFF3F3;--bg:#FDECEC}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="driving"]{--accent:#F28B82;--accent-ink:#1F0705;--accent-soft:#3A1614;--side:#7A2420;--side-hover:#8F2D28;--tint:#261110}}
 :root[data-theme="dark"] body[data-theme-trade="driving"]{--accent:#F28B82;--accent-ink:#1F0705;--accent-soft:#3A1614;--side:#7A2420;--side-hover:#8F2D28;--tint:#261110}
+
+/* the Working as bar has its own colour, the same for every trade, so it never blends into the theme */
+.trsw{background:#1F2D3D}
+.trsw .trl{color:#A9BACB}
+.trsw button{color:#E3EBF3}
+.trsw button:hover{background:rgba(255,255,255,.12)}
+.trsw button[aria-pressed="true"]{background:#fff;color:#1F2D3D;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.trsw.one button{flex:0 1 auto;padding:6px 18px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .trsw{background:#2B3C50}:root:not([data-theme="light"]) .trsw button[aria-pressed="true"]{background:#E3EBF3;color:#14202D}}
+:root[data-theme="dark"] .trsw{background:#2B3C50}:root[data-theme="dark"] .trsw button[aria-pressed="true"]{background:#E3EBF3;color:#14202D}
