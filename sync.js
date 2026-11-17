@@ -1302,7 +1302,7 @@
       var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
       var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
       html = '<form id="rgForm" novalidate class="mdl">' + hdr('login') + '<h1>Free to start. No card needed.</h1>' +
-        '<p class="lead"><b>Free forever for home owners.</b> Landlords and professionals: free for the first year, then from £0.99 a month (<a href="home.html#pricing" target="_blank" rel="noopener" style="color:#0A6B50">see pricing</a>).</p>' +
+        '<p class="lead"><b>Free forever for home owners.</b> Landlords and professionals: free for the first year, then from £0.99 a month.</p>' +
         '<p id="rgTop" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
         '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +

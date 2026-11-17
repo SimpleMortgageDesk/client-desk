@@ -203,38 +203,6 @@ h1 em{font-style:normal;color:var(--acc)}
 /* small coloured text on its own soft tint: a darker shade of the slide colour so it stays easy to read */
 .show .bens b,.show .trade .tag.now,.show .chip.ok{color:color-mix(in srgb,var(--acc) 68%,#000)}
 @media (prefers-reduced-motion:reduce){.mock .slide,.mock .slide.on{transition:none}}
-/* see it working: real screens */
-.demos{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:20px;align-items:start;margin-top:24px}
-.demo{margin:0;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 8px 28px rgba(16,28,38,.07)}
-.demo img{display:block;width:100%;height:auto;background:#eef2f1}
-.demo figcaption{padding:14px 18px 18px}.demo h3{margin:0 0 4px;font-size:17px}.demo p{margin:0;color:var(--muted);font-size:14.5px;line-height:1.5}
-.demo.wide{grid-column:span 3}.demo.phone{grid-column:span 3;display:flex;flex-direction:row;align-items:center;background:var(--soft);border:0}
-.demo.phone img{width:min(210px,42%);height:auto;border-radius:18px;margin:16px 0 16px 18px;box-shadow:0 8px 24px rgba(16,28,38,.2)}
-.demo.phone figcaption{padding:18px}
-.trynow{margin-top:26px;padding:22px 24px;border-radius:16px;background:var(--soft);text-align:center}
-.trynow h3{margin:0 0 4px;font-size:20px}.trynow p{margin:0 0 14px;color:#2b3b47}
-.tchips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.tchips a{background:#fff;border:1px solid #9FD2BD;border-radius:99px;padding:8px 15px;font-weight:700;font-size:14px;color:#0A4A38;text-decoration:none}
-.tchips a:hover{background:var(--acc);color:#fff;border-color:var(--acc)}
-@media (max-width:900px){.demo.wide,.demo.phone{grid-column:1/-1}}
-@media (max-width:520px){.demo.phone{flex-direction:column;align-items:stretch}.demo.phone img{width:60%;margin:16px auto 0}}
-/* pricing */
-section[id]{scroll-margin-top:76px}
-section.pricing{background:#EEF6F2;border-top:1px solid #d3e6dc;border-bottom:1px solid #d3e6dc}
-.prices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:stretch}
-@media (max-width:1000px){.prices{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.price{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;display:flex;flex-direction:column;position:relative}
-.price.hot{border:2px solid var(--acc);box-shadow:0 14px 34px -16px rgba(10,107,80,.35)}
-.pbadge{align-self:flex-start;background:var(--acc);color:#fff;font-size:12px;font-weight:700;padding:4px 11px;border-radius:99px;margin-bottom:12px;letter-spacing:.3px}
-.price h3{margin:0 0 8px;font-size:18px}
-.price .amt{font-size:42px;font-weight:800;letter-spacing:-1.2px;line-height:1.1}
-.price .amt small{font-size:17px;font-weight:600;letter-spacing:0;color:var(--muted)}
-.price .per{margin:4px 0 16px;color:var(--muted);font-size:15px}
-.price .pk{list-style:none;margin:0 0 20px;padding:0;flex:1}
-.price .pk li{padding:8px 0 8px 28px;position:relative;font-size:15px;border-top:1px solid #eef1f2}
-.price .pk li:before{content:"";position:absolute;left:3px;top:13px;width:13px;height:7px;border-left:2.5px solid var(--acc);border-bottom:2.5px solid var(--acc);transform:rotate(-45deg)}
-.price .btn{align-self:stretch}
-.pnote{margin:18px 0 0;max-width:760px}
 /* sections */
 section{padding:52px 0}
 section.alt{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -319,7 +287,7 @@ footer .r{margin-left:auto}
   <div class="wrap">
     <a class="brand" href="#top"><i aria-hidden="true"></i><span data-brand><span class="bn-my">My</span><span class="bn-simple">Simple</span><span class="bn-desk">Desk</span></span></a>
     <nav class="links" aria-label="Page sections">
-      <a href="#demo">See it working</a><a href="#who">Who it's for</a><a href="#pricing">Pricing</a><a href="#privacy">Your data</a><a href="#faq">Questions</a>
+      <a href="#who">Who it's for</a><a href="#privacy">Your data</a><a href="#faq">Questions</a>
     </nav>
     <div class="acts">
       <a class="btn sec sm" href="./?p=login">Log in</a>
@@ -339,7 +307,7 @@ footer .r{margin-left:auto}
 <div class="hero">
   <div class="wrap">
     <div>
-      <span class="pill"><b>Free forever for home owners.</b> Landlords and professionals: first year free, no card needed, then from £0.99 a month. <a href="#pricing">See pricing</a></span>
+      <span class="pill"><b>Free forever for home owners.</b> Landlords and professionals: first year free, no card needed, then from £0.99 a month.</span>
       <h1>Your home and property paperwork, <em>safely</em> in one place.</h1>
       <p class="lead">Home owners keep every receipt, document and renewal date for their home. Landlords keep their properties, tenants, rent and reminders together. Professionals and trades get a client list built for their work.</p>
       <div class="cta">
@@ -353,26 +321,6 @@ footer .r{margin-left:auto}
     </div>
   </div>
 </div>
-
-<section id="demo" aria-labelledby="demo-h">
-  <div class="wrap">
-    <div class="kicker">See it working</div>
-    <h2 id="demo-h">The real screens, with made-up example data</h2>
-    <div class="demos">
-      <figure class="demo wide"><img src="media/demo-calendar.webp" width="1400" height="940" loading="lazy" alt="The Calendar page: coming up appointments on top, this week highlighted, and the month below"><figcaption><h3>Know what is coming up</h3><p>Appointments and reminders on one calendar, with this week picked out and the next few appointments on top.</p></figcaption></figure>
-      <figure class="demo wide"><img src="media/demo-record.webp" width="1400" height="940" loading="lazy" alt="A job record with the boiler details and dates such as the next service worked out automatically"><figcaption><h3>One record for each job, client or property</h3><p>Dates such as the next service are worked out for you. Notes, quotes and photos of documents sit in the same place.</p></figcaption></figure>
-      <figure class="demo wide"><img src="media/demo-clients.webp" width="1400" height="765" loading="lazy" alt="An accountant's client list with year end, turnover and Making Tax Digital columns"><figcaption><h3>Deadlines in your client list</h3><p>Year ends, turnover and Making Tax Digital status for every client, at a glance.</p></figcaption></figure>
-      <figure class="demo phone"><img src="media/demo-phone.webp" width="560" height="953" loading="lazy" alt="The app on a phone with the drop-down menu open"><figcaption><h3>The same on your phone</h3><p>A drop-down menu keeps every section one tap away.</p></figcaption></figure>
-    </div>
-    <div class="trynow">
-      <h3>Try it yourself, no sign-up</h3>
-      <p>Open a working copy with example data for your kind of work. Nothing you do is saved.</p>
-      <div class="tchips">
-        <a href="./?test=landlord">Home owner or landlord</a><a href="./?test=gas">Gas engineer</a><a href="./?test=accountant">Accountant</a><a href="./?test=plumber">Plumber</a><a href="./?test=electrician">Electrician</a><a href="./?test=builder">Builder</a><a href="./?test=beauty">Barber or beautician</a><a href="./?test=driving">Driving instructor</a><a href="./?test=architect">Architect</a><a href="./?test=solicitor">Solicitor</a><a href="./?test=mortgage">Mortgage adviser</a><a href="./?test=general">Other business</a>
-      </div>
-    </div>
-  </div>
-</section>
 
 <section id="watch" aria-labelledby="watch-h">
   <div class="wrap">
@@ -405,49 +353,6 @@ footer .r{margin-left:auto}
       <div class="card"><h3>Gas and heating engineers</h3><ul><li>Customers, jobs and appointments</li><li>Service and gas safety record reminders</li><li>Quotes and invoices for each job</li></ul></div>
       <div class="card"><h3>Plumbers, electricians, builders and more</h3><ul><li>Customers, jobs, quotes and appointments</li><li>Guarantee and certificate dates</li><li>Also for driving instructors, solicitors, mortgage advisers, architects, barbers and beauticians</li></ul></div>
     </div>
-  </div>
-</section>
-
-<section class="pricing" id="pricing" aria-labelledby="price-h">
-  <div class="wrap">
-    <div class="kicker">Pricing</div>
-    <h2 id="price-h">Free for home owners. Landlords and professionals get the first year free.</h2>
-    <p class="intro">Home owners keeping records for their own home never pay. Everyone else gets a free first year as a promotional offer, with no card needed. Every feature is included in every plan.</p>
-    <div class="prices">
-      <div class="price hot">
-        <span class="pbadge">Free forever</span>
-        <h3>Home owners</h3>
-        <div class="amt">Free</div>
-        <p class="per">for your own home, for as long as you use it</p>
-        <ul class="pk"><li>Receipts, documents and reminders for your home</li><li>No let properties</li></ul>
-        <a class="btn pri" href="./?p=register">Start free</a>
-      </div>
-      <div class="price">
-        <span class="pbadge">First year free</span>
-        <h3>Landlords, 1 to 5 properties</h3>
-        <div class="amt">£0.99<small> a month</small></div>
-        <p class="per">after your free first year</p>
-        <ul class="pk"><li>1 to 5 let properties</li></ul>
-        <a class="btn" href="./?p=register">Start your free year</a>
-      </div>
-      <div class="price">
-        <span class="pbadge">First year free</span>
-        <h3>Landlords, 6 or more properties</h3>
-        <div class="amt">£1.99<small> a month</small></div>
-        <p class="per">after your free first year</p>
-        <ul class="pk"><li>6 or more let properties</li></ul>
-        <a class="btn" href="./?p=register">Start your free year</a>
-      </div>
-      <div class="price">
-        <span class="pbadge">First year free</span>
-        <h3>Professionals and trades</h3>
-        <div class="amt">£1.99<small> a month</small></div>
-        <p class="per">after your free first year</p>
-        <ul class="pk"><li>Gas engineers, accountants, plumbers, electricians, builders, solicitors, driving instructors, advisers, salons and more</li><li>Clients or customers, jobs, deadlines and reminders</li></ul>
-        <a class="btn" href="./?p=register">Start your free year</a>
-      </div>
-    </div>
-    <p class="small pnote">The free year for landlords and professionals is a promotional offer. Prices are per month. We will tell you about plans and prices well before your free year ends, and nothing is ever charged without your OK.</p>
   </div>
 </section>
 
