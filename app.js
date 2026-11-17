@@ -25,7 +25,7 @@ function N1(){return T.noun[0].toLowerCase()}
 function NS(){return T.noun[1].toLowerCase()}
 applyTrade();
 
-var casesAll=[], TRADES=[], MAIN_TRADE=null;
+var casesAll=[], TRADES=[], MAIN_TRADE=null, USEDTU=null;
 var db=null, col=null, cases=[], loaded=false, view=view||'tasks', query='', stageFilter='', lenderFilter='', revFilter='', sortBy=(function(){try{return localStorage.getItem('cd.ui.sortBy')||'task'}catch(e){return 'task'}})(), openId=undefined;
 var queues={};
 
@@ -1802,10 +1802,10 @@ function autoChain(k,depth){
 /* ---------- trade (chosen once, kept in OneDrive so every device matches) ---------- */
 var setCol=null;
 function saveTrades(list){
-  list=list.slice(0,2);var act=list.indexOf(T.id)>-1?T.id:list[0];
+  list=list.slice(0,2);var tu0=window.CD_tuAt&&window.CD_tuAt();if(tu0)USEDTU=tu0;var act=list.indexOf(T.id)>-1?T.id:list[0];
   if(!MAIN_TRADE||list.indexOf(MAIN_TRADE)<0)MAIN_TRADE=list[0];
   TRADES=list;window.CD_tradeSet(act);var was=openId;if(was!==undefined)closeDrawer();applyTrade();setCases();view=T.landing||'tasks';
-  if(setCol)write('set-trade',function(){return setCol.doc('trade').set({trade:act,trades:list,main:MAIN_TRADE,updatedAt:Date.now()})});
+  if(setCol)write('set-trade',function(){return setCol.doc('trade').set({trade:act,trades:list,main:MAIN_TRADE,usedTu:USEDTU,updatedAt:Date.now()})});
   render();renderSide();renderNav();
 }
 function saveTrade(id){saveTrades([id])}
@@ -1823,9 +1823,17 @@ function renderSwitch(){
   el.innerHTML='<span class="trl">Working as</span>'+TRADES.map(function(id){var x=all[id]||{};return '<button type="button" data-trsw="'+esc(id)+'" aria-pressed="'+(id===T.id)+'">'+esc(x.short||x.label||id)+'</button>'}).join('');
 }
 var tpSel=[];
+/* choosing two trades locks the choice; support unlocks it (admin page) and the unlock is used up when the person next saves their trades */
+function tradesLocked(){var tu=window.CD_tuAt&&window.CD_tuAt();return TRADES.length>=2&&!(tu&&tu!==USEDTU)}
+window.CD_tradesLocked=tradesLocked;
+function tradeLockedNote(){
+  if($('#tpOv'))return;var o=document.createElement('div');o.id='tpOv';o.className='mkov';
+  o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Your trades are locked"><h2>Your two trades are locked</h2><p class="muted" style="margin:4px 0 12px">Once two trades are chosen they stay as they are. You can still switch between them with the tabs at the top. To change them, email <a href="mailto:support@mysimpledesk.co.uk?subject=Change%20my%20trades">support@mysimpledesk.co.uk</a> and we will unlock the choice for you.</p><div class="mkact"><button type="button" class="btn ghost" data-tpclose="1">Close</button><a class="btn" href="mailto:support@mysimpledesk.co.uk?subject=Change%20my%20trades">Email support</a></div></div>';
+  document.body.appendChild(o);
+}
 function openTradePicker(first){
-  if($('#tpOv')||window.CD_TRADES.only)return;var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';tpSel=first?[]:(TRADES.length?TRADES.slice():[T.id]);
-  o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trades"><h2>'+(first?'Welcome. I am…':'Your trades')+'</h2><p class="muted" style="margin:4px 0 12px">Choose one, or two if you work in both. Each has its own list, menu and reminders, and you switch between them with one tap. There is no extra charge for a second one.'+(first?'':' Your saved records keep all their details. A trade you take off is hidden, not deleted, and comes back if you add it again.')+'</p><div class="tpgrid">'+
+  if($('#tpOv')||window.CD_TRADES.only)return;if(!first&&tradesLocked()){tradeLockedNote();return}var A=window.CD_TRADES,o=document.createElement('div');o.id='tpOv';o.className='mkov';tpSel=first?[]:(TRADES.length?TRADES.slice():[T.id]);
+  o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Choose your trades"><h2>'+(first?'Welcome. I am…':'Your trades')+'</h2><p class="muted" style="margin:4px 0 12px">Choose one, or two if you work in both. Each has its own list, menu and reminders, and you switch between them with one tap. There is no extra charge for a second one. Once you have chosen two they are locked, and changing them later means emailing support@mysimpledesk.co.uk.'+(first?'':' Your saved records keep all their details. A trade you take off is hidden, not deleted, and comes back if you add it again.')+'</p><div class="tpgrid">'+
     A.order.map(function(id){var x=A.all[id],op=!window.CD_tradeOpen||window.CD_tradeOpen(id);return '<button type="button" class="tpb'+(tpSel.indexOf(id)>-1?' on':'')+(op?'':' soon')+'" data-trade="'+id+'" aria-pressed="'+(tpSel.indexOf(id)>-1)+'"'+(op?'':' disabled aria-disabled="true"')+'><b>'+esc(x.label)+(op?'':' <em class="tpsoon">Coming soon</em>')+'</b><span>'+esc(x.noun[1])+' · '+esc(x.stages.map(function(s){return s.label.replace(/^\d /,'')}).slice(0,4).join(', '))+'…</span></button>'}).join('')+
     '</div><p id="tpMsg" class="tmmsg" role="alert"></p><div class="mkact">'+(first?'':'<button type="button" class="btn ghost" data-tpclose="1">Cancel</button>')+'<button type="button" class="btn" id="tpGo" data-tpgo="1"'+(tpSel.length?'':' disabled')+'>Continue</button></div></div>';
   document.body.appendChild(o);
@@ -4036,7 +4044,7 @@ claude.use('db').then(function(d){
   mkCol=db.collection('marketing');
   setCol=db.collection('settings');var tradeSeen=false,tradeSig='';setCol.onSnapshot(bizSnap,function(){});
   setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='tradesmen'})[0];tmItems=(d&&d.data().items)||[];if(view==='tradesmen'&&!(document.activeElement&&/^tm-/.test(document.activeElement.id||'')))render()},function(){});
-  setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],dd=d0&&d0.data(),tid=dd&&dd.trade,A0=window.CD_TRADES.all;if(!tid||!A0[tid])return;tradeSeen=true;if(window.CD_TRADES.only)return;var list=(dd.trades||[tid]).filter(function(id){return A0[id]}).slice(0,2);if(!list.length)list=[tid];var main=(dd.main&&A0[dd.main])?dd.main:list[0],sig=list.join('|')+'>'+main,changed=sig!==tradeSig;tradeSig=sig;TRADES=list;MAIN_TRADE=main;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();var keep=window.CD_tradeChosen()&&list.length>1&&list.indexOf(T.id)>-1,target=keep?T.id:(list.indexOf(tid)>-1?tid:list[0]);if(target!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(target);if(openId!==undefined)closeDrawer();applyTrade();setCases();render();renderSide();renderNav()}else if(changed){setCases();render();renderSide();renderNav()}});
+  setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],dd=d0&&d0.data(),tid=dd&&dd.trade,A0=window.CD_TRADES.all;if(!tid||!A0[tid])return;tradeSeen=true;USEDTU=dd.usedTu||null;if(window.CD_TRADES.only)return;var list=(dd.trades||[tid]).filter(function(id){return A0[id]}).slice(0,2);if(!list.length)list=[tid];var main=(dd.main&&A0[dd.main])?dd.main:list[0],sig=list.join('|')+'>'+main,changed=sig!==tradeSig;tradeSig=sig;TRADES=list;MAIN_TRADE=main;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();var keep=window.CD_tradeChosen()&&list.length>1&&list.indexOf(T.id)>-1,target=keep?T.id:(list.indexOf(tid)>-1?tid:list[0]);if(target!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(target);if(openId!==undefined)closeDrawer();applyTrade();setCases();render();renderSide();renderNav()}else if(changed){setCases();render();renderSide();renderNav()}});
   (window.CD_firstPull||Promise.resolve()).then(function(){if(tradeSeen)return;if(window.CD_tradeChosen())write('set-trade',function(){return setCol.doc('trade').set({trade:T.id,trades:[T.id],main:T.id,updatedAt:Date.now()})});else openTradePicker(true)});
   mkCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='contacts'})[0];mkItems=(d&&d.data().items)||[];var dm=s.docs.filter(function(x){return x.id==='messages'})[0];mkMsgsDoc=(dm&&dm.data().items)||null;if(view==='marketing'&&!$('#mkOv')&&!mkMsgEdit)mkList()});
   apCol.onSnapshot(function(s){appts=s.docs.map(function(x){return Object.assign({id:x.id},x.data())});if(view==='appointments'&&!$('#apOv'))render();if(view==='tasks'&&!$('#apOv')){var hc2=$('#homeCal');if(hc2)hc2.innerHTML=apHome()}var na=$('#nextAppt');if(na&&openId)na.innerHTML=apNextHtml(openId);renderNav()},function(){});

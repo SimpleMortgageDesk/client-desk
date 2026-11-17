@@ -1,6 +1,7 @@
 /* GET /api/admin/users          list everyone in the sign-up list
    DELETE /api/admin/users?email= remove one person (for deletion requests)
    POST /api/admin/users?email=&pay=trial|paid|due  set one person's payment status
+   POST /api/admin/users?email=&tradeunlock=1|0  let someone with two trades change them again (they email support to ask)
    POST /api/admin/users?email=&suspend=1|0  suspend or restore one person (the app then shows them a suspended screen)
    Protected twice: Cloudflare Access must cover /admin* and /api/admin*, and this code checks Access's signed
    token itself. Settings > Variables: ACCESS_TEAM (e.g. yourteam.cloudflareaccess.com) and ACCESS_AUD (the
@@ -57,6 +58,13 @@ export async function onRequest({ request, env }) {
       if (['trial', 'paid', 'due'].indexOf(pay) < 0) return json({ error: 'Unknown status' }, 400);
       await env.DB.prepare('UPDATE users SET pay = ?2 WHERE email = ?1').bind(email, pay === 'trial' ? null : pay).run();
       return json({ email, pay });
+    }
+    /* let this person change their two trades again: they asked support by email; it is used up when they next save their trades */
+    const tul = u.searchParams.get('tradeunlock');
+    if (tul !== null) {
+      const at = tul === '1' ? new Date().toISOString() : null;
+      await env.DB.prepare('UPDATE users SET trade_unlock = ?2 WHERE email = ?1').bind(email, at).run();
+      return json({ email, trade_unlock: at });
     }
     await env.DB.prepare('UPDATE users SET suspended = ?2 WHERE email = ?1').bind(email, on ? new Date().toISOString() : null).run();
     return json({ email, suspended: on });
