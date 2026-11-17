@@ -52,6 +52,7 @@
   var T = {};
 
   T.mortgage = {
+    short: 'Mortgage adviser', flatPrice: '£1.99', jobDocs: true, docRoot: 'Cases', docHint: 'Upload or photograph ID, fact finds, offers and other case papers. Photos are saved as one PDF.',
     label: 'Mortgage adviser', noun: ['Case', 'Cases'], person: ['Applicant', 'Applicants'], peopleTitle: 'Applicants and residential address',
     dob: true, stages: [{ id: 'enquiry', label: 'Enquiry' }, { id: 'factfind', label: 'Fact find' }, { id: 'dip', label: 'AIP' }, { id: 'application', label: 'FMA' }, { id: 'offer', label: 'Offered' }, { id: 'completed', label: 'Completed' }],
     defaultStage: 'dip', doneStage: 'completed',
@@ -157,6 +158,7 @@
   };
 
   T.solicitor = {
+    short: 'Solicitor', flatPrice: '£1.99', jobDocs: true, docRoot: 'Matters', docHint: 'Upload or photograph ID, client care letters and other matter papers. Photos are saved as one PDF.',
     label: 'Solicitor or legal services', noun: ['Matter', 'Matters'], person: ['Client', 'Clients'], peopleTitle: 'Clients',
     dob: true, stages: [{ id: 'enquiry', label: 'Enquiry' }, { id: 'checks', label: 'Conflict and ID checks' }, { id: 'engaged', label: 'Client care letter sent' }, { id: 'progress', label: 'In progress' }, { id: 'completion', label: 'Exchange, completion or hearing' }, { id: 'closed', label: 'Closed' }],
     defaultStage: 'enquiry', doneStage: 'closed',
@@ -195,6 +197,7 @@
   };
 
   T.architect = {
+    short: 'Architect', flatPrice: '£1.99', jobDocs: true, docRoot: 'Projects', docHint: 'Upload or photograph drawings, site notes and other project papers. Photos are saved as one PDF.',
     label: 'Architect or designer', noun: ['Project', 'Projects'], person: ['Client', 'Clients'], peopleTitle: 'Clients',
     dob: false, stages: [{ id: 'enquiry', label: 'Enquiry' }, { id: 's0', label: '0 Strategic definition' }, { id: 's1', label: '1 Preparation and briefing' }, { id: 's2', label: '2 Concept design' }, { id: 's3', label: '3 Spatial coordination' }, { id: 's4', label: '4 Technical design' }, { id: 's5', label: '5 Manufacturing and construction' }, { id: 's6', label: '6 Handover' }, { id: 's7', label: '7 Use' }],
     defaultStage: 'enquiry', doneStage: 's7',
@@ -261,6 +264,7 @@
   };
 
   T.plumber = {
+    short: 'Plumber', flatPrice: '£1.99', jobDocs: true, docRoot: 'Jobs', docHint: 'Upload or photograph job sheets, certificates and other job papers. Photos are saved as one PDF.',
     label: 'Plumber', noun: ['Job', 'Jobs'], person: ['Customer', 'Customers'], peopleTitle: 'Customer',
     dob: false, stages: JOB_STAGES, defaultStage: 'enquiry', doneStage: 'paid',
     types: ['Leak or repair', 'Bathroom', 'Kitchen plumbing', 'Blocked drain', 'Radiators', 'Hot water cylinder', 'Emergency call-out', 'Other'],
@@ -277,6 +281,7 @@
   };
 
   T.electrician = {
+    short: 'Electrician', flatPrice: '£1.99', jobDocs: true, docRoot: 'Jobs', docHint: 'Upload or photograph test certificates, job sheets and other job papers. Photos are saved as one PDF.',
     label: 'Electrician', noun: ['Job', 'Jobs'], person: ['Customer', 'Customers'], peopleTitle: 'Customer',
     dob: false, stages: JOB_STAGES, defaultStage: 'enquiry', doneStage: 'paid',
     types: ['EICR (inspection)', 'Consumer unit', 'Rewire', 'EV charger', 'New circuits', 'Fault finding', 'Lighting', 'PAT testing', 'Other'],
@@ -295,6 +300,7 @@
   };
 
   T.builder = {
+    short: 'Builder', flatPrice: '£1.99', jobDocs: true, docRoot: 'Jobs', docHint: 'Upload or photograph quotes, plans and other job papers. Photos are saved as one PDF.',
     label: 'Builder or general trades', noun: ['Job', 'Jobs'], person: ['Customer', 'Customers'], peopleTitle: 'Customer',
     dob: false, stages: JOB_STAGES, defaultStage: 'enquiry', doneStage: 'paid',
     types: ['Extension', 'Kitchen', 'Bathroom', 'Loft', 'Roofing', 'Decorating', 'Carpentry', 'Landscaping', 'Repairs', 'Other'],
@@ -312,6 +318,7 @@
   };
 
   T.beauty = {
+    short: 'Beauty and hair', flatPrice: '£1.99', jobDocs: true, docRoot: 'Clients', docHint: 'Upload or photograph consent forms, patch tests and other client papers. Photos are saved as one PDF.',
     label: 'Barber, hairdresser or beautician', noun: ['Client card', 'Client cards'], person: ['Client', 'Clients'], peopleTitle: 'Client',
     dob: true, stages: [{ id: 'enquiry', label: 'New enquiry' }, { id: 'booked', label: 'First visit booked' }, { id: 'regular', label: 'Regular client' }, { id: 'lapsed', label: 'Lapsed' }],
     defaultStage: 'enquiry', doneStage: 'regular',
@@ -421,6 +428,7 @@
   };
 
   T.general = {
+    short: 'Self-employed', flatPrice: '£1.99', jobDocs: true, docRoot: 'Jobs', docHint: 'Upload or photograph quotes, job sheets and other job papers. Photos are saved as one PDF.',
     label: 'Other self-employed business', noun: ['Job', 'Jobs'], person: ['Client', 'Clients'], peopleTitle: 'Client',
     dob: false, stages: [{ id: 'enquiry', label: 'Enquiry' }, { id: 'quote', label: 'Quote sent' }, { id: 'progress', label: 'In progress' }, { id: 'invoiced', label: 'Invoiced' }, { id: 'paid', label: 'Paid' }],
     defaultStage: 'enquiry', doneStage: 'paid',
@@ -454,7 +462,7 @@
   /* OPEN TRADES: the kinds of work people can choose right now. Every other trade is still listed,
      greyed out as "Coming soon". To open another trade, add its id here, e.g. ['landlord', 'gas'].
      [] = all trades can be chosen. People already set up with another trade keep it. */
-  var OPEN = ['landlord', 'gas', 'accountant'].filter(function (id) { return T[id]; });
+  var OPEN = ORDER.filter(function (id) { return T[id]; });
   var isOpen = function (id) { return !OPEN.length || OPEN.indexOf(id) > -1; };
   ORDER = ORDER.filter(isOpen).concat(ORDER.filter(function (id) { return !isOpen(id); }));
   window.CD_TRADES = { order: ORDER, all: T, only: ONLY, open: OPEN };
