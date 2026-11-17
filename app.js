@@ -13,7 +13,7 @@ function trOf(c){return c.tr||MAIN_TRADE||T.id}
 function setCases(){cases=casesAll.filter(function(c){return trOf(c)===T.id})}
 function tagTr(d){if(TRADES.length>1)d.tr=T.id;return d}
 function applyTrade(){
-  T=window.CD_T();homeMonth=!!(T.tenancyMode||T.calTab);/* each trade has its own colour theme */document.body.setAttribute('data-theme-trade',T.id||'');try{var tmc=document.querySelector('meta[name="theme-color"]');if(tmc){var ac=getComputedStyle(document.body).getPropertyValue('--accent').trim();if(ac)tmc.setAttribute('content',ac)}}catch(e){}
+  T=window.CD_T();homeMonth=true;/* the calendar opens as a month view with the coming up appointments on top, for every trade *//* each trade has its own colour theme */document.body.setAttribute('data-theme-trade',T.id||'');try{var tmc=document.querySelector('meta[name="theme-color"]');if(tmc){var ac=getComputedStyle(document.body).getPropertyValue('--accent').trim();if(ac)tmc.setAttribute('content',ac)}}catch(e){}
   STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
   var nb=document.getElementById('newBtn');if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
   var q=document.getElementById('q');if(q)q.placeholder='Search '+T.noun[1].toLowerCase();
@@ -366,7 +366,7 @@ function render(){
   if(T.hideTabs&&T.hideTabs.indexOf(view)>-1)view=T.landing||'tasks';
   if(T.tenancyMode&&(view==='invoices'||view==='marketing'))view='cases';
   if(!T.tenancyMode&&view==='tradesmen')view=T.landing||'tasks';
-  if(view==='tasks'){var CALV=T.tenancyMode||T.calTab;if((!CALV&&(!$('#trList')||!v.contains($('#trList'))))||(CALV&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(CALV?' nocal':'')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(CALV?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!CALV)renderTray();renderRem()}
+  if(view==='tasks'){var CALV=T.tenancyMode||T.calTab;if((!CALV&&(!$('#trList')||!v.contains($('#trList'))))||(CALV&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(CALV?' nocal':' calfull')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(CALV?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!CALV)renderTray();renderRem()}
   else if(view==='notebook'){if(!$('#nbMain')||!v.contains($('#nbMain'))){v.innerHTML=nbShell();nbShown=null}renderNotebook()}
   else if(view==='calculator'){if(!$('#calcMain')||!v.contains($('#calcMain'))){v.innerHTML=calcShell();calcUpdate()}}
   else if(view==='marketing'){var mr=$('#mkRoot');if(!mr||!v.contains(mr)||mr.getAttribute('data-tab')!==mkTab)v.innerHTML=mkShell();mkList()}
@@ -678,7 +678,10 @@ function apCard(a,showDate){
 function apHTML(home){
   var y=apMonth.y,mo=apMonth.m,first=new Date(y,mo,1),off=(first.getDay()+6)%7,tIso=iso(TODAY),wkS=addDays(tIso,-((TODAY.getDay()+6)%7)),wkE=addDays(wkS,6);
   var by={};appts.forEach(function(a){if(a.status==='cancelled')return;(by[a.date]=by[a.date]||[]).push(a)});
-  var h=(home?'':'<div class="pagehead"><h1>Appointments</h1><span class="muted">Book and track client appointments</span></div>')+'<div class="apwrap"><div>';
+  var nowMin0=new Date().getHours()*60+new Date().getMinutes();
+  var upAll=apSorted(appts.filter(function(a){return (a.status||'booked')==='booked'&&(a.date>tIso||(a.date===tIso&&apMin(a.time)+(+a.dur||30)>=nowMin0))}));
+  var upTop='<section class="apup" aria-label="Coming up"><div class="aphead"><h2 style="font-size:16px">Coming up</h2><span class="muted" style="font-size:12.5px">'+upAll.length+' appointment'+(upAll.length===1?'':'s')+'</span></div>'+(upAll.length?'<div class="apupl">'+upAll.slice(0,12).map(function(a){return apCard(a,true)}).join('')+'</div>'+(upAll.length>12?'<div class="muted" style="margin-top:6px;font-size:12.5px">+ '+(upAll.length-12)+' more. Pick a day on the calendar to see them.</div>':''):'<div class="muted">No upcoming appointments.</div>')+'</section>';
+  var h=(home?'':'<div class="pagehead"><h1>Appointments</h1><span class="muted">Book and track client appointments</span></div>')+upTop+'<div class="apwrap"><div>';
   h+='<div class="aphead"><h2>'+first.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</h2><button type="button" class="btn ghost sm" data-apmonth="-1" aria-label="Previous month">‹ Prev</button><button type="button" class="btn ghost sm" data-apmonth="0">Today</button><button type="button" class="btn ghost sm" data-apmonth="1" aria-label="Next month">Next ›</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>';
   if(home&&(T.tenancyMode||T.calTab)){var wl=apSorted(appts.filter(function(a){return a.date>=wkS&&a.date<=wkE&&(a.status||'booked')!=='cancelled'}));
     h+='<div class="wkbar"><b>This week</b><span class="wkn">'+wl.length+' appointment'+(wl.length===1?'':'s')+'</span>'+(wl.length?wl.map(function(a){return '<button type="button" class="wkchip" data-apday="'+a.date+'">'+new Date(a.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric'})+' · '+esc(a.time)+' '+esc(apWho(a))+'</button>'}).join(''):'<span class="wkn">Nothing booked this week.</span>')+'</div>'}
@@ -693,9 +696,6 @@ function apHTML(home){
   var day=apSorted(appts.filter(function(a){return a.date===apSel}));
   h+='<div class="aphead"><h2>'+new Date(apSel+'T00:00:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'})+'</h2><button type="button" class="btn ghost sm" data-apnew="1">Book on this day</button></div>';
   h+=day.length?day.map(function(a){return apCard(a,false)}).join(''):'<div class="muted" style="margin-bottom:10px">Nothing booked on this day.</div>';
-  var nowMin=new Date().getHours()*60+new Date().getMinutes();
-  var up=apSorted(appts.filter(function(a){return (a.status||'booked')==='booked'&&(a.date>tIso||(a.date===tIso&&apMin(a.time)+(+a.dur||30)>=nowMin))})).slice(0,8);
-  h+='<div class="aphead" style="margin-top:16px"><h2 style="font-size:15px">Coming up</h2></div>'+(up.length?up.map(function(a){return apCard(a,true)}).join(''):'<div class="muted">No upcoming appointments.</div>');
   return h+'</div></div>';
 }
 var homeMonth;
