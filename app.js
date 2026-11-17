@@ -484,7 +484,7 @@ function sel(name,label,val,opts){
 function contactLinks(t){t=String(t||'');var ph=/(?:\+44\s?|\b0)(?:\d[\s-]?){9,10}\b/.exec(t),em=/[^\s@,;()]+@[^\s@,;()]+\.[A-Za-z]{2,}/.exec(t);return (ph?plinks(ph[0]):'')+(em?elinks(em[0]):'')}
 function elinks(m){
   m=String(m||'').trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(m))return '';
-  return '<a href="mailto:'+esc(m)+'" target="_blank" rel="noopener">Send email</a><a href="https://outlook.live.com/mail/0/deeplink/compose?to='+encodeURIComponent(m)+'" target="_blank" rel="noopener">Outlook</a>';
+  return '<a href="mailto:'+esc(m)+'" target="_blank" rel="noopener">Send email</a>';
 }
 function plinks(p){
   var d=String(p||'').replace(/[^\d+]/g,'');if(d.replace(/\D/g,'').length<7)return '';
