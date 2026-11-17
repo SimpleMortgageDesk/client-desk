@@ -40,19 +40,14 @@ nav.links a{color:var(--muted);text-decoration:none;font-size:15px}
 nav.links a:hover{color:var(--ink)}
 header .acts{margin-left:auto;display:flex;gap:10px}
 /* trust bar: the main promise, straight under the menu */
-.trustbar{background:#073B2C;color:#fff;font-size:15px;border-bottom:3px solid #FFD84D}
-.trustbar .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 10px;padding:10px 0;text-align:center}
-.trustbar .tb2{padding:0 0 11px;font-size:15px}
-.trustbar .tb2 b{color:#FFD84D}
-.trustbar svg{width:20px;height:20px;flex:none;fill:none;stroke:#FFD84D;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.trustbar .hl{background:#FFD84D;color:#14202D;font-weight:800;padding:4px 12px;border-radius:99px;animation:trustpulse 1.8s ease-in-out infinite}
-.trustbar .hl2{animation-delay:.6s}
-.trustbar .tbl{animation:trustlock 1.8s ease-in-out infinite}
-.trustbar a{color:#fff;font-weight:700;margin-left:6px;white-space:nowrap;text-underline-offset:2px}
-@keyframes trustpulse{0%,100%{background:#FFD84D;box-shadow:0 0 0 0 rgba(255,216,77,.75)}50%{background:#FFF1A8;box-shadow:0 0 0 7px rgba(255,216,77,0)}}
-@keyframes trustlock{0%,100%{transform:scale(1)}50%{transform:scale(1.18)}}
-@media (prefers-reduced-motion:reduce){.trustbar .hl,.trustbar .tbl{animation:none}}
-@media (max-width:620px){.trustbar{font-size:14px}.trustbar .wrap{padding:9px 12px;gap:7px 8px}.trustbar .tb2{font-size:13.5px;padding:0 12px 10px}.trustbar .hl{padding:4px 10px}}
+.trustbar{background:var(--soft);color:#0A4A38;font-size:15px;border-bottom:1px solid #BFE0D2}
+.trustbar .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;padding:10px 0 4px;text-align:center}
+.trustbar .tb2{padding:0 0 10px}
+.trustbar svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--acc);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.trustbar .hl{font-weight:700;color:#0A4A38}
+.trustbar .hl2{font-weight:600}
+.trustbar a{color:var(--acc);font-weight:700;margin-left:6px;white-space:nowrap;text-underline-offset:2px}
+@media (max-width:620px){.trustbar{font-size:14px}.trustbar .wrap{padding:9px 12px 3px;gap:6px 8px}.trustbar .tb2{padding:0 12px 9px}}
 /* hero */
 .hero{padding:64px 0 56px}
 .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start}
