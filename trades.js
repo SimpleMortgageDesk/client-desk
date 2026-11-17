@@ -86,6 +86,7 @@
   };
 
   T.accountant = {
+    short: 'Accountant', flatPrice: '£1.99', jobDocs: true, noExp: true, docRoot: 'Clients', docHint: 'Upload or photograph engagement letters, accounts and other client papers. Photos are saved as one PDF.',
     label: 'Accountant or bookkeeper', noun: ['Client', 'Clients'], person: ['Contact', 'Contacts'], peopleTitle: 'Client contacts',
     dob: true, stages: [{ id: 'enquiry', label: 'Enquiry' }, { id: 'proposal', label: 'Proposal sent' }, { id: 'onboarding', label: 'Onboarding (ID and engagement letter)' }, { id: 'active', label: 'Active client' }],
     defaultStage: 'enquiry', doneStage: 'active',
@@ -429,7 +430,7 @@
   /* OPEN TRADES: the kinds of work people can choose right now. Every other trade is still listed,
      greyed out as "Coming soon". To open another trade, add its id here, e.g. ['landlord', 'gas'].
      [] = all trades can be chosen. People already set up with another trade keep it. */
-  var OPEN = ['landlord', 'gas'].filter(function (id) { return T[id]; });
+  var OPEN = ['landlord', 'gas', 'accountant'].filter(function (id) { return T[id]; });
   var isOpen = function (id) { return !OPEN.length || OPEN.indexOf(id) > -1; };
   ORDER = ORDER.filter(isOpen).concat(ORDER.filter(function (id) { return !isOpen(id); }));
   window.CD_TRADES = { order: ORDER, all: T, only: ONLY, open: OPEN };

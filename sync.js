@@ -1231,7 +1231,7 @@
   }
   function signAside() {
     var gg = provOk().g;
-    return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For home owners, landlords and gas engineers</div>' +
+    return '<aside class="mdr" aria-label="About ' + esc(APPN) + '"><div class="k">For home owners, landlords, gas engineers and accountants</div>' +
       '<h2>Your paperwork, organised. Your records, yours.</h2>' +
       '<div class="pt"><i>1</i><div><b>See what needs doing today</b><span>Rent due, certificates expiring and appointments are waiting on your first screen.</span></div></div>' +
       '<div class="pt"><i>2</i><div><b>Everything for each home or job in one place</b><span>Receipts, certificates, tenants and customers together, ready when you need them.</span></div></div>' +
@@ -1270,7 +1270,7 @@
     var foot = '<p style="color:#58697A;font-size:12px;margin:14px 0 0"><a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>';
     var err = '<div id="mdErr" role="alert" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div>';
     var back = '<a href="#" data-sp="home" style="color:#0A6B50;font-size:13px">&larr; Back</a>';
-    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>For home owners, landlords and gas engineers</small></span></a>' +
+    var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>For home owners, landlords, gas engineers and accountants</small></span></a>' +
       '<a href="#" class="sw" data-sp="' + other + '">' + (other === 'login' ? 'Log in' : 'Register') + '</a></div>'; };
     var legal = '<p class="mdlegal"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>';
     var msLbl = (CFG.tenant || 'consumers') === 'consumers' ? 'Outlook or Hotmail' : 'Outlook, Hotmail or Microsoft 365';
@@ -1291,7 +1291,7 @@
       var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
       var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
       html = '<form id="rgForm" novalidate class="mdl">' + hdr('login') + '<h1>Free to start. No card needed.</h1>' +
-        '<p class="lead"><b>Free forever for home owners.</b> Landlords and gas engineers: free for your first year (a promotional offer), then from £0.99 a month (<a href="home.html#pricing" target="_blank" rel="noopener" style="color:#0A6B50">see pricing</a>). Every feature included. Set up your account in a few minutes. Your records are saved in your own ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, never on our computers.</p>' +
+        '<p class="lead"><b>Free forever for home owners.</b> Landlords, gas engineers and accountants: free for your first year (a promotional offer), then from £0.99 a month (<a href="home.html#pricing" target="_blank" rel="noopener" style="color:#0A6B50">see pricing</a>). Every feature included. Set up your account in a few minutes. Your records are saved in your own ' + (ok.g ? 'Outlook or Gmail' : 'Outlook') + ' account, never on our computers.</p>' +
         '<p id="rgTop" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
         '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
         '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
@@ -2254,6 +2254,12 @@
       put('cases', 'j3', { tr: 'gas', clientNo: 'C006', type: 'Landlord gas safety record (CP12)', stage: 'invoiced', applicants: [{ name: 'C. Demo' }], jobAddress: '3 Demo Lane', gsrDate: D(-360), gsrDue: D(5), invoiceNo: 'INV-12', invoiceAmount: 80, tasks: [], notes: [], expenses: [] });
       put('appointments', 'a1', { date: D(0), time: '09:00', dur: 60, type: 'Job', who: 'A. Sample', status: 'booked' });
       put('appointments', 'a2', { date: D(3), time: '14:00', dur: 60, type: 'Quote visit', who: 'B. Test', status: 'booked' });
+    }
+    if (kind === 'accountant') {
+      put('cases', 'a1', { clientNo: 'C001', type: 'Self Assessment', stage: 'active', applicants: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }], bizName: 'Sample Plumbing', bizType: 'Sole trader', fee: 480, feeBasis: 'Annually', yearEnd: D(-200), saDue: D(75), amlCheck: D(-300), tasks: [], notes: [{ id: 'n1', ts: now, text: 'Sends records every quarter.' }], expenses: [] });
+      put('cases', 'a2', { clientNo: 'C002', type: 'Limited company accounts', stage: 'active', applicants: [{ name: 'B. Test', phone: '07700900222' }], bizName: 'Test Trading Ltd', bizType: 'Limited company', companyNo: '12345678', fee: 1500, feeBasis: 'Annually', yearEnd: D(-120), vatQuarterEnd: D(-20), confirmationDue: D(40), tasks: [{ id: 'k1', text: 'Chase bank statements', due: D(2), done: false }], notes: [], expenses: [] });
+      put('cases', 'a3', { clientNo: 'C003', type: 'VAT returns', stage: 'proposal', applicants: [{ name: 'C. Demo' }], bizName: 'Demo Cafe', bizType: 'Partnership', fee: 900, feeBasis: 'Quarterly', tasks: [], notes: [], expenses: [] });
+      put('appointments', 'a1', { date: D(1), time: '11:00', dur: 60, type: 'Year-end meeting', who: 'B. Test', status: 'booked' });
     }
     firstPullDone = true; try { fpRes(); } catch (e) {}
     vState = 'ok';
