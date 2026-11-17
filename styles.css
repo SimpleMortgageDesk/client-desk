@@ -990,3 +990,20 @@ body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#
 .trsw.one button{flex:0 1 auto;padding:6px 18px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .trsw{background:#2B3C50}:root:not([data-theme="light"]) .trsw button[aria-pressed="true"]{background:#E3EBF3;color:#14202D}}
 :root[data-theme="dark"] .trsw{background:#2B3C50}:root[data-theme="dark"] .trsw button[aria-pressed="true"]{background:#E3EBF3;color:#14202D}
+
+/* small screens: one Menu button that drops down every section, for every trade */
+.mnubtn,.mnupanel{display:none}
+@media (max-width:759px){
+  #nav,#nav2,#settingsBtn{display:none!important}
+  .mnubtn{display:inline-flex;align-items:center;gap:6px;order:2;margin-left:auto;font-weight:700;background:var(--side-soft);color:var(--side-ink);border:1px solid var(--side-softh)}
+  .mnubtn[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent)}
+  .mnuic{font-size:18px;line-height:1}
+  .mnupanel{display:block;position:fixed;left:10px;right:10px;top:64px;z-index:250;max-height:calc(100vh - 90px);overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(16,28,38,.28);padding:8px}
+  .mnupanel[hidden]{display:none}
+  .mnupanel button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:none;border:0;border-radius:10px;padding:13px 14px;font:inherit;font-size:16px;font-weight:600;color:var(--ink);cursor:pointer}
+  .mnupanel button:hover{background:var(--side-soft)}
+  .mnupanel button[aria-current="page"]{background:var(--accent);color:var(--accent-ink,#fff)}
+  .mnupanel small{font-weight:400;opacity:.7}
+  .mnusep{height:1px;background:var(--line);margin:6px 4px}
+  .mnupanel .mnulo{color:#A3261F}
+}
