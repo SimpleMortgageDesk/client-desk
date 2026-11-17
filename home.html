@@ -42,11 +42,11 @@ header .acts{margin-left:auto;display:flex;gap:10px}
 /* trust bar: the main promise, straight under the menu */
 .trustbar{background:#073B2C;color:#fff;font-size:15px;border-bottom:3px solid #FFD84D}
 .trustbar .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 10px;padding:10px 0;text-align:center}
-.trustbar .tb2{padding:0 0 11px;font-size:15px;color:#E6F5EE}
+.trustbar .tb2{padding:0 0 11px;font-size:15px}
 .trustbar .tb2 b{color:#FFD84D}
 .trustbar svg{width:20px;height:20px;flex:none;fill:none;stroke:#FFD84D;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .trustbar .hl{background:#FFD84D;color:#14202D;font-weight:800;padding:4px 12px;border-radius:99px;animation:trustpulse 1.8s ease-in-out infinite}
-.trustbar .hl:nth-of-type(2){animation-delay:.25s}.trustbar .hl:nth-of-type(3){animation-delay:.5s}
+.trustbar .hl2{animation-delay:.6s}
 .trustbar .tbl{animation:trustlock 1.8s ease-in-out infinite}
 .trustbar a{color:#fff;font-weight:700;margin-left:6px;white-space:nowrap;text-underline-offset:2px}
 @keyframes trustpulse{0%,100%{background:#FFD84D;box-shadow:0 0 0 0 rgba(255,216,77,.75)}50%{background:#FFF1A8;box-shadow:0 0 0 7px rgba(255,216,77,0)}}
@@ -316,10 +316,10 @@ footer .r{margin-left:auto}
 <div class="trustbar" role="note">
   <div class="wrap tb1">
     <svg class="tbl" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-    <span class="hl">Your tenants' and customers' details never reach us</span><span class="hl">No adverts</span><span class="hl">Never sold or shared</span>
+    <span class="hl">All your clients' and tenants' data is saved in your own Outlook or Google account</span>
     <a href="#privacy">How it works</a>
   </div>
-  <div class="wrap tb2"><span>All your clients' data is saved in <b>your own Outlook or Gmail account</b>, never on our computers.</span></div>
+  <div class="wrap tb2"><span class="hl hl2">MySimpleDesk helps you get the best out of your Outlook and Google calendars</span></div>
 </div>
 
 <main id="top">
