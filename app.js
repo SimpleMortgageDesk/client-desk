@@ -82,7 +82,16 @@ function reviewItems(c,useStage){
     if(remDone(c,r,d))return;
     out.push({date:d,label:r.l+rl,key:r.k,sec:false});
   });
-  return out.concat(tnReminders(c)).concat(T.tenancyMode?rlReminders(c).concat(rpReminders(c)):[]).concat(docReminders(c));
+  return out.concat(tnReminders(c)).concat(T.tenancyMode?rlReminders(c).concat(rpReminders(c)):[]).concat(docReminders(c)).concat(acMtdItems(c));
+}
+/* accountants: a sole trader in Making Tax Digital for Income Tax gets the next quarterly update worked out (5 Aug, 5 Nov, 5 Feb, 5 May) unless a date is typed in */
+function acMtdItems(c){
+  if(!T||T.id!=='accountant'||c.stMtdQ)return [];
+  var m=String(c.stMtd||''),yr=/April (20\d\d)/.exec(m);if(!yr&&!/voluntar/i.test(m))return [];
+  var min=(yr?yr[1]:'0000')+'-08-05',done=(c.remDone&&c.remDone.mtdq)||'',y=TODAY.getFullYear(),cand=[];
+  for(var yy=y-1;yy<=y+2;yy++)['02-05','05-05','08-05','11-05'].forEach(function(d){cand.push(yy+'-'+d)});
+  cand.sort();var lim=addDays(iso(TODAY),-30),next=cand.filter(function(d){return d>=min&&d>done&&d>=lim})[0];
+  return next?[{date:next,label:'MTD quarterly update due',key:'mtdq',sec:false}]:[];
 }
 function reviewOf(c){var r=reviewItems(c).map(function(x){return x.exp||x.date}).sort();return r[0]||''}
 function firstName(c){var a=(c.applicants||[]).map(function(x){return (x.name||'').trim()}).filter(Boolean)[0]||'';return a.replace(/^(mr|mrs|miss|ms|dr)\.?\s+/i,'').toLowerCase()}
@@ -3763,7 +3772,7 @@ document.addEventListener('click',function(e){
 /* ---------- import from Excel (.xlsx) or CSV ---------- */
 var imRows=[],imHead=[],imMap=[],imName='',imSheet='',imBusy=false;
 var IM_TRADE={
-  landlord:{noun:'propert',fields:[
+  landlord:{noun:'propert',one:'property',many:'properties',fields:[
     ['addr','Property address (line one)',['address','propertyaddress','addressline1','address1','property','street','propertyaddressline1']],
     ['pc','Postcode',['postcode','postalcode','zip','zipcode']],
     ['type','Property type',['propertytype','type']],
@@ -3783,7 +3792,7 @@ var IM_TRADE={
     ['epcd','EPC issued date',['epcdate','epcissued','epcissuedate']],
     ['ins','Insurance renewal date',['insurancerenewal','insurance','insurancerenewaldate','landlordinsurance']]],
     req:['addr'],reqL:'a property address'},
-  gas:{noun:'job',fields:[
+  gas:{noun:'job',one:'job',many:'jobs',fields:[
     ['name','Customer name',['customer','customername','name','client','clientname','fullname']],
     ['phone','Phone',['phone','mobile','telephone','tel','phonenumber','mobilenumber','customerphone']],
     ['email','Email',['email','emailaddress','customeremail']],
@@ -3795,9 +3804,28 @@ var IM_TRADE={
     ['next','Next service due',['nextservice','nextservicedue','servicedue','duedate']],
     ['gsr','Gas safety record date',['gassafety','gsr','cp12','gassafetyrecord','gassafetydate']],
     ['quote','Quote or price',['quote','price','amount','cost','quoted']]],
-    req:['name','addr'],reqL:'a customer name or an address',any:1}
+    req:['name','addr'],reqL:'a customer name or an address',any:1},
+  accountant:{noun:'client',one:'client',many:'clients',fields:[
+    ['name','Client or contact name',['name','client','clientname','contact','contactname','fullname','customer']],
+    ['phone','Phone',['phone','mobile','telephone','tel','phonenumber','mobilenumber']],
+    ['email','Email',['email','emailaddress']],
+    ['biz','Business or trading name',['business','businessname','tradingname','trading','company','companyname']],
+    ['btype','Business type (sole trader, limited company…)',['businesstype','clienttype','entitytype','structure']],
+    ['type','Main service',['service','mainservice','servicetype','type','work']],
+    ['fee','Annual fee',['fee','annualfee','fees','price']],
+    ['fbasis','Billed (monthly, quarterly, annually)',['billed','billing','feebasis','billingfrequency']],
+    ['yend','Accounting year end',['yearend','accountingyearend','ye','yearenddate']],
+    ['sadue','Self Assessment due date',['sadue','selfassessmentdue','taxreturndue','sa']],
+    ['nature','What the business does',['nature','natureofbusiness','activity','whatthebusinessdoes']],
+    ['start','Trading started on',['tradingstart','tradingstarted','startdate','commenced','started']],
+    ['basis','Accounting basis (cash or accruals)',['basis','accountingbasis','cashbasis']],
+    ['turn','Turnover, latest year',['turnover','sales','income','revenue']],
+    ['vat','VAT registered (yes or no)',['vat','vatregistered']],
+    ['vatno','VAT number',['vatnumber','vatno','vatreg']]],
+    req:['name','biz'],reqL:'a client name or a business name',any:1}
 };
-function imKind(){return T.tenancyMode?'landlord':(T.id==='gas'?'gas':'')}
+function imKind(){return T.tenancyMode?'landlord':(T.id==='gas'?'gas':(T.id==='accountant'?'accountant':''))}
+function imN(n){var d=IM_TRADE[imKind()];return n===1?d.one:d.many}
 function imNorm(s){return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,'')}
 /* CSV: quotes, commas, semicolons or tabs, a byte-order mark */
 function imCsv(t){
@@ -3882,6 +3910,16 @@ function imRecord(row){
     var tn=g('tname'),rent=imNum(g('rent'));
     if(tn||rent){var tt={id:'t'+uid(),status:'current',tenantType:'private',people:tn?[{name:tn,phone:imPhone(g('tphone')),email:g('temail')}]:[],rent:rent,rentFreq:imFreq(g('rfreq'))};var rd=imNum(g('rday'));if(rd&&+rd>=1&&+rd<=31)tt.rentDay=rd;var st=imDate(g('tstart'));if(st)tt.tenancyStart=st;var dp=imNum(g('deposit'));if(dp)tt.deposit=dp;d.tenancies.push(tt)}
     d.stage=d.tenancies.length?'let':'vacant';
+  }else if(k==='accountant'){
+    var cn=g('name'),bz=g('biz');if(!cn&&!bz)return null;
+    var yes=function(v){v=String(v||'').toLowerCase();return /^(y|yes|true|registered)/.test(v)?'Yes':/^(n|no|false)/.test(v)?'No':''};
+    d={applicants:cn?[{name:cn,phone:imPhone(g('phone')),email:g('email')}]:[],bizName:bz,type:imType(g('type'))||T.types[0],stage:'active',tasks:[],notes:[],expenses:[]};
+    var bt=T.byKey.bizType.o.filter(function(o){return o&&o.toLowerCase()===g('btype').toLowerCase()})[0]||(/sole|self|individual/i.test(g('btype'))?'Sole trader':/ltd|limited|company/i.test(g('btype'))?'Limited company':/partner/i.test(g('btype'))?'Partnership':'');if(bt)d.bizType=bt;
+    var fe=imNum(g('fee'));if(fe)d.fee=+fe;var fb=/month/i.test(g('fbasis'))?'Monthly':/quarter/i.test(g('fbasis'))?'Quarterly':/annual|year/i.test(g('fbasis'))?'Annually':/job/i.test(g('fbasis'))?'Per job':'';if(fb)d.feeBasis=fb;
+    var ye=imDate(g('yend'));if(ye)d.yearEnd=ye;var sd=imDate(g('sadue'));if(sd)d.saDue=sd;
+    if(g('nature'))d.stNature=g('nature');var st0=imDate(g('start'));if(st0)d.stStart=st0;
+    var bs=/cash/i.test(g('basis'))?'Cash basis':/accru|tradition/i.test(g('basis'))?'Traditional (accruals)':'';if(bs)d.stBasis=bs;
+    var tu=imNum(g('turn'));if(tu)d.stTurnover=+tu;var vt=yes(g('vat'));if(vt)d.stVat=vt;else if(g('vatno'))d.stVat='Yes';if(g('vatno'))d.stVatNo=g('vatno');
   }else{
     var nm=g('name'),ad=g('addr');if(!nm&&!ad)return null;
     d={applicants:nm?[{name:nm,phone:imPhone(g('phone')),email:g('email')}]:[],jobAddress:ad,postcode:g('pc'),type:imType(g('type'))||T.types[0],stage:T.defaultStage,tasks:[],notes:[],expenses:[]};
@@ -3889,7 +3927,7 @@ function imRecord(row){
   }
   return d;
 }
-function imKey(d){return imKind()==='landlord'?(String(d.propertyAddress||'')+'|'+String(d.postcode||'')).toLowerCase().replace(/\s+/g,''):((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d.jobAddress||'')).toLowerCase().replace(/\s+/g,'')}
+function imKey(d){return imKind()==='accountant'?((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d.bizName||'')).toLowerCase().replace(/\s+/g,''):imKind()==='landlord'?(String(d.propertyAddress||'')+'|'+String(d.postcode||'')).toLowerCase().replace(/\s+/g,''):((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d.jobAddress||'')).toLowerCase().replace(/\s+/g,'')}
 function imPlan(){
   var have={};cases.forEach(function(c){have[imKey(c)]=1});var seen={},add=[],dup=0,empty=0,def=IM_TRADE[imKind()];
   imRows.forEach(function(r){var d=imRecord(r);if(!d){if(r.some(function(c){return String(c).trim()}))empty++;return}var k=imKey(d);if(have[k]||seen[k]){dup++;return}seen[k]=1;add.push(d)});
@@ -3908,8 +3946,8 @@ function imHtml(){
   var tbl='<div class="imlist"><div class="imrow imhd"><span>Column in your file</span><span>Example</span><span>Use it for</span></div>'+imHead.map(function(h,i){
     var ex=imRows.slice(0,3).map(function(r){return String(r[i]==null?'':r[i]).trim()}).filter(Boolean).slice(0,2).join(' · ');
     return '<div class="imrow"><b>'+esc(h||'(no name)')+'</b><span class="muted">'+esc(ex.slice(0,60))+'</span><select data-immap="'+i+'" aria-label="Use '+esc(h)+' for">'+opts(imMap[i])+'</select></div>'}).join('')+'</div>';
-  var msg=p.missing.length?'<p class="gnwarn">Choose a column for '+esc(def.reqL)+', then you can import.</p>':'<p style="margin:10px 0 0"><b>'+p.add.length+'</b> '+def.noun+(p.add.length===1?'y':(def.noun==='propert'?'ies':'s'))+' will be added'+(p.dup?', <b>'+p.dup+'</b> already here or repeated (skipped)':'')+(p.empty?', <b>'+p.empty+'</b> row'+(p.empty===1?'':'s')+' with nothing usable (skipped)':'')+'. Existing records are never changed.</p>';
-  return head+tbl+msg+'<div class="add" style="margin:12px 0 0"><button type="button" class="btn" data-imgo="1"'+(p.missing.length||!p.add.length||imBusy?' disabled':'')+'>'+(imBusy?'Importing…':'Import '+p.add.length+' '+def.noun+(p.add.length===1?'y':(def.noun==='propert'?'ies':'s')))+'</button><button type="button" class="btn ghost" data-imagain="1">Choose a different file</button></div><p id="imMsg" role="alert" class="tmmsg"></p>';
+  var msg=p.missing.length?'<p class="gnwarn">Choose a column for '+esc(def.reqL)+', then you can import.</p>':'<p style="margin:10px 0 0"><b>'+p.add.length+'</b> '+imN(p.add.length)+' will be added'+(p.dup?', <b>'+p.dup+'</b> already here or repeated (skipped)':'')+(p.empty?', <b>'+p.empty+'</b> row'+(p.empty===1?'':'s')+' with nothing usable (skipped)':'')+'. Existing records are never changed.</p>';
+  return head+tbl+msg+'<div class="add" style="margin:12px 0 0"><button type="button" class="btn" data-imgo="1"'+(p.missing.length||!p.add.length||imBusy?' disabled':'')+'>'+(imBusy?'Importing…':'Import '+p.add.length+' '+imN(p.add.length))+'</button><button type="button" class="btn ghost" data-imagain="1">Choose a different file</button></div><p id="imMsg" role="alert" class="tmmsg"></p>';
 }
 function imDraw(){overlay('imOv',imHtml(),true)}
 function imOpen(){if(!imKind()){toast('Import is not available for this kind of work yet.');return}imRows=[];imHead=[];imMap=[];imName='';imSheet='';imBusy=false;imDraw()}
@@ -3937,14 +3975,14 @@ function imRun(){
   var now=Date.now(),n=0,chain=Promise.resolve(),list=p.add,base=+nextClientNo().slice(1);
   /* numbers are given here, one after another, from the highest in use; the list updates itself as each record is saved */
   list.forEach(function(d,i){chain=chain.then(function(){tagTr(d);var ref=col.doc();d.clientNo='C'+String(base+i).padStart(3,'0');d.createdAt=now;d.updatedAt=now;return write(ref.id,function(){return ref.set(d)}).then(function(){n++})})});
-  chain.then(function(){imBusy=false;closeOv('imOv');toast('Imported '+n+' '+(IM_TRADE[imKind()].noun==='propert'?(n===1?'property':'properties'):(n===1?'job':'jobs'))+'. Open one to check it, and add anything the file did not have.',true);render();renderNav()},function(){imBusy=false;imDraw();var m=$('#imMsg');if(m)m.textContent='Could not save everything. Check you are online and try again. Records already added are kept, and repeats are skipped.'});
+  chain.then(function(){imBusy=false;closeOv('imOv');toast('Imported '+n+' '+imN(n)+'. Open one to check it, and add anything the file did not have.',true);render();renderNav()},function(){imBusy=false;imDraw();var m=$('#imMsg');if(m)m.textContent='Could not save everything. Check you are online and try again. Records already added are kept, and repeats are skipped.'});
 }
 function imTemplate(){
   var def=IM_TRADE[imKind()],q=function(v){v=csvCell(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-  var ex=imKind()==='landlord'?['1 Example Road','AB1 2CD','House','3','A. Sample','07700 900123','a.sample@example.com','1150','Monthly','1','01/03/2025','1150','01/06/2026','15/02/2022','C','10/05/2020','20/09/2026']:['A. Sample','07700 900123','a.sample@example.com','14 Example Road','AB1 2CD','Boiler service','Worcester Greenstar 30i','14/11/2025','14/11/2026','','95'];
+  var ex=imKind()==='accountant'?['A. Sample','07700 900123','a.sample@example.com','Sample Plumbing','Sole trader','Self Assessment','480','Annually','05/04/2026','31/01/2027','Plumbing and heating','01/06/2019','Cash basis','62000','No','']:imKind()==='landlord'?['1 Example Road','AB1 2CD','House','3','A. Sample','07700 900123','a.sample@example.com','1150','Monthly','1','01/03/2025','1150','01/06/2026','15/02/2022','C','10/05/2020','20/09/2026']:['A. Sample','07700 900123','a.sample@example.com','14 Example Road','AB1 2CD','Boiler service','Worcester Greenstar 30i','14/11/2025','14/11/2026','','95'];
   var heads=imKind()==='landlord'?['Address','Postcode','Property type','Bedrooms','Tenant name','Tenant phone','Tenant email','Rent','Rent frequency','Rent due day','Tenancy start','Deposit','Gas safety date','EICR date','EPC rating','EPC date','Insurance renewal']:def.fields.map(function(f){return f[1]});
   var blob=new Blob(['﻿'+heads.map(q).join(',')+'\r\n'+ex.map(q).join(',')+'\r\n'],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=(imKind()==='landlord'?'properties':'jobs')+'-import-example.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
+  a.href=URL.createObjectURL(blob);a.download=(imKind()==='landlord'?'properties':imKind()==='accountant'?'clients':'jobs')+'-import-example.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
 }
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;
