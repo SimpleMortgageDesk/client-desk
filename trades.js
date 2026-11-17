@@ -353,8 +353,8 @@
   };
 
   T.driving = {
-    short: 'Driving instructor', flatPrice: '£1.99', jobDocs: true, docRoot: 'Pupils', docHint: 'Upload or photograph signed terms, lesson sheets and other pupil papers. Photos are saved as one PDF.',
-    label: 'Driving instructor', noun: ['Pupil', 'Pupils'], person: ['Pupil', 'Pupils'], peopleTitle: 'Pupil',
+    short: 'Driving instructor', flatPrice: '£1.99', jobDocs: true, docRoot: 'Learners', docHint: 'Upload or photograph signed terms, lesson sheets and other learner papers. Photos are saved as one PDF.',
+    label: 'Driving instructor', noun: ['Learner', 'Learners'], person: ['Learner', 'Learners'], peopleTitle: 'Learner',
     /* lessons are appointments: an Appointments tab and a Reminders tab, no Tasks or Pipeline */
     landing: 'appointments', hideTabs: ['pipeline', 'tasks'], noTasks: true, apptTab: true, remTab: true,
     expCats: ['Fuel', 'Car servicing and repairs', 'Insurance', 'Franchise or franchise fees', 'MOT, tax and licence fees', 'Training and standards check', 'Parking and tolls', 'Other'],

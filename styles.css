@@ -995,7 +995,7 @@ body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#
 .mnubtn,.mnupanel{display:none}
 @media (max-width:759px){
   #nav,#nav2,#settingsBtn{display:none!important}
-  .mnubtn{display:inline-flex;align-items:center;gap:6px;order:2;margin-left:auto;font-weight:700;background:var(--side-soft);color:var(--side-ink);border:1px solid var(--side-softh)}
+  .mnubtn{display:inline-flex;align-items:center;gap:6px;order:6;margin-left:0;font-weight:700;background:var(--side-soft);color:var(--side-ink);border:1px solid var(--side-softh)}
   .mnubtn[aria-expanded="true"]{background:var(--accent);color:var(--accent-ink,#fff);border-color:var(--accent)}
   .mnuic{font-size:18px;line-height:1}
   .mnupanel{display:block;position:fixed;left:10px;right:10px;top:64px;z-index:250;max-height:calc(100vh - 90px);overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(16,28,38,.28);padding:8px}
@@ -1011,3 +1011,12 @@ body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#
 /* the page always fills the screen width and never wider: wide lists and boards scroll inside their own box */
 main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 #view .pagehead,#view .filters{max-width:100%}
+
+/* phones: the Menu button sits at the far right end of the top bar, after Add */
+@media (max-width:759px){#newBtn{order:5}}
+@media (max-width:759px){.top .sp{display:none}#newBtn{margin-left:auto}}
+@media (max-width:420px){.top .in{gap:6px 6px}.brand{font-size:13.5px;gap:4px}.top .btn{padding:8px 9px;font-size:13.5px}.mnubtn{padding:8px 9px}}
+@media (max-width:350px){.brand #brandName{display:none}}
+@media (max-width:759px){#newBtn{flex:0 1 auto;min-width:56px;max-width:46vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mnubtn{flex:none}}
+@media (max-width:420px){#newBtn{max-width:max(56px,calc(100vw - 252px))}}
+#view .filters select,#view .filters input{max-width:100%}
