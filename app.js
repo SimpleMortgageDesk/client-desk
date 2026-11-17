@@ -13,7 +13,8 @@ function trOf(c){return c.tr||MAIN_TRADE||T.id}
 function setCases(){cases=casesAll.filter(function(c){return trOf(c)===T.id})}
 function tagTr(d){if(TRADES.length>1)d.tr=T.id;return d}
 function applyTrade(){
-  T=window.CD_T();STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
+  T=window.CD_T();/* each trade has its own colour theme */document.body.setAttribute('data-theme-trade',T.id||'');try{var tmc=document.querySelector('meta[name="theme-color"]');if(tmc){var ac=getComputedStyle(document.body).getPropertyValue('--accent').trim();if(ac)tmc.setAttribute('content',ac)}}catch(e){}
+  STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
   var nb=document.getElementById('newBtn');if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
   var q=document.getElementById('q');if(q)q.placeholder='Search '+T.noun[1].toLowerCase();
   var bn=document.getElementById('brandName'),an=(window.MD_CONFIG||{}).appName||'MySimpleDesk';if(bn)bn.innerHTML=brandHtml(an)
