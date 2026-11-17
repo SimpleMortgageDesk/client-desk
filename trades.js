@@ -352,6 +352,76 @@
       { id: 'd4', title: 'Ask for a referral', subject: 'Know someone who needs a booking?', text: 'Hello{name},\n\nIf a friend or family member is looking for someone new, I would be grateful if you could pass on my details.\n\nThank you for your support.\n\n{sig}\n\n{foot}' }]
   };
 
+  T.driving = {
+    short: 'Driving instructor', flatPrice: '£1.99', jobDocs: true, docRoot: 'Pupils', docHint: 'Upload or photograph signed terms, lesson sheets and other pupil papers. Photos are saved as one PDF.',
+    label: 'Driving instructor', noun: ['Pupil', 'Pupils'], person: ['Pupil', 'Pupils'], peopleTitle: 'Pupil',
+    /* lessons are appointments: an Appointments tab and a Reminders tab, no Tasks or Pipeline */
+    landing: 'appointments', hideTabs: ['pipeline', 'tasks'], noTasks: true, apptTab: true, remTab: true,
+    expCats: ['Fuel', 'Car servicing and repairs', 'Insurance', 'Franchise or franchise fees', 'MOT, tax and licence fees', 'Training and standards check', 'Parking and tolls', 'Other'],
+    dob: true, stages: [{ id: 'enquiry', label: 'Enquiry' }, { id: 'booked', label: 'First lesson booked' }, { id: 'learning', label: 'Learning' }, { id: 'test', label: 'Test booked' }, { id: 'passed', label: 'Passed' }, { id: 'paused', label: 'Paused or left' }],
+    defaultStage: 'enquiry', doneStage: 'passed',
+    types: ['Beginner', 'Intermediate', 'Test preparation', 'Refresher', 'Intensive course', 'Pass Plus', 'Motorway lesson', 'Mock test', 'Other'],
+    sections: [
+      { id: 'licence', title: 'Licence and theory', fields: [
+        { k: 'provisional', l: 'Provisional licence', t: 'sel', o: ['', 'Held', 'Applied for', 'Not yet'] },
+        { k: 'licenceChecked', l: 'Licence checked on (look at it, never type the number)', t: 'date' },
+        { k: 'eyesight', l: 'Eyesight check done', t: 'date' },
+        { k: 'transmission', l: 'Manual or automatic', t: 'sel', o: ['', 'Manual', 'Automatic'] },
+        { k: 'theoryPass', l: 'Theory test passed', t: 'date' },
+        { k: 'theoryExpiry', l: 'Theory pass runs out (2 years after passing)', t: 'date', auto: { from: 'theoryPass', m: 24 } },
+        { k: 'terms', l: 'Terms or consent form signed', t: 'date' }] },
+      { id: 'lessons', title: 'Lessons and progress', fields: [
+        { k: 'lessonLength', l: 'Usual lesson length', t: 'sel', o: ['', '1 hour', '1.5 hours', '2 hours'] },
+        { k: 'lessonPrice', l: 'Price per lesson', t: 'money' },
+        { k: 'lessonsDone', l: 'Lessons taken so far', t: 'num' },
+        { k: 'blockLeft', l: 'Lessons left in a prepaid block', t: 'num' },
+        { k: 'lastLesson', l: 'Last lesson', t: 'date' },
+        { k: 'rebookBy', l: 'Due to rebook (2 weeks after the last lesson. You can change it)', t: 'date', auto: { from: 'lastLesson', d: 14 } },
+        { k: 'pickup', l: 'Usual pick-up (road or area only)', t: 'text', w: 1 },
+        { k: 'contactPref', l: 'Best way to contact', t: 'sel', o: ['', 'WhatsApp', 'Text', 'Phone call', 'Email'] },
+        { k: 'lateCancels', l: 'Missed or late cancelled lessons', t: 'num' },
+        { k: 'focus', l: 'Skills to work on (for example roundabouts, parking)', t: 'area' }] },
+      { id: 'test', title: 'Driving test', fields: [
+        { k: 'mockDate', l: 'Mock test on', t: 'date' },
+        { k: 'testDate', l: 'Practical test on', t: 'date' },
+        { k: 'testCentre', l: 'Test centre', t: 'text' },
+        { k: 'testRef', l: 'Test booking reference', t: 'text' },
+        { k: 'testResult', l: 'Result', t: 'sel', o: ['', 'Not yet taken', 'Passed', 'Failed'] },
+        { k: 'passDate', l: 'Passed on', t: 'date' },
+        { k: 'passPlus', l: 'Pass Plus', t: 'sel', o: ['', 'Not offered', 'Offered', 'Booked', 'Done'] }] },
+      { id: 'pay', title: 'Payments', fields: [
+        { k: 'payMethod', l: 'How they pay', t: 'sel', o: ['', 'Pay per lesson', 'Block booking', 'Bank transfer', 'Cash', 'Card'] },
+        { k: 'owes', l: 'Amount owed now', t: 'money' },
+        { k: 'lastPaid', l: 'Last payment on', t: 'date' },
+        { k: 'payDue', l: 'Payment due', t: 'date' },
+        { k: 'paidDate', l: 'Paid on', t: 'date' }] },
+      { id: 'own', title: 'My badge and car (fill this in on one record only, named "My badge and car")', fields: [
+        { k: 'adiBadge', l: 'ADI badge runs out (every 4 years)', t: 'date' },
+        { k: 'standardsCheck', l: 'Next standards check', t: 'date' },
+        { k: 'dbs', l: 'DBS check renewal', t: 'date' },
+        { k: 'carIns', l: 'Car insurance renewal', t: 'date' },
+        { k: 'carMot', l: 'MOT due', t: 'date' },
+        { k: 'carTax', l: 'Road tax due', t: 'date' },
+        { k: 'carService', l: 'Next car service', t: 'date' },
+        { k: 'dualChecked', l: 'Dual controls last checked', t: 'date' },
+        { k: 'dualDue', l: 'Dual controls check due (12 months. You can change it)', t: 'date', auto: { from: 'dualChecked', m: 12 } }] }],
+    reminders: [{ k: 'rebookBy', l: 'Due to rebook', unless: ['passDate'] }, { k: 'theoryExpiry', l: 'Theory pass runs out', unless: ['passDate'] }, { k: 'mockDate', l: 'Mock test' }, { k: 'testDate', l: 'Driving test' },
+      { k: 'payDue', l: 'Payment due', unless: ['paidDate'] }, { k: 'adiBadge', l: 'ADI badge renewal' }, { k: 'standardsCheck', l: 'Standards check' }, { k: 'dbs', l: 'DBS renewal' },
+      { k: 'carIns', l: 'Car insurance renewal' }, { k: 'carMot', l: 'MOT due' }, { k: 'carTax', l: 'Road tax due' }, { k: 'carService', l: 'Car service due' }, { k: 'dualDue', l: 'Dual controls check due' }],
+    value: { k: 'lessonPrice', l: 'Lesson price' }, addr: 'pickup', sub: 'lastLesson', subRef: 'contactPref',
+    cols: [['type', 'Course'], ['stage', 'Stage'], ['lessonPrice', 'Lesson price'], ['lastLesson', 'Last lesson'], ['testDate', 'Test date'], ['review', 'Next key date'], ['note', 'Latest note']],
+    strip: [['lessonPrice', 'Lesson price'], ['testDate', 'Test date'], ['next', 'Next key date']],
+    apptTypes: ['Driving lesson', 'Mock test', 'Test day', 'Assessment lesson', 'Refresher', 'Pass Plus', 'Other'],
+    apptSubject: 'Lesson', taskHint: 'check dual controls', reviewWord: 'Due',
+    dontRecord: 'Do not type driving licence numbers, bank or card details, or medical conditions beyond what you need to teach safely.',
+    msgFoot: FOOT,
+    msgs: [
+      { id: 'd1', title: 'Lesson reminder', subject: 'Your driving lesson', text: 'Hello{name},\n\nA quick reminder about your driving lesson. Please bring your provisional licence and glasses or contact lenses if you wear them. Reply if you need to change the time.\n\n{sig}\n\n{foot}' },
+      { id: 'd2', title: 'Time to rebook', subject: 'Time for your next lesson?', text: 'Hello{name},\n\nIt has been a couple of weeks since your last lesson. Reply with a day and time that suits you and I will book you in.\n\n{sig}\n\n{foot}' },
+      { id: 'd3', title: 'Good luck for your test', subject: 'Good luck for your driving test', text: 'Hello{name},\n\nGood luck for your driving test. You are well prepared, so stay calm and take your time. Let me know how it goes.\n\n{sig}\n\n{foot}' },
+      { id: 'd4', title: 'Ask for a review', subject: 'How did we do?', text: 'Hello{name},\n\nCongratulations again on passing. If you were happy with your lessons, a short review would really help my business.\n\n{sig}\n\n{foot}' }]
+  };
+
   T.landlord = {
     short: 'Landlord', label: 'Home owner / Landlord', noun: ['Property', 'Properties'], person: ['Tenant', 'Tenants'], peopleTitle: 'Tenants',
     dob: false, stages: [{ id: 'vacant', label: 'Vacant' }, { id: 'let', label: 'Let' }, { id: 'notice', label: 'Notice given' }],
@@ -444,7 +514,7 @@
     dontRecord: 'Do not type bank or card details, passwords or anyone’s health details here.', msgFoot: FOOT, msgs: tradeMsgs('next appointment')
   };
 
-  var ORDER = ['landlord', 'gas', 'plumber', 'electrician', 'builder', 'beauty', 'architect', 'accountant', 'solicitor', 'mortgage', 'general'];
+  var ORDER = ['landlord', 'gas', 'plumber', 'electrician', 'builder', 'beauty', 'driving', 'architect', 'accountant', 'solicitor', 'mortgage', 'general'];
   ORDER.forEach(function (id) {
     var t = T[id]; t.id = id; t.fields = [];
     t.sections.forEach(function (s) { s.fields.forEach(function (f) { t.fields.push(f); }); });

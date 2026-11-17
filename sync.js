@@ -2274,6 +2274,10 @@
       put('cases', 'k1', { clientNo: 'C001', type: (KT.types || [''])[0] || '', stage: KT.defaultStage, applicants: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }] });
       put('appointments', 'a1', { date: D(1), time: '11:00', dur: 60, type: 'Visit', who: 'A. Sample', status: 'booked' });
     }
+    if (kind === 'driving') {
+      put('cases', 'k2', { clientNo: 'C002', type: 'Test preparation', stage: 'test', applicants: [{ name: 'B. Test', phone: '07700900222' }], transmission: 'Manual', lessonPrice: 40, lessonsDone: 32, lastLesson: D(-3), testDate: D(9), testCentre: 'Sample Test Centre', pickup: 'Demo Lane area', contactPref: 'WhatsApp' });
+      put('cases', 'k3', { clientNo: 'C003', type: 'My badge and car', stage: 'paused', applicants: [{ name: 'My badge and car' }], adiBadge: D(120), carIns: D(20), carMot: D(45), dbs: D(200) });
+    }
     if (kind === 'accountant') {
       put('cases', 'a1', { clientNo: 'C001', type: 'Self Assessment', stage: 'active', applicants: [{ name: 'A. Sample', phone: '07700900111', email: 'a.sample@example.com' }], bizName: 'Sample Plumbing', bizType: 'Sole trader', fee: 480, feeBasis: 'Annually', yearEnd: D(-200), saDue: D(75), amlCheck: D(-300), stNature: 'Plumbing and heating', stStart: D(-1900), stBasis: 'Cash basis', stTurnover: 62000, stExpenses: 21500, stProfit: 40500, stVat: 'No', stBooks: 'Spreadsheet', stCis: 'Not in CIS', stMtd: 'In scope from April 2026 (income over £50,000)', stPoa: 'Yes', stPoaDue: D(60), stSaYear: '2025/26', tasks: [], notes: [{ id: 'n1', ts: now, text: 'Sends records every quarter.' }], expenses: [] });
       put('cases', 'a2', { clientNo: 'C002', type: 'Limited company accounts', stage: 'active', applicants: [{ name: 'B. Test', phone: '07700900222' }], bizName: 'Test Trading Ltd', bizType: 'Limited company', companyNo: '12345678', fee: 1500, feeBasis: 'Annually', yearEnd: D(-120), vatQuarterEnd: D(-20), confirmationDue: D(40), tasks: [{ id: 'k1', text: 'Chase bank statements', due: D(2), done: false }], notes: [], expenses: [] });
