@@ -1971,9 +1971,9 @@
     window.addEventListener('focus', checkIdle); window.addEventListener('pageshow', checkIdle);
   }
   document.addEventListener('click', function (e) {
-    var b = e.target && e.target.closest && e.target.closest('#settingsBtn,#logoutBtn'); if (!b) return;
+    var b = e.target && e.target.closest && e.target.closest('#settingsBtn,#logoutBtn,[data-mnulogout]'); if (!b) return;
     e.preventDefault(); e.stopPropagation();
-    if (b.id === 'logoutBtn') signOut(); else openAccount();
+    if (b.id === 'logoutBtn' || b.hasAttribute('data-mnulogout')) signOut(); else openAccount();
   }, true);
 
   /* ---------- downloads (Backup / CSV buttons) ---------- */

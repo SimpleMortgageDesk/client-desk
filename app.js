@@ -294,7 +294,7 @@ function phoneMenu(){
   if(T&&T.tenancyMode){if(!seen.notebook)rows.push({v:'notebook',h:'Notebook',cur:view==='notebook'});if(!seen.bookappt)rows.push({v:'bookappt',h:'Book appointment',cur:false})}
   var cur=rows.filter(function(r){return r.cur})[0];
   b.innerHTML='<span aria-hidden="true" class="mnuic">&#9776;</span> <span>Menu</span>';b.setAttribute('aria-label','Menu'+(cur?', now on '+String(cur.h).replace(/<[^>]*>/g,''):''));
-  pn.innerHTML=rows.map(function(r){return '<button type="button" role="menuitem" data-v="'+r.v+'"'+(r.cur?' aria-current="page"':'')+'>'+r.h+'</button>'}).join('')+'<div class="mnusep"></div><button type="button" role="menuitem" data-mnuset="1">Settings</button><button type="button" role="menuitem" '+($('#logoutBtn')&&!$('#mnuPanel #logoutBtn')?'data-mnulogout="1"':'id="logoutBtn"')+' class="mnulo">Log out</button>';
+  pn.innerHTML=rows.map(function(r){return '<button type="button" role="menuitem" data-v="'+r.v+'"'+(r.cur?' aria-current="page"':'')+'>'+r.h+'</button>'}).join('')+'<div class="mnusep"></div><button type="button" role="menuitem" data-mnuset="1">Settings</button><button type="button" role="menuitem" '+'data-mnulogout="1" class="mnulo">Log out</button>';
 }
 function mnuClose(){var pn=$('#mnuPanel'),b=$('#mnuBtn');if(pn)pn.hidden=true;if(b)b.setAttribute('aria-expanded','false')}
 document.addEventListener('click',function(e){
@@ -3882,8 +3882,22 @@ var IM_TRADE={
     ['vatno','VAT number',['vatnumber','vatno','vatreg']]],
     req:['name','biz'],reqL:'a client name or a business name',any:1}
 };
-function imKind(){return T.tenancyMode?'landlord':(T.id==='gas'?'gas':(T.id==='accountant'?'accountant':''))}
-function imN(n){var d=IM_TRADE[imKind()];return n===1?d.one:d.many}
+function imKind(){return T.tenancyMode?'landlord':(T.id==='gas'?'gas':(T.id==='accountant'?'accountant':(T.id||'')))}
+/* every other trade imports the same simple list: name, phone, email, address or main detail, type of work and price */
+function imDef(k){
+  k=k||imKind();if(!k)return null;if(IM_TRADE[k])return IM_TRADE[k];
+  var al=T.byKey&&T.addr&&T.byKey[T.addr];
+  IM_TRADE[k]={noun:String(T.noun[0]).toLowerCase(),one:String(T.noun[0]).toLowerCase(),many:String(T.noun[1]).toLowerCase(),fields:[
+    ['name',T.person[0]+' name',['name','fullname','client','clientname','customer','customername','pupil','learner','contact','contactname','applicant']],
+    ['phone','Phone',['phone','mobile','telephone','tel','phonenumber','mobilenumber']],
+    ['email','Email',['email','emailaddress']],
+    ['addr',(al&&al.l)||'Address',['address','jobaddress','siteaddress','addressline1','street','property','pickup','usualservice']],
+    ['type','Type of work',['type','service','work','jobtype','course','mattertype','casetype','projecttype','treatment']],
+    ['val',(T.value&&T.value.l)||'Price',['price','amount','cost','fee','fees','value','quote','lessonprice','spend','usualspend']]],
+    req:['name'],reqL:'a name',any:1};
+  return IM_TRADE[k];
+}
+function imN(n){var d=imDef();return n===1?d.one:d.many}
 function imNorm(s){return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9]/g,'')}
 /* CSV: quotes, commas, semicolons or tabs, a byte-order mark */
 function imCsv(t){
@@ -3956,7 +3970,7 @@ function imNum(v){var s=String(v==null?'':v).replace(/[£€\s]/g,'');s=/^-?\d+,
 function imPhone(v){var s=String(v==null?'':v).trim();if(/^\d{10}$/.test(s)&&s.charAt(0)==='7')s='0'+s;if(/^\d{12}$/.test(s)&&s.slice(0,2)==='44')s='+'+s;return s}
 function imFreq(v){var s=String(v||'').toLowerCase();return /4|four/.test(s)?'Every 4 weeks':/week/.test(s)?'Weekly':/quarter/.test(s)?'Quarterly':'Monthly'}
 function imType(v){var s=String(v||'').trim().toLowerCase();if(!s)return '';var ex=T.types.filter(function(t){return t.toLowerCase()===s})[0]||T.types.filter(function(t){return t.toLowerCase().indexOf(s)>-1||s.indexOf(t.toLowerCase())>-1})[0];return ex||''}
-function imAuto(h){var n=imNorm(h),k=imKind(),def=IM_TRADE[k];if(!n||!def)return '';var hit='';def.fields.forEach(function(f){if(!hit&&f[2].indexOf(n)>-1)hit=f[0]});return hit}
+function imAuto(h){var n=imNorm(h),k=imKind(),def=imDef(k);if(!n||!def)return '';var hit='';def.fields.forEach(function(f){if(!hit&&f[2].indexOf(n)>-1)hit=f[0]});return hit}
 function imRecord(row){
   var k=imKind(),g=function(key){var i=imMap.indexOf(key);return i<0?'':String(row[i]==null?'':row[i]).trim()};
   var d;
@@ -3978,6 +3992,10 @@ function imRecord(row){
     if(g('nature'))d.stNature=g('nature');var st0=imDate(g('start'));if(st0)d.stStart=st0;
     var bs=/cash/i.test(g('basis'))?'Cash basis':/accru|tradition/i.test(g('basis'))?'Traditional (accruals)':'';if(bs)d.stBasis=bs;
     var tu=imNum(g('turn'));if(tu)d.stTurnover=+tu;var vt=yes(g('vat'));if(vt)d.stVat=vt;else if(g('vatno'))d.stVat='Yes';if(g('vatno'))d.stVatNo=g('vatno');
+  }else if(k!=='gas'){
+    var nm0=g('name'),ad0=g('addr');if(!nm0&&!ad0)return null;
+    d={applicants:nm0?[{name:nm0,phone:imPhone(g('phone')),email:g('email')}]:[],type:imType(g('type'))||T.types[0],stage:T.defaultStage,tasks:[],notes:[],expenses:[]};
+    if(T.addr&&ad0)d[T.addr]=ad0;var v0=imNum(g('val'));if(v0&&T.value)d[T.value.k]=+v0;
   }else{
     var nm=g('name'),ad=g('addr');if(!nm&&!ad)return null;
     d={applicants:nm?[{name:nm,phone:imPhone(g('phone')),email:g('email')}]:[],jobAddress:ad,postcode:g('pc'),type:imType(g('type'))||T.types[0],stage:T.defaultStage,tasks:[],notes:[],expenses:[]};
@@ -3985,14 +4003,14 @@ function imRecord(row){
   }
   return d;
 }
-function imKey(d){return imKind()==='accountant'?((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d.bizName||'')).toLowerCase().replace(/\s+/g,''):imKind()==='landlord'?(String(d.propertyAddress||'')+'|'+String(d.postcode||'')).toLowerCase().replace(/\s+/g,''):((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d.jobAddress||'')).toLowerCase().replace(/\s+/g,'')}
+function imKey(d){return imKind()==='accountant'?((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d.bizName||'')).toLowerCase().replace(/\s+/g,''):imKind()==='landlord'?(String(d.propertyAddress||'')+'|'+String(d.postcode||'')).toLowerCase().replace(/\s+/g,''):((d.applicants&&d.applicants[0]?d.applicants[0].name:'')+'|'+String(d[T.addr]||d.jobAddress||'')).toLowerCase().replace(/\s+/g,'')}
 function imPlan(){
-  var have={};cases.forEach(function(c){have[imKey(c)]=1});var seen={},add=[],dup=0,empty=0,def=IM_TRADE[imKind()];
+  var have={};cases.forEach(function(c){have[imKey(c)]=1});var seen={},add=[],dup=0,empty=0,def=imDef();
   imRows.forEach(function(r){var d=imRecord(r);if(!d){if(r.some(function(c){return String(c).trim()}))empty++;return}var k=imKey(d);if(have[k]||seen[k]){dup++;return}seen[k]=1;add.push(d)});
   return {add:add,dup:dup,empty:empty,missing:def.req.filter(function(x){return imMap.indexOf(x)<0}),def:def};
 }
 function imHtml(){
-  var k=imKind(),def=IM_TRADE[k];
+  var k=imKind(),def=imDef(k);
   if(!imHead.length)return '<div class="dhd"><h2>Import from Excel or CSV</h2><button type="button" class="btn ghost" data-imclose="1">Close</button></div>'+
    '<p class="muted" style="margin:6px 0 12px">Bring in a list you already keep, from an Excel (.xlsx) or CSV file. The file is read on this device. You choose which column is which before anything is added, and nothing is changed until you press Import.</p>'+
    '<div class="add" style="margin:0 0 10px"><label class="btn imfile">Choose a file<input type="file" id="imFile" accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none"></label><button type="button" class="btn ghost" data-imtemplate="1">Download an example file</button></div>'+
@@ -4036,11 +4054,11 @@ function imRun(){
   chain.then(function(){imBusy=false;closeOv('imOv');toast('Imported '+n+' '+imN(n)+'. Open one to check it, and add anything the file did not have.',true);render();renderNav()},function(){imBusy=false;imDraw();var m=$('#imMsg');if(m)m.textContent='Could not save everything. Check you are online and try again. Records already added are kept, and repeats are skipped.'});
 }
 function imTemplate(){
-  var def=IM_TRADE[imKind()],q=function(v){v=csvCell(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
-  var ex=imKind()==='accountant'?['A. Sample','07700 900123','a.sample@example.com','Sample Plumbing','Sole trader','Self Assessment','480','Annually','05/04/2026','31/01/2027','Plumbing and heating','01/06/2019','Cash basis','62000','No','']:imKind()==='landlord'?['1 Example Road','AB1 2CD','House','3','A. Sample','07700 900123','a.sample@example.com','1150','Monthly','1','01/03/2025','1150','01/06/2026','15/02/2022','C','10/05/2020','20/09/2026']:['A. Sample','07700 900123','a.sample@example.com','14 Example Road','AB1 2CD','Boiler service','Worcester Greenstar 30i','14/11/2025','14/11/2026','','95'];
+  var def=imDef(),q=function(v){v=csvCell(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  var ex=imKind()==='accountant'?['A. Sample','07700 900123','a.sample@example.com','Sample Plumbing','Sole trader','Self Assessment','480','Annually','05/04/2026','31/01/2027','Plumbing and heating','01/06/2019','Cash basis','62000','No','']:imKind()==='landlord'?['1 Example Road','AB1 2CD','House','3','A. Sample','07700 900123','a.sample@example.com','1150','Monthly','1','01/03/2025','1150','01/06/2026','15/02/2022','C','10/05/2020','20/09/2026']:imKind()==='gas'?['A. Sample','07700 900123','a.sample@example.com','14 Example Road','AB1 2CD','Boiler service','Worcester Greenstar 30i','14/11/2025','14/11/2026','','95']:['A. Sample','07700 900123','a.sample@example.com','14 Example Road',(T.types||[''])[0],'95'];
   var heads=imKind()==='landlord'?['Address','Postcode','Property type','Bedrooms','Tenant name','Tenant phone','Tenant email','Rent','Rent frequency','Rent due day','Tenancy start','Deposit','Gas safety date','EICR date','EPC rating','EPC date','Insurance renewal']:def.fields.map(function(f){return f[1]});
   var blob=new Blob(['﻿'+heads.map(q).join(',')+'\r\n'+ex.map(q).join(',')+'\r\n'],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download=(imKind()==='landlord'?'properties':imKind()==='accountant'?'clients':'jobs')+'-import-example.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
+  a.href=URL.createObjectURL(blob);a.download=imDef().many.replace(/\s+/g,'-')+'-import-example.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
 }
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;
