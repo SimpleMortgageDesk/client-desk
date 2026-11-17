@@ -1008,3 +1008,6 @@ body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#
   .mnupanel .mnulo{color:#A3261F}
 }
 @media (max-width:620px){.trsw .trl{display:inline-block;font-size:10px;padding:0 4px 0 8px;line-height:1.2;max-width:54px}.trsw button{padding:8px 6px}}
+/* the page always fills the screen width and never wider: wide lists and boards scroll inside their own box */
+main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+#view .pagehead,#view .filters{max-width:100%}

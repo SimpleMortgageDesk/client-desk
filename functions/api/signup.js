@@ -20,7 +20,7 @@ export async function ensureTable(db) {
     signed_up TEXT, first_seen TEXT, last_seen TEXT, days_active INTEGER DEFAULT 0, app_build TEXT)`).run();
   await db.prepare('CREATE TABLE IF NOT EXISTS hits (k TEXT PRIMARY KEY, hr TEXT, n INTEGER)').run();
   /* added later: del_key lets a person delete their own entry; delete_requested marks a request we could not verify */
-  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER', 'user_no INTEGER', 'pay TEXT', 'ms_sub TEXT', 'trade_unlock TEXT']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
+  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER', 'user_no INTEGER', 'pay TEXT', 'ms_sub TEXT', 'trade_unlock TEXT', 'deleted_at TEXT']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
   try { await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS users_no ON users (user_no)').run(); } catch (e) {}
   try { await db.prepare('CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, n INTEGER)').run(); } catch (e) {}
   ready = true;
@@ -114,16 +114,21 @@ export async function onRequestPost({ request, env }) {
   /* who is really signed in, if the app sent Microsoft's proof */
   const id = d.idt ? await verifyMs(String(d.idt), env) : null;
   const acctMail = clean(d.accountEmail, 160).toLowerCase();
-  const cur = known ? await env.DB.prepare('SELECT del_key, ms_sub, account_email FROM users WHERE email = ?1').bind(email).first() : null;
+  const cur = known ? await env.DB.prepare('SELECT del_key, ms_sub, account_email, deleted_at FROM users WHERE email = ?1').bind(email).first() : null;
   const bound = !!(cur && cur.ms_sub);
   /* the owner: once an account is tied to a Microsoft sign-in, only that sign-in counts. Before that, the proof must be for the account's own email. */
   const owner = !!id && (bound ? cur.ms_sub === id.sub : cur ? (String(cur.account_email || '').toLowerCase() === id.email || (!cur.account_email && email === id.email)) : (acctMail === id.email || (!acctMail && email === id.email)));
   if (d.event === 'delete') {
     if (!known) return say('deleted');
     const row = cur;
-    if (bound ? owner : (owner || (key && row && row.del_key && row.del_key === key))) { await env.DB.prepare('DELETE FROM users WHERE email = ?1').bind(email).run(); return say('deleted'); }
+    if (bound ? owner : (owner || (key && row && row.del_key && row.del_key === key))) { /* kept for 30 days so it can be restored if the person asks; the admin page erases it after that */ await env.DB.prepare('UPDATE users SET deleted_at = ?2, delete_requested = NULL WHERE email = ?1').bind(email, now).run(); return say('deleted'); }
     await env.DB.prepare('UPDATE users SET delete_requested = ?2 WHERE email = ?1').bind(email, now).run();
     return say('requested', 202);
+  }
+  /* a deleted account stays quiet until the owner restores it; a fresh registration starts it again */
+  if (cur && cur.deleted_at) {
+    if (d.event !== 'signup') return say('ok');
+    await env.DB.prepare('UPDATE users SET deleted_at = NULL WHERE email = ?1').bind(email).run();
   }
   /* an account tied to a Microsoft sign-in accepts nothing from anyone else */
   if (bound && !owner) return say('ok');

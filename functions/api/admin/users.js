@@ -1,5 +1,6 @@
 /* GET /api/admin/users          list everyone in the sign-up list
-   DELETE /api/admin/users?email= remove one person (for deletion requests)
+   DELETE /api/admin/users?email= move one person to Deleted accounts (kept 30 days, then erased); add &permanent=1 to erase now
+   POST /api/admin/users?email=&restore=1  bring a deleted account back (within 30 days)
    POST /api/admin/users?email=&pay=trial|paid|due  set one person's payment status
    POST /api/admin/users?email=&tradeunlock=1|0  let someone with two trades change them again (they email support to ask)
    POST /api/admin/users?email=&suspend=1|0  suspend or restore one person (the app then shows them a suspended screen)
@@ -37,21 +38,31 @@ export async function onRequest({ request, env }) {
   /* changes must come from the admin page itself, not from another website */
   if (request.method !== 'GET') { let oh = ''; try { oh = new URL(request.headers.get('Origin')).host; } catch (e) {} if (oh !== new URL(request.url).host) return json({ error: 'Forbidden' }, 403); }
   await ensureTable(env.DB);
+  /* accounts deleted more than 30 days ago are erased for good */
+  const cut = new Date(Date.now() - 30 * 864e5).toISOString();
+  try { await env.DB.prepare('DELETE FROM users WHERE deleted_at IS NOT NULL AND deleted_at < ?1').bind(cut).run(); } catch (e) {}
   if (request.method === 'GET') {
-    const none = await env.DB.prepare('SELECT email FROM users WHERE user_no IS NULL ORDER BY COALESCE(signed_up, first_seen) ASC').all();
+    const none = await env.DB.prepare('SELECT email FROM users WHERE user_no IS NULL AND deleted_at IS NULL ORDER BY COALESCE(signed_up, first_seen) ASC').all();
     for (const u of (none.results || [])) await giveNumber(env.DB, u.email);
-    const r = await env.DB.prepare('SELECT * FROM users ORDER BY COALESCE(signed_up, first_seen) DESC').all();
-    return json({ admin: who, users: r.results || [] });
+    const r = await env.DB.prepare('SELECT * FROM users WHERE deleted_at IS NULL ORDER BY COALESCE(signed_up, first_seen) DESC').all();
+    const dl = await env.DB.prepare('SELECT user_no, name, email, account_email, mobile, business, trade, pay, signed_up, first_seen, deleted_at FROM users WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').all();
+    return json({ admin: who, users: r.results || [], deleted: dl.results || [] });
   }
   if (request.method === 'DELETE') {
     const email = (new URL(request.url).searchParams.get('email') || '').toLowerCase();
     if (!email) return json({ error: 'No email given' }, 400);
-    await env.DB.prepare('DELETE FROM users WHERE email = ?1').bind(email).run();
+    if (new URL(request.url).searchParams.get('permanent') === '1') { await env.DB.prepare('DELETE FROM users WHERE email = ?1').bind(email).run(); return json({ erased: email }); }
+    await env.DB.prepare('UPDATE users SET deleted_at = ?2 WHERE email = ?1').bind(email, new Date().toISOString()).run();
     return json({ deleted: email });
   }
   if (request.method === 'POST') {
     const u = new URL(request.url), email = (u.searchParams.get('email') || '').toLowerCase(), on = u.searchParams.get('suspend') === '1';
     if (!email) return json({ error: 'No email given' }, 400);
+    /* bring a deleted account back, if the person asked within the 30 days */
+    if (u.searchParams.get('restore') === '1') {
+      await env.DB.prepare('UPDATE users SET deleted_at = NULL WHERE email = ?1').bind(email).run();
+      return json({ email, restored: true });
+    }
     /* payment status set by the owner: trial (the default, stored as empty), paid or due */
     const pay = u.searchParams.get('pay');
     if (pay !== null) {
