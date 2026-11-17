@@ -48,7 +48,7 @@ header .acts{margin-left:auto;display:flex;gap:10px}
 @media (max-width:620px){.trustbar{font-size:13.5px}.trustbar .wrap{padding:8px 0}.trustbar span:first-of-type{flex:0 1 calc(100% - 30px);text-align:left}.trustbar i:first-of-type{display:none}}
 /* hero */
 .hero{padding:64px 0 56px}
-.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:start}
 .pill{display:inline-block;max-width:100%;background:var(--soft);color:var(--acc);font-weight:600;font-size:13px;line-height:1.4;padding:7px 14px;border-radius:16px;letter-spacing:.1px}
 .pill b{font-weight:800}.pill a{color:var(--acc);font-weight:700;white-space:nowrap}
 h1{font-size:clamp(34px,5vw,54px);line-height:1.08;margin:16px 0 18px;letter-spacing:-1px}
@@ -200,7 +200,8 @@ h1 em{font-style:normal;color:var(--acc)}
 /* pricing */
 section[id]{scroll-margin-top:76px}
 section.pricing{background:#EEF6F2;border-top:1px solid #d3e6dc;border-bottom:1px solid #d3e6dc}
-.prices{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;align-items:stretch}
+.prices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:stretch}
+@media (max-width:1000px){.prices{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .price{background:#fff;border:1px solid var(--line);border-radius:18px;padding:26px;display:flex;flex-direction:column;position:relative}
 .price.hot{border:2px solid var(--acc);box-shadow:0 14px 34px -16px rgba(10,107,80,.35)}
 .pbadge{align-self:flex-start;background:var(--acc);color:#fff;font-size:12px;font-weight:700;padding:4px 11px;border-radius:99px;margin-bottom:12px;letter-spacing:.3px}
@@ -230,7 +231,8 @@ h2{font-size:clamp(27px,3.6vw,38px);line-height:1.15;margin:8px 0 14px;letter-sp
 .ico svg{width:22px;height:22px;stroke:var(--acc);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .feat h3{margin:0 0 6px;font-size:18px}
 .feat p{margin:0;color:var(--muted);font-size:15px}
-.who{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.who{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.who{grid-template-columns:repeat(2,minmax(0,1fr))}.who>.card:last-child:nth-child(odd){grid-column:1/-1}}
 .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column}
 .card h3{margin:10px 0 8px;font-size:18px}
 .card ul{margin:0;padding-left:18px;color:var(--muted);font-size:14.5px}
@@ -412,18 +414,10 @@ footer .r{margin-left:auto}
       </div>
       <div class="price">
         <span class="pbadge">First year free</span>
-        <h3>Gas engineers, trades and other professions</h3>
+        <h3>Professionals and trades</h3>
         <div class="amt">£1.99<small> a month</small></div>
         <p class="per">after your free first year</p>
-        <ul class="pk"><li>Customers or clients, jobs, appointments and reminders</li><li>Certificates and receipts saved as PDFs</li><li>No card needed for the free year</li></ul>
-        <a class="btn" href="./?p=register">Start your free year</a>
-      </div>
-      <div class="price">
-        <span class="pbadge">First year free</span>
-        <h3>Accountants and bookkeepers</h3>
-        <div class="amt">£1.99<small> a month</small></div>
-        <p class="per">after your free first year</p>
-        <ul class="pk"><li>Clients, deadlines and reminders</li><li>Client papers saved as PDFs</li><li>No card needed for the free year</li></ul>
+        <ul class="pk"><li>Gas engineers, accountants, plumbers, electricians, builders, solicitors, advisers, salons and more</li><li>Clients or customers, jobs, deadlines and reminders</li><li>Certificates, papers and receipts saved as PDFs</li><li>No card needed for the free year</li></ul>
         <a class="btn" href="./?p=register">Start your free year</a>
       </div>
     </div>
