@@ -904,9 +904,9 @@ header.top .in{padding-block:12px}}
 #sideTools .sbtn.logout{margin-top:8px!important;margin-bottom:6px}
 
 /* a colour theme for each trade (the logo, login and register screens keep the brand green) */
-body[data-theme-trade="gas"]{--accent:#D2440D;--accent-soft:#FFDCC9;--side:#D2440D;--side-hover:#B93C0B;--tint:#FFF4EC;--bg:#FDECE0}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="gas"]{--accent:#F2915F;--accent-ink:#1A0B04;--accent-soft:#3A2216;--side:#B5431B;--side-hover:#CC5224;--bg:#1D130D;--tint:#26180F}}
-:root[data-theme="dark"] body[data-theme-trade="gas"]{--accent:#F2915F;--accent-ink:#1A0B04;--accent-soft:#3A2216;--side:#B5431B;--side-hover:#CC5224;--bg:#1D130D;--tint:#26180F}
+body[data-theme-trade="gas"]{--accent:#A8532B;--accent-soft:#F0DDD2;--side:#3F454B;--side-hover:#525960;--tint:#F7F4F1;--bg:#ECEAE7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="gas"]{--accent:#E39A6E;--accent-ink:#1A0B04;--accent-soft:#33241B;--side:#3F454B;--side-hover:#525960;--bg:#17171A;--tint:#221E1B}}
+:root[data-theme="dark"] body[data-theme-trade="gas"]{--accent:#E39A6E;--accent-ink:#1A0B04;--accent-soft:#33241B;--side:#3F454B;--side-hover:#525960;--bg:#17171A;--tint:#221E1B}
 body[data-theme-trade="accountant"]{--accent:#1565D8;--accent-soft:#D3E3FA;--side:#1565D8;--side-hover:#0F52B0;--tint:#F0F6FE;--bg:#E4EEFC}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="accountant"]{--accent:#7DB3EE;--accent-ink:#07121F;--accent-soft:#14283F;--side:#1D5FA8;--side-hover:#2A74C6;--bg:#0C1624;--tint:#111D2C}}
 :root[data-theme="dark"] body[data-theme-trade="accountant"]{--accent:#7DB3EE;--accent-ink:#07121F;--accent-soft:#14283F;--side:#1D5FA8;--side-hover:#2A74C6;--bg:#0C1624;--tint:#111D2C}
