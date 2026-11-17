@@ -269,9 +269,9 @@ function visible(){
 /* landlords: Notebook and Book appointment sit under More, in the top menu (phone) and the side menu (computer) */
 var navMore=false;
 function renderNav(){renderSwitch();updTrayBtn();if(view==='notebook')navMore=true;
-  var items=toolItems([['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  var items=toolItems(T.calTab?[['cases','Clients'],['reminders','Reminders'],['appointments','Appointments'],['clients',CL()],['tasks','Calendar'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
-  var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};
+  var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;
   if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['tradesmen','My tradesmen'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
@@ -288,7 +288,28 @@ if(NAV_MQ){var navMqFn=function(){if(T)renderNav()};if(NAV_MQ.addEventListener)N
 function toolItems(l){return l.filter(function(i){return !(i[0]==='appointments'&&!T.apptTab)&&!(i[0]==='calculator'&&!T.calculator)&&!(i[0]==='birthdays'&&!T.dob)&&!(T.hideTabs&&T.hideTabs.indexOf(i[0])>-1)})}
 function gbp2(n){return '£'+n.toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function calcPay(P,rate,n){var r=rate/1200;return r===0?P/n:P*r/(1-Math.pow(1+r,-n))}
+function taxCalcShell(){
+  return '<div class="pagehead"><h1>Calculator</h1><span class="muted">VAT and a quick sole trader tax estimate</span></div><div id="calcMain" class="calc taxcalc">'+
+   '<div class="calcin"><h2 style="font-size:16px;margin:0 0 8px">VAT</h2><div class="grid">'+
+   '<label class="f">Amount<span class="ig"><i>£</i><input id="tcVat" type="number" step="any" inputmode="decimal" placeholder="e.g. 120.00"></span></label>'+
+   '<label class="f">VAT rate<select id="tcRate"><option value="20">Standard 20%</option><option value="5">Reduced 5%</option><option value="0">Zero 0%</option></select></label>'+
+   '<label class="f">The amount is<select id="tcMode"><option value="net">Without VAT (add it)</option><option value="gross">With VAT (take it out)</option></select></label></div><div id="tcVatOut"></div></div>'+
+   '<div class="calcin" style="margin-top:14px"><h2 style="font-size:16px;margin:0 0 8px">Sole trader tax estimate</h2><div class="grid">'+
+   '<label class="f">Taxable profit for the year<span class="ig"><i>£</i><input id="tcProfit" type="number" step="any" inputmode="decimal" placeholder="e.g. 45000"></span></label>'+
+   '<label class="f">Other taxable income (optional)<span class="ig"><i>£</i><input id="tcOther" type="number" step="any" inputmode="decimal" placeholder="0"></span></label></div><div id="tcTaxOut"></div>'+
+   '<p class="muted" style="font-size:12.5px;margin:10px 0 0">An estimate for 2026/27 for England, Wales and Northern Ireland: personal allowance £12,570, income tax 20%, 40% and 45%, Class 4 National Insurance 6% and 2%. It leaves out Scottish rates, dividends, student loans, pension and Gift Aid. Use it as a guide, not as a tax computation.</p></div></div>';
+}
+function taxCalcUpdate(){
+  var a=parseFloat($('#tcVat').value),r=parseFloat($('#tcRate').value)/100,g=$('#tcMode').value==='gross',vo=$('#tcVatOut');
+  if(vo)vo.innerHTML=(a>=0)?(function(){var net=g?a/(1+r):a,vat=g?a-net:a*r,gross=g?a:a+vat;return '<div class="calcbox" style="margin-top:10px"><div class="crow"><span>Without VAT</span><b>'+gbp2(net)+'</b></div><div class="crow"><span>VAT</span><b>'+gbp2(vat)+'</b></div><div class="crow"><span>With VAT</span><b>'+gbp2(gross)+'</b></div></div>'})():'<p class="muted" style="margin:10px 0 0">Enter an amount to work out the VAT.</p>';
+  var p=parseFloat($('#tcProfit').value),o=parseFloat($('#tcOther').value)||0,to=$('#tcTaxOut');if(!to)return;
+  if(!(p>=0)){to.innerHTML='<p class="muted" style="margin:10px 0 0">Enter the taxable profit to see an estimate.</p>';return}
+  var inc=p+o,pa=inc>100000?Math.max(0,12570-(inc-100000)/2):12570,ti=Math.max(0,inc-pa),it=Math.min(ti,37700)*.2+Math.max(0,Math.min(ti,125140)-37700)*.4+Math.max(0,ti-125140)*.45,
+      n4=Math.max(0,Math.min(p,50270)-12570)*.06+Math.max(0,p-50270)*.02,tot=it+n4;
+  to.innerHTML='<div class="calcbox" style="margin-top:10px"><div class="crow"><span>Personal allowance used</span><b>'+gbp2(pa)+'</b></div><div class="crow"><span>Income tax</span><b>'+gbp2(it)+'</b></div><div class="crow"><span>Class 4 National Insurance</span><b>'+gbp2(n4)+'</b></div><div class="crow"><span><b>Total tax and NI</b></span><b>'+gbp2(tot)+'</b></div><div class="crow"><span>Set aside each month</span><b>'+gbp2(tot/12)+'</b></div><div class="crow"><span>Left from the profit</span><b>'+gbp2(p-tot)+'</b></div></div>';
+}
 function calcShell(){
+  if(T.calcKind==='tax')return taxCalcShell();
   var list=cases.slice().sort(function(a,b){return names(a).toLowerCase()<names(b).toLowerCase()?-1:1});
   return '<div class="pagehead"><h1>Mortgage calculator</h1><span class="muted">Monthly payment, repayment and interest only</span></div><div id="calcMain" class="calc">'+
    '<div class="calcin"><label class="f">Fill from a case (optional)<select id="calcCase"><option value="">Choose a case, or type the figures below</option>'+list.map(function(x){return '<option value="'+esc(x.id)+'">'+esc(names(x)+(x.clientNo?' ('+x.clientNo+')':''))+'</option>'}).join('')+'</select></label>'+
@@ -299,6 +320,7 @@ function calcShell(){
    '<div id="calcOut"></div></div>';
 }
 function calcUpdate(){
+  if(T.calcKind==='tax'){taxCalcUpdate();return}
   var out=$('#calcOut');if(!out)return;
   var P=parseFloat($('#calcAmt').value),y=parseFloat($('#calcYrs').value)||0,m=parseFloat($('#calcMon').value)||0,R=parseFloat($('#calcRate').value),n=Math.round(y*12+m);
   if(!(P>0)||!(n>0)||isNaN(R)||R<0){out.innerHTML='<p class="muted" style="margin:14px 0">Enter the mortgage amount, term and interest rate to see the monthly payments.</p>';return}
@@ -321,7 +343,7 @@ function render(){
   if(T.hideTabs&&T.hideTabs.indexOf(view)>-1)view=T.landing||'tasks';
   if(T.tenancyMode&&(view==='invoices'||view==='marketing'))view='cases';
   if(!T.tenancyMode&&(view==='myhome'||view==='tradesmen'))view=T.landing||'tasks';
-  if(view==='tasks'){if((!T.tenancyMode&&(!$('#trList')||!v.contains($('#trList'))))||(T.tenancyMode&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(T.tenancyMode?' nocal':'')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(T.tenancyMode?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!T.tenancyMode)renderTray();renderRem()}
+  if(view==='tasks'){var CALV=T.tenancyMode||T.calTab;if((!CALV&&(!$('#trList')||!v.contains($('#trList'))))||(CALV&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(CALV?' nocal':'')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(CALV?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!CALV)renderTray();renderRem()}
   else if(view==='notebook'){if(!$('#nbMain')||!v.contains($('#nbMain'))){v.innerHTML=nbShell();nbShown=null}renderNotebook()}
   else if(view==='calculator'){if(!$('#calcMain')||!v.contains($('#calcMain'))){v.innerHTML=calcShell();calcUpdate()}}
   else if(view==='marketing'){var mr=$('#mkRoot');if(!mr||!v.contains(mr)||mr.getAttribute('data-tab')!==mkTab)v.innerHTML=mkShell();mkList()}
@@ -1310,7 +1332,7 @@ function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
   if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-v="tradesmen"'+(view==='tradesmen'?' aria-current="page"':'')+'>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
-  var items=toolItems([['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  var items=toolItems(T.calTab?[['tasks','Calendar'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['invoices','Quotes & invoices'],['calculator',T.calcKind==='tax'?'Calculator':'Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   s.innerHTML='<div id="sideTools"><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
 function renderRem(){
@@ -1737,6 +1759,7 @@ document.addEventListener('input',function(e){
   }
   if(t.id==='f-oneDriveLink'){var od=$('#odl');if(od)od.innerHTML=odLink(t.value)}
   if(t.id==='calcCase'){var cc=cases.filter(function(x){return x.id===t.value})[0];if(cc){$('#calcAmt').value=cc.loanAmount||'';var yy=cc.termLeft||cc.termYears||'';$('#calcYrs').value=yy;$('#calcMon').value='';$('#calcRate').value=cc.rate||''}calcUpdate()}
+  if(t.id==='tcVat'||t.id==='tcRate'||t.id==='tcMode'||t.id==='tcProfit'||t.id==='tcOther'){taxCalcUpdate();return}
   if(t.id==='calcAmt'||t.id==='calcYrs'||t.id==='calcMon'||t.id==='calcRate')calcUpdate();
   if(t.id==='mkQ'){mkQuery=t.value;mkList();return}
   if(t.id==='trQ'){trQuery=t.value;renderTray()}

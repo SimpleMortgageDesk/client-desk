@@ -89,6 +89,7 @@
     short: 'Accountant', flatPrice: '£1.99', jobDocs: true, noExp: true, docRoot: 'Clients', docHint: 'Upload or photograph engagement letters, accounts and other client papers. Photos are saved as one PDF.',
     label: 'Accountant or bookkeeper', noun: ['Client', 'Clients'], person: ['Contact', 'Contacts'], peopleTitle: 'Client contacts',
     dob: true, stages: [{ id: 'enquiry', label: 'Enquiry' }, { id: 'proposal', label: 'Proposal sent' }, { id: 'onboarding', label: 'Onboarding (ID and engagement letter)' }, { id: 'active', label: 'Active client' }],
+    landing: 'cases', hideTabs: ['pipeline'], noTasks: true, apptTab: true, remTab: true, calTab: true, calculator: true, calcKind: 'tax',
     defaultStage: 'enquiry', doneStage: 'active',
     types: ['Self Assessment', 'Sole trader accounts', 'Partnership accounts', 'Limited company accounts', 'Landlord / property income', 'VAT returns', 'Payroll', 'Bookkeeping', 'CIS', 'Other'],
     sections: [
