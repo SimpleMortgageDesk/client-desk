@@ -971,7 +971,7 @@ header.top{border-top-width:3px}
 /* every page uses the full width, apart from pages that have a side panel */
 .calc,.tmpage,.tpage{max-width:none}
 .tmpage{width:auto}
-/* the Working as bar runs the full width of the page, on its own row under the menu */
+/* the Logged in as bar runs the full width of the page, on its own row under the menu */
 header.top .in:has(.trsw){flex-wrap:wrap}
 .trsw{grid-column:1/-1;order:99;flex:1 0 100%;width:100%;display:flex;justify-content:flex-start;border-radius:12px;padding:4px;margin-top:2px;background:var(--side-soft)}
 .trsw .trl{align-self:center;color:var(--side-ink)}
@@ -981,7 +981,7 @@ body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="driving"]{--accent:#F28B82;--accent-ink:#1F0705;--accent-soft:#3A1614;--side:#7A2420;--side-hover:#8F2D28;--tint:#261110}}
 :root[data-theme="dark"] body[data-theme-trade="driving"]{--accent:#F28B82;--accent-ink:#1F0705;--accent-soft:#3A1614;--side:#7A2420;--side-hover:#8F2D28;--tint:#261110}
 
-/* the Working as bar has its own colour, the same for every trade, so it never blends into the theme */
+/* the Logged in as bar has its own colour, the same for every trade, so it never blends into the theme */
 .trsw{background:#1F2D3D}
 .trsw .trl{color:#A9BACB}
 .trsw button{color:#E3EBF3}
@@ -1007,3 +1007,4 @@ body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#
   .mnusep{height:1px;background:var(--line);margin:6px 4px}
   .mnupanel .mnulo{color:#A3261F}
 }
+@media (max-width:620px){.trsw .trl{display:inline-block;font-size:10px;padding:0 4px 0 8px;line-height:1.2;max-width:54px}.trsw button{padding:8px 6px}}
