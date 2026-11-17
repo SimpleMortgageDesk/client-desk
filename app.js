@@ -13,7 +13,7 @@ function trOf(c){return c.tr||MAIN_TRADE||T.id}
 function setCases(){cases=casesAll.filter(function(c){return trOf(c)===T.id})}
 function tagTr(d){if(TRADES.length>1)d.tr=T.id;return d}
 function applyTrade(){
-  T=window.CD_T();/* each trade has its own colour theme */document.body.setAttribute('data-theme-trade',T.id||'');try{var tmc=document.querySelector('meta[name="theme-color"]');if(tmc){var ac=getComputedStyle(document.body).getPropertyValue('--accent').trim();if(ac)tmc.setAttribute('content',ac)}}catch(e){}
+  T=window.CD_T();homeMonth=!!(T.tenancyMode||T.calTab);/* each trade has its own colour theme */document.body.setAttribute('data-theme-trade',T.id||'');try{var tmc=document.querySelector('meta[name="theme-color"]');if(tmc){var ac=getComputedStyle(document.body).getPropertyValue('--accent').trim();if(ac)tmc.setAttribute('content',ac)}}catch(e){}
   STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
   var nb=document.getElementById('newBtn');if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
   var q=document.getElementById('q');if(q)q.placeholder='Search '+T.noun[1].toLowerCase();
@@ -653,14 +653,16 @@ function apCard(a,showDate){
   return '<div class="apc st-'+st+'"><div class="aptm"><b>'+esc(a.time||'')+'</b>to '+end+'</div><div class="apbody"><div class="apwho">'+dl+apWhoHtml(a)+(st!=='booked'?'<span class="apst">'+AP_STATUS[st]+'</span>':'')+'</div>'+(meta?'<div class="muted" style="font-size:12px">'+meta+'</div>':'')+(a.notes?'<div style="font-size:13px;margin-top:3px;white-space:pre-wrap">'+esc(String(a.notes).slice(0,220))+'</div>':'')+'</div><div class="apact"><button type="button" class="btn ghost sm" data-apedit="'+a.id+'">Edit</button><button type="button" class="btn ghost sm" data-apdone="'+a.id+'">'+(st==='done'?'Reopen':'Mark done')+'</button></div></div>';
 }
 function apHTML(home){
-  var y=apMonth.y,mo=apMonth.m,first=new Date(y,mo,1),off=(first.getDay()+6)%7,tIso=iso(TODAY);
+  var y=apMonth.y,mo=apMonth.m,first=new Date(y,mo,1),off=(first.getDay()+6)%7,tIso=iso(TODAY),wkS=addDays(tIso,-((TODAY.getDay()+6)%7)),wkE=addDays(wkS,6);
   var by={};appts.forEach(function(a){if(a.status==='cancelled')return;(by[a.date]=by[a.date]||[]).push(a)});
   var h=(home?'':'<div class="pagehead"><h1>Appointments</h1><span class="muted">Book and track client appointments</span></div>')+'<div class="apwrap"><div>';
   h+='<div class="aphead"><h2>'+first.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</h2><button type="button" class="btn ghost sm" data-apmonth="-1" aria-label="Previous month">‹ Prev</button><button type="button" class="btn ghost sm" data-apmonth="0">Today</button><button type="button" class="btn ghost sm" data-apmonth="1" aria-label="Next month">Next ›</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>';
+  if(home&&(T.tenancyMode||T.calTab)){var wl=apSorted(appts.filter(function(a){return a.date>=wkS&&a.date<=wkE&&(a.status||'booked')!=='cancelled'}));
+    h+='<div class="wkbar"><b>This week</b><span class="wkn">'+wl.length+' appointment'+(wl.length===1?'':'s')+'</span>'+(wl.length?wl.map(function(a){return '<button type="button" class="wkchip" data-apday="'+a.date+'">'+new Date(a.date+'T00:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric'})+' · '+esc(a.time)+' '+esc(apWho(a))+'</button>'}).join(''):'<span class="wkn">Nothing booked this week.</span>')+'</div>'}
   h+='<div class="apgrid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(function(d){return '<div class="apdow">'+d+'</div>'}).join('');
   for(var i=0;i<42;i++){
-    var d=new Date(y,mo,1-off+i),di=iso(d),l=apSorted(by[di]||[]);
-    h+='<button type="button" class="apcell'+(d.getMonth()!==mo?' out':'')+(di===tIso?' today':'')+(di===apSel?' sel':'')+'" data-apday="'+di+'" aria-label="'+di+(l.length?', '+l.length+' appointments':'')+'"><span class="apn">'+d.getDate()+'</span>'+
+    var d=new Date(y,mo,1-off+i),di=iso(d),l=apSorted(by[di]||[]),inWk=di>=wkS&&di<=wkE;
+    h+='<button type="button" class="apcell'+(inWk?' wk':'')+(d.getMonth()!==mo?' out':'')+(di===tIso?' today':'')+(di===apSel?' sel':'')+'" data-apday="'+di+'" aria-label="'+di+(l.length?', '+l.length+' appointments':'')+'"><span class="apn">'+d.getDate()+'</span>'+
       l.slice(0,3).map(function(a){return '<span class="apchip'+(a.status==='done'?' done':'')+'">'+esc(a.time)+' '+esc(apWho(a))+'</span>'}).join('')+(l.length>3?'<span class="apmore">+'+(l.length-3)+' more</span>':'')+
       (l.length?'<span class="apdots">'+l.slice(0,6).map(function(){return '<span class="apdot"></span>'}).join('')+'</span>':'')+'</button>';
   }
@@ -673,10 +675,10 @@ function apHTML(home){
   h+='<div class="aphead" style="margin-top:16px"><h2 style="font-size:15px">Coming up</h2></div>'+(up.length?up.map(function(a){return apCard(a,true)}).join(''):'<div class="muted">No upcoming appointments.</div>');
   return h+'</div></div>';
 }
-var homeMonth=false;
+var homeMonth;
 function apHome(){
-  if(homeMonth)return '<div class="aphead" style="margin-bottom:6px"><h2 style="font-size:15px">Month view</h2><button type="button" class="btn ghost sm" data-hmtog="0">Back to agenda</button></div>'+apHTML(true);
-  var nowMin=new Date().getHours()*60+new Date().getMinutes(),tI=iso(TODAY),h='<div class="aphead"><h2>Today and next 7 days</h2><button type="button" class="btn ghost sm" data-hmtog="1">Month view</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>',any=0;
+  if(homeMonth)return '<div class="aphead" style="margin-bottom:6px"><h2 style="font-size:'+((T.tenancyMode||T.calTab)?'20':'15')+'px">Calendar</h2><button type="button" class="btn ghost sm" data-hmtog="0">List view</button></div>'+apHTML(true);
+  var nowMin=new Date().getHours()*60+new Date().getMinutes(),tI=iso(TODAY),h='<div class="aphead"><h2>Today and next 7 days</h2><button type="button" class="btn ghost sm" data-hmtog="1">Calendar view</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>',any=0;
   for(var i=0;i<8;i++){
     var di=addDays(tI,i),l=apSorted(appts.filter(function(a){return a.date===di&&(a.status||'booked')!=='cancelled'}));
     if(!l.length&&i>0)continue;
