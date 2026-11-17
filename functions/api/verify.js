@@ -13,6 +13,8 @@ const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f
 const hex = buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 const sha = async s => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+/* accounts first seen before this moment pre-date email confirmation and are let through; everyone after must register and confirm */
+const LEGACY_BEFORE = '2026-11-17T20:06:48.000Z';
 const DAY_CAP = 300; /* most confirmation emails sent in one day, to all addresses together */
 let ready = false;
 async function table(db) {
@@ -51,17 +53,33 @@ export async function onRequestPost({ request, env }) {
   const row = await env.DB.prepare('SELECT sent_at, sent_day, sent_n, confirmed_at FROM verify WHERE email = ?1').bind(email).first();
   if (d.action === 'status') {
     const key = /^[a-f0-9]{32,64}$/.test(String(d.k || '')) ? String(d.k) : '';
-    let sus = false, no = null, since = null, pay = 'trial', old = false, tu = null; try { const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email; const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL LIMIT 1').bind(email, alt).first(); sus = !!u;
-      /* an account that existed before the confirmation email was asked for is never held back: stops someone locking out an existing user by asking for a link in their name */
-      if (row && !row.confirmed_at) { const o = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND first_seen < ?3 LIMIT 1').bind(email, alt, new Date(Date.parse(row.sent_at) - 3600e3).toISOString()).first(); old = !!o; }
-      const me = await env.DB.prepare('SELECT user_no, pay, trade_unlock, del_key, ms_sub, COALESCE(signed_up, first_seen) AS since FROM users WHERE email IN (?1, ?2) OR lower(account_email) IN (?1, ?2) ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1').bind(email, alt).first();
+    let sus = false, no = null, since = null, pay = 'trial', tu = null, gate = 'register', confirmed = false, pending = false;
+    try {
+      const alt = EMAIL.test(clean(d.alt, 160).toLowerCase()) ? clean(d.alt, 160).toLowerCase() : email;
+      const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND suspended IS NOT NULL AND deleted_at IS NULL LIMIT 1').bind(email, alt).first(); sus = !!u;
+      /* every email address linked to this account: the one asked about, the one typed at registration, and the ones the sign-up list ties together */
+      const links = await env.DB.prepare('SELECT email, first_seen FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND deleted_at IS NULL').bind(email, alt).all();
+      const set = [email]; if (alt !== email) set.push(alt);
+      let legacy = false, oldest = null;
+      (links.results || []).forEach(r => { if (set.indexOf(r.email) < 0 && set.length < 6) set.push(r.email); if (r.first_seen && r.first_seen < LEGACY_BEFORE) legacy = true; if (r.first_seen && (!oldest || r.first_seen < oldest)) oldest = r.first_seen; });
+      let oldAsk = false;
+      for (const e of set) {
+        const vr = await env.DB.prepare('SELECT confirmed_at, sent_at FROM verify WHERE email = ?1').bind(e).first();
+        if (!vr) continue;
+        if (vr.confirmed_at) confirmed = true; else { pending = true; /* an account that existed before this link was asked for is never held back: stops someone locking out an existing user by asking for a link in their name */ if (oldest && vr.sent_at && oldest < new Date(Date.parse(vr.sent_at) - 3600e3).toISOString()) oldAsk = true; }
+      }
+      /* the rule: only a registered and confirmed account gets in. Accounts from before confirmation existed are let through; anyone else must register and confirm. */
+      gate = confirmed ? 'allow' : (legacy || (pending && oldAsk)) ? 'allow' : pending ? 'confirm' : 'register';
+      const me = await env.DB.prepare('SELECT user_no, pay, trade_unlock, del_key, ms_sub, COALESCE(signed_up, first_seen) AS since FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND deleted_at IS NULL ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1').bind(email, alt).first();
       /* the user number, dates and payment status go only to the app signed in to that account (it holds the matching key) */
       /* once the account is tied to a Microsoft sign-in, only Microsoft's proof of that sign-in will do */
       const id = me && me.ms_sub && d.idt ? await verifyMs(String(d.idt), env) : null;
-      if (me && (me.ms_sub ? (id && id.sub === me.ms_sub) : (key && me.del_key && me.del_key === key))) { no = me.user_no; since = me.since; pay = me.pay || 'trial'; tu = me.trade_unlock || null; } } catch (e) {}
-    return json({ status: !row ? 'none' : row.confirmed_at ? 'confirmed' : old ? 'none' : 'pending', suspended: sus, no, since, pay, tu });
+      if (me && (me.ms_sub ? (id && id.sub === me.ms_sub) : (key && me.del_key && me.del_key === key))) { no = me.user_no; since = me.since; pay = me.pay || 'trial'; tu = me.trade_unlock || null; }
+    } catch (e) { return json({ error: 'could not check' }, 503); }
+    return json({ status: confirmed ? 'confirmed' : gate === 'confirm' ? 'pending' : 'none', gate, suspended: sus, no, since, pay, tu });
   }
   if (d.action !== 'start') return json({ error: 'bad request' }, 400);
+  if (clean(d.name, 80).length < 2) return json({ error: 'name needed' }, 400);
   if (!env.RESEND_API_KEY) return json({ error: 'email sending is not set up' }, 503);
   if (row && row.confirmed_at) return json({ status: 'confirmed' });
   const now = new Date(), nowIso = now.toISOString(), day = nowIso.slice(0, 10);

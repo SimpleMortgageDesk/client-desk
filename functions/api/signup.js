@@ -125,6 +125,11 @@ export async function onRequestPost({ request, env }) {
     await env.DB.prepare('UPDATE users SET delete_requested = ?2 WHERE email = ?1').bind(email, now).run();
     return say('requested', 202);
   }
+  /* only a completed registration (name, mobile and kind of work all filled in) creates an entry; activity from anyone else is ignored */
+  if (!known) {
+    if (d.event !== 'signup') return say('ok');
+    if (clean(d.name, 100).length < 2 || clean(d.mobile, 30).replace(/\D/g, '').length < 7 || !clean(d.trade, 60)) return say('incomplete registration', 400);
+  }
   /* a deleted account stays quiet until the owner restores it; a fresh registration starts it again */
   if (cur && cur.deleted_at) {
     if (d.event !== 'signup') return say('ok');

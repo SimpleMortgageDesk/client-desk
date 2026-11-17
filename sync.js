@@ -1572,16 +1572,16 @@
     if (!confirm(msg)) return;
     rememberMail(); await wipeAndReload(false);
   }
-  async function wipeAndReload(auto) {
+  async function wipeAndReload(auto, dest) {
     if (window.CD_TEST) { location.href = 'home.html'; return; }
     try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
     try { if (navigator.serviceWorker) { var rg = await navigator.serviceWorker.getRegistrations(); await Promise.all(rg.map(function (r) { return r.unregister(); })); } } catch (e) {}
     await idbClearAll(); setTok(null);
     if (SHARED) { try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('cd.') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
     /* cd.owner is kept on purpose: it records whose settings are still on this device, so that if a different account signs in next, ownerCheck removes them */
-    ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.oidc'].forEach(function (k) { lset(k, null); });
+    ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.oidc', 'cd.vok'].forEach(function (k) { lset(k, null); });
     if (auto) { try { localStorage.setItem('cd.idleMsg', '1'); } catch (e) {} }
-    location.replace(location.pathname + '?fresh=' + Date.now());
+    location.replace(location.pathname + '?' + (dest ? 'p=' + dest + '&' : '') + 'fresh=' + Date.now());
   }
   /* ---------- automatic log out after a period with no activity (default 2 hours) ---------- */
   var IDLE_MS = Math.max(0.05, +(CFG.idleMinutes || 120)) * 60000, idleBusy = false, lastW = 0;
@@ -1834,25 +1834,57 @@
   /* email confirmation: a new account is held until the link in the email is clicked. People who registered before this existed have no record and are never blocked. If the check cannot run, the app carries on. */
   var vState = '';
   function vOn() { return suOn() && location.protocol !== 'file:' && !window.CD_DEMO; }
-  function vMail() { var r = sget('cd.reg'); return (r && r.email) || ((tok() || {}).account || {}).mail || ''; }
+  function vMail() { var a = ((tok() || {}).account || {}).mail, r = sget('cd.reg'); return a || (r && r.email) || ''; }
   async function vCall(action, email) {
     var k = ''; try { k = await suKey(); } catch (e) {}
     var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action, email: email, k: k, idt: (tok() || {}).idt || '', alt: (profGet().email || ''), name: (profGet().name || (sget('cd.reg') || {}).name || '') }) });
     return { code: r.status, body: await r.json().catch(function () { return {}; }) };
   }
   var tuAt = null; window.CD_tuAt = function () { return tuAt; };
+  /* the gate: only a registered account with a confirmed email address gets in. A new person who has just registered is sent the confirmation email;
+     someone who never registered is shown a Register screen; if the check cannot be made, a device that has never been confirmed stays out. */
   async function vRun() {
-    var em = vMail();
-    if (!vOn() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { vState = 'ok'; return; }
+    var em = vMail(), okLocal = false;
+    if (!vOn()) { vState = 'ok'; return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) { vState = 'blocked'; vScreen('&#9888;&#65039;', 'We could not read your account email', 'Log out and sign in again. If this keeps happening, email <a href="mailto:support@mysimpledesk.co.uk" style="color:#9fe0c4">support@mysimpledesk.co.uk</a>.', [['Log out', function () { wipeAndReload(false); }]]); return; }
+    okLocal = ls('cd.vok') === em.toLowerCase();
     try {
       var r = await vCall('status', em);
       if (r.code === 200 && r.body.suspended) { vState = 'blocked'; susBlock(); return; }
       if (r.code === 200) { tuAt = r.body.tu || null; }
       if (r.code === 200 && r.body.since) { planInfo = { no: r.body.no, since: r.body.since, pay: r.body.pay || 'trial' }; setTimeout(trialNote, 8000); }
-      if (r.code === 200 && r.body.status === 'pending') { vState = 'blocked'; vBlock(em); return; }
-    } catch (e) {}
+      var gate = r.code === 200 ? (r.body.gate || (r.body.status === 'pending' ? 'confirm' : 'allow')) : '';
+      if (gate === 'confirm') { vState = 'blocked'; vBlock(em); return; }
+      if (gate === 'register') {
+        vState = 'blocked';
+        if (sget('cd.reg')) { try { await vCall('start', em); } catch (x) {} vBlock(em); return; }
+        vNoReg(em); return;
+      }
+      if (gate === 'allow') lset('cd.vok', em.toLowerCase());
+      else if (!okLocal) { vState = 'blocked'; vRetry(em); return; }
+    } catch (e) { if (!okLocal) { vState = 'blocked'; vRetry(em); return; } }
     vState = 'ok'; var b = $('mdVerify'); if (b) b.remove(); var ap = $('app'); if (ap) { try { ap.inert = false; } catch (x) {} }
     setTimeout(pinWarnMaybe, 50);
+  }
+  /* a full-screen message over the app while the gate says no (or is still checking) */
+  function vScreen(icon, title, html, buttons) {
+    var ov = $('mdVerify'); if (ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'mdVerify';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:410;background:#0f1f1a;color:#fff;display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,sans-serif';
+    var bs = 'width:100%;padding:12px;font-size:16px;border-radius:8px;cursor:pointer;margin-top:10px;';
+    ov.innerHTML = '<div style="width:min(400px,100%);text-align:center"><div style="font-size:40px">' + icon + '</div><h2 style="margin:8px 0 6px;font-size:22px">' + title + '</h2><p style="margin:0 0 14px;color:#d6e2dc;font-size:14px;line-height:1.5">' + html + '</p>' +
+      (buttons || []).map(function (b, n) { return '<button type="button" data-vb="' + n + '" style="' + bs + (n === 0 ? 'border:0;background:#2f8f6b;color:#fff' : 'border:1px solid #6f8a7e;background:none;color:#d6e2dc') + '">' + b[0] + '</button>'; }).join('') + '</div>';
+    document.body.appendChild(ov);
+    var ap = $('app'); if (ap) { try { ap.inert = true; } catch (x) {} }
+    (buttons || []).forEach(function (b, n) { ov.querySelector('[data-vb="' + n + '"]').onclick = b[1]; });
+  }
+  function vNoReg(em) {
+    vScreen('&#128274;', 'Please register first', 'We could not find a registration for <b>' + esc(em) + '</b>. ' + esc(APPN) + ' is only for people who have registered and confirmed their email address. If you registered with a different email address, log out and log in with that one.',
+      [['Register now', function () { wipeAndReload(false, 'register'); }], ['Log out', function () { wipeAndReload(false); }]]);
+  }
+  function vRetry(em) {
+    vScreen('&#9888;&#65039;', 'We could not check your account', 'Check you are online, then try again. We need to check that <b>' + esc(em) + '</b> is registered and confirmed.',
+      [['Try again', function () { vState = 'wait'; vRun(); }], ['Log out', function () { wipeAndReload(false); }]]);
   }
   /* landlords near the end of their free year: a bar with what to pay and the reference to use. Home owners (no let properties) never see it. */
   var planInfo = null;
@@ -1905,7 +1937,7 @@
     document.body.appendChild(ov);
     var ap = $('app'); if (ap) { try { ap.inert = true; } catch (x) {} }
     var msg = function (m) { $('mdVmsg').textContent = m; };
-    $('mdVgo').onclick = async function () { msg('Checking…'); try { var r = await vCall('status', em); if (r.code === 200 && r.body.status === 'pending') { msg('Not confirmed yet. Press the button in the email first.'); return; } } catch (e) { msg('Could not check. Check you are online, then try again.'); return; } vState = 'ok'; ov.remove(); if (ap) { try { ap.inert = false; } catch (x) {} } setTimeout(pinWarnMaybe, 50); };
+    $('mdVgo').onclick = async function () { msg('Checking…'); try { var r = await vCall('status', em); if (r.code !== 200) { msg('Could not check. Check you are online, then try again.'); return; } if ((r.body.gate ? r.body.gate !== 'allow' : r.body.status === 'pending')) { msg('Not confirmed yet. Press the button in the email first.'); return; } lset('cd.vok', String(em).toLowerCase()); } catch (e) { msg('Could not check. Check you are online, then try again.'); return; } vState = 'ok'; ov.remove(); if (ap) { try { ap.inert = false; } catch (x) {} } setTimeout(pinWarnMaybe, 50); };
     $('mdVre').onclick = async function () { msg('Sending…'); try { var r = await vCall('start', em); msg(r.code === 200 && r.body.wait ? 'An email was sent a moment ago. Wait a minute before asking again.' : r.code === 200 ? 'Sent. Check your inbox.' : r.code === 429 ? 'Too many emails today. Try again tomorrow.' : 'Could not send the email. Try again later.'); } catch (e) { msg('Could not send. Check you are online.'); } };
     $('mdVout').onclick = function () { wipeAndReload(false); };
   }
@@ -2344,6 +2376,7 @@
     } else { await openIdb(); await loadCache(); }
     try { await handleRedirect(); } catch (e) { var fb = failBump(); showSignIn(e.message, fb ? 'forgot' : undefined); return; }
     if (tok()) { lset('cd.fails', null); lset('cd.lockUntil', null); }
+    if (tok() && vOn() && !vState) { vState = 'wait'; if (ls('cd.vok') !== vMail().toLowerCase()) vScreen('&#9203;', 'Checking your account…', 'One moment.', []); vRun(); }
     if (!tok()) { showSignIn(''); return; }
     if (isIdle()) { await autoSignOut(); return; }
     var rg0 = sget('cd.reg'); if (rg0 && !profGet().name) lset('cd.profile', JSON.stringify({ name: rg0.name, role: '', biz: '', reg: '', phone: rg0.phone, email: rg0.email }));
