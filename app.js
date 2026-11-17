@@ -1521,6 +1521,7 @@ document.addEventListener('click',function(e){
   if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'))}return}
   var tpb=t.closest('[data-trade]');if(tpb&&(tpb.disabled||(window.CD_tradeOpen&&!window.CD_tradeOpen(tpb.getAttribute('data-trade')))))return;if(tpb){var tid=tpb.getAttribute('data-trade'),ix=tpSel.indexOf(tid),tm=$('#tpMsg');if(ix>-1)tpSel.splice(ix,1);else if(tpSel.length>=2){if(tm)tm.textContent='You can choose up to two. Take one off first.';return}else tpSel.push(tid);if(tm)tm.textContent='';document.querySelectorAll('#tpOv [data-trade]').forEach(function(b){var on=tpSel.indexOf(b.getAttribute('data-trade'))>-1;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});var go=$('#tpGo');if(go)go.disabled=!tpSel.length;return}
   if(t.closest('[data-tpgo]')){if(!tpSel.length)return;saveTrades(tpSel.slice());var ov=$('#tpOv');if(ov)ov.remove();toast('Set up for: '+tpSel.map(function(id){return (window.CD_TRADES.all[id]||{}).label}).join(' and '));return}
+  if(t.closest('[data-addll]')){var cur=TRADES[0];saveTrades([cur,'landlord']);switchTrade('landlord');toast('Landlord added as your second tab. There is no extra charge.');return}
   var sw=t.closest('[data-trsw]');if(sw){switchTrade(sw.getAttribute('data-trsw'));return}
   if(t.closest('[data-tpclose]')){var ov2=$('#tpOv');if(ov2)ov2.remove();return}
   var adv=t.closest('[data-adv]');
@@ -1790,9 +1791,17 @@ function switchTrade(id){
 }
 function renderSwitch(){
   var host=document.querySelector('header.top .in'),el=$('#trSw');if(!host)return;
-  if(TRADES.length<2){if(el)el.remove();return}
-  if(!el){el=document.createElement('div');el.id='trSw';el.className='trsw';el.setAttribute('role','group');el.setAttribute('aria-label','Working as');var br=host.querySelector('.brand');if(br)br.insertAdjacentElement('afterend',el);else host.insertBefore(el,host.firstChild)}
   var all=window.CD_TRADES.all;
+  if(TRADES.length<2){
+    /* a profession on its own gets a quick way to add the landlord side as a second tab */
+    if(TRADES.length===1&&TRADES[0]!=='landlord'&&window.CD_tradeOpen&&window.CD_tradeOpen('landlord')){
+      if(!el){el=document.createElement('div');el.id='trSw';el.className='trsw';el.setAttribute('role','group');el.setAttribute('aria-label','Working as');var br0=host.querySelector('.brand');if(br0)br0.insertAdjacentElement('afterend',el);else host.insertBefore(el,host.firstChild)}
+      var x0=all[TRADES[0]]||{};
+      el.innerHTML='<button type="button" aria-pressed="true">'+esc(x0.short||x0.label||TRADES[0])+'</button><button type="button" data-addll="1" title="Add the landlord side to your account at no extra charge">+ Landlord</button>';
+      return;
+    }
+    if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.id='trSw';el.className='trsw';el.setAttribute('role','group');el.setAttribute('aria-label','Working as');var br=host.querySelector('.brand');if(br)br.insertAdjacentElement('afterend',el);else host.insertBefore(el,host.firstChild)}
   el.innerHTML='<span class="trl">Working as</span>'+TRADES.map(function(id){var x=all[id]||{};return '<button type="button" data-trsw="'+esc(id)+'" aria-pressed="'+(id===T.id)+'">'+esc(x.short||x.label||id)+'</button>'}).join('');
 }
 var tpSel=[];
