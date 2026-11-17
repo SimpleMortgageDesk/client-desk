@@ -227,7 +227,7 @@ function caseEvents(c){
   return ev;
 }
 function allEvents(){
-  var out=[];cases.forEach(function(c){if(c.stage!=='lost')out=out.concat(caseEvents(c))});if(T.tenancyMode)out=out.concat(homeEvents());
+  var out=[];cases.forEach(function(c){if(c.stage!=='lost')out=out.concat(caseEvents(c))});out=out.concat(homeEvents());
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
 }
 function apEvents(){var t=iso(TODAY);return appts.filter(function(a){return a.date&&a.status!=='cancelled'&&a.status!=='done'&&a.status!=='noshow'&&a.date>=addDays(t,-30)}).map(function(a){return {date:a.date,label:(a.time?a.time+' · ':'')+(a.title||a.type||a.what||'Appointment'),kind:'appt',id:a.id,who:apWho(a),key:'ap:'+a.id}})}
@@ -239,7 +239,7 @@ window.CD_keyDates=function(){
     reviewItems(c,true).forEach(function(r){out.push({key:c.id+'|'+r.key,date:kdNext(r),title:r.label,who:n})});
     (c.tasks||[]).forEach(function(t,i){if(!t.done&&t.due)out.push({key:c.id+'|task:'+(t.id||i),date:t.due,title:t.text,who:n})});
   });
-  if(T.tenancyMode)homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:kdNext(e),title:e.label,who:'My residential house'})});
+  homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:kdNext(e),title:e.label,who:'My residential house'})});
   return out;
 };
 function kdNext(r){if(!r.rep)return r.date;var n=diff(r.date);return n>=0?r.date:addDays(r.date,Math.ceil(-n/30)*30)}
@@ -271,6 +271,7 @@ var navMore=false;
 function renderNav(){renderSwitch();updTrayBtn();if(view==='notebook')navMore=true;
   var items=toolItems(T.calTab?[['cases','Clients'],['reminders','Reminders'],['appointments','Appointments'],['clients',CL()],['tasks','Calendar'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
+  if(!T.tenancyMode)items.unshift(['myhome','My residential house']);
   var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;
   if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['tradesmen','My tradesmen'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
@@ -342,7 +343,7 @@ function render(){
   if((view==='calculator'&&!T.calculator)||(view==='birthdays'&&!T.dob))view='tasks';
   if(T.hideTabs&&T.hideTabs.indexOf(view)>-1)view=T.landing||'tasks';
   if(T.tenancyMode&&(view==='invoices'||view==='marketing'))view='cases';
-  if(!T.tenancyMode&&(view==='myhome'||view==='tradesmen'))view=T.landing||'tasks';
+  if(!T.tenancyMode&&view==='tradesmen')view=T.landing||'tasks';
   if(view==='tasks'){var CALV=T.tenancyMode||T.calTab;if((!CALV&&(!$('#trList')||!v.contains($('#trList'))))||(CALV&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(CALV?' nocal':'')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(CALV?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!CALV)renderTray();renderRem()}
   else if(view==='notebook'){if(!$('#nbMain')||!v.contains($('#nbMain'))){v.innerHTML=nbShell();nbShown=null}renderNotebook()}
   else if(view==='calculator'){if(!$('#calcMain')||!v.contains($('#calcMain'))){v.innerHTML=calcShell();calcUpdate()}}
@@ -1335,7 +1336,8 @@ function renderSide(){
   var bt=bdCounts(bdPeople().list).today;
   if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-v="tradesmen"'+(view==='tradesmen'?' aria-current="page"':'')+'>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
   var items=toolItems(T.calTab?[['tasks','Calendar'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['invoices','Quotes & invoices'],['calculator',T.calcKind==='tax'?'Calculator':'Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
-  s.innerHTML='<div id="sideTools"><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
+  var an2=bizName()||(profA().name)||'',lm2=(window.CD_loginMail&&window.CD_loginMail())||'';
+  s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an2?'<strong class="an">'+esc(an2)+'</strong>':'')+(lm2?'<span class="am">Logged in with<br><b>'+esc(lm2)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
 function renderRem(){
   var s=$('#homeRem');if(!s)return;
@@ -2179,7 +2181,7 @@ function homeRows(h,g){
 }
 function homeCard(pg){
   var h=HOME,hd=pg?'':'<h2>My residential house</h2>';
-  if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div>'+hd+'<p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills, safety checks, and your receipts and expenses. It is kept separate from your rental properties, rent totals and accountant reports.</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
+  if(!h||!h.addr1)return '<section class="homecard empty"><div class="hch"><div>'+hd+'<p class="muted">Keep a record of your own home: mortgage and deal end date, insurance, bills, safety checks, and your receipts and expenses. It is kept separate from your '+(T.tenancyMode?'rental properties, rent totals and accountant reports.':'business records.')+'</p></div><button type="button" class="btn" id="homeAdd">Add my home</button></div></section>';
   var bal=+h.balance||0,val=+h.value||0,ltv=bal&&val?Math.round(bal/val*1000)/10:null,eq=val?val-bal:null;
   var chip=function(d,l){return d?'<span class="chip '+tone(d)+'">'+esc(l)+' '+fd(d)+'</span>':''};
   var fact=function(l,v){return v?'<div class="hf"><span>'+esc(l)+'</span><b>'+v+'</b></div>':''};
