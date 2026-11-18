@@ -1,4 +1,7 @@
 /*
+  ! X-Powered-By
+  ! X-AspNet-Version
+  ! X-AspNetMvc-Version
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
