@@ -2,7 +2,7 @@
    Online: always fetches the newest files. Offline: uses the saved copy.
    Hosts such as Cloudflare Pages shorten addresses (home.html -> /home), so saved copies are stored without the
    "moved" step and can be found under either address. */
-var CACHE = 'client-desk-v3';
+var CACHE = 'client-desk-v4';
 var FILES = ['./', 'index.html', 'home.html', 'privacy.html', 'styles.css', 'app.js', 'sync.js', 'config.js', 'trades.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 /* a page that arrived after a redirect cannot be shown offline as it is: copy it into a plain response */
 function plain(res) {
