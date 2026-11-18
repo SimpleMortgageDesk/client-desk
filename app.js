@@ -2887,7 +2887,7 @@ function dzRefresh(c){document.querySelectorAll('#caseForm [data-dz]').forEach(f
 function dzErr(e){
   if(e&&e.renew)return 'Google Drive needs reconnecting. Press the yellow bar at the bottom, then upload again.';
   if(navigator.onLine===false||(e instanceof TypeError))return 'Could not reach your file storage. Check you are online, then upload again.';
-  if(e&&e.status===507)return 'Your file storage is full.';
+  if(e&&(e.full||e.status===507))return 'Your file storage is full. Free up space or add storage, then upload again.';
   return 'Could not upload the file ('+((e&&e.message)||'try again')+').';
 }
 function dzDest(k){var c=currentCase(),el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document',w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage',folder=c?((c.folder&&c.folder.name)||pfName(c)):'';return w+' › '+dzRootL()+' › '+folder+(k==='other'?'':' › '+label.charAt(0).toUpperCase()+label.slice(1))}
@@ -2938,7 +2938,7 @@ function dzSend(k,file,mode,cam){
         var bad=rs.filter(function(x){return !x}).length;
         toast(bad?'Uploaded. '+bad+' old document'+(bad>1?'s':'')+' could not be moved to the '+bin+'. Delete '+(bad>1?'them':'it')+' from the property folder yourself.':'Uploaded. The old document'+(old.length>1?'s are':' is')+' in your '+bin+'.');
       })}
-  },function(e){dzBusy=false;toast(e&&e.big?'That file is over 50 MB. Choose a smaller file.':dzErr(e))});
+  },function(e){Promise.resolve(e&&e.bodyP).catch(function(){}).then(function(){dzBusy=false;toast(e&&e.big?'That file is over 50 MB. Choose a smaller file.':dzErr(e))})});
 }
 function dzRemove(fid){
   var id=openId,c=currentCase();if(!id||!c)return;
@@ -3528,7 +3528,7 @@ function rcSend(caseId,file,thumb,named){
     exPatch(caseId,up);rcDraw(Object.assign({},cur,up));
     if(named){var dsc=$('#ex-desc');if(dsc&&!dsc.value)dsc.value=file.name.replace(/\.[A-Za-z0-9]{1,8}$/,'')}
     toast('Receipt saved. Add the amount, then press Add expense.');var a=$('#ex-amt');if(a)a.focus();
-  }).catch(function(e){rcBusy=false;rcMsg=e&&e.big?'That file is over 50 MB. Choose a smaller one.':dzErr(e);rcDraw()});
+  }).catch(function(e){Promise.resolve(e&&e.bodyP).catch(function(){}).then(function(){rcBusy=false;rcMsg=e&&e.big?'That file is over 50 MB. Choose a smaller one.':dzErr(e);rcDraw()})});
 }
 document.addEventListener('click',function(e){
   var b=e.target&&e.target.closest?e.target.closest('[data-rcpick],[data-rcrm],[data-rcopen],[data-rcuse]'):null;if(!b||!b.closest('#exOv'))return;

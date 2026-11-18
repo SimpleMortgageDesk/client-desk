@@ -163,7 +163,20 @@
     if ((r.status === 429 || r.status === 503) && !retried) { await sleep(Math.min(10, +r.headers.get('Retry-After') || 2) * 1000); return gfetch(path, opt, true); }
     return r;
   }
-  function httpErr(r) { var e = new Error(SNAME() + ' said ' + r.status); e.status = r.status; return e; }
+  function httpErr(r) {
+    var e = new Error(SNAME() + ' said ' + r.status); e.status = r.status;
+    /* OneDrive says 507 when it is full; Google Drive says 403 and names the reason in the reply, which is read in the background */
+    if (r.status === 507) e.full = true;
+    else if ((r.status === 403 || r.status === 409) && r.clone) { e.bodyP = r.clone().text().then(function (t) { if (/storageQuotaExceeded|quotaLimitReached|insufficientStorage|quotaExceeded/i.test(t)) e.full = true; }, function () {}); }
+    return e;
+  }
+  function isFull(e) { return !!(e && (e.full || e.status === 507)); }
+  /* where a person goes to free up space or add storage */
+  function storageLinks() {
+    return PROV === 'google'
+      ? [['Open Google Drive', 'https://drive.google.com/'], ['Get more storage', 'https://one.google.com/storage']]
+      : [['Open OneDrive', 'https://onedrive.live.com/'], ['Get more storage', 'https://onedrive.live.com/about/en-gb/plans/']];
+  }
 
   /* ---------- local cache (IndexedDB) ---------- */
   var idb = null;
@@ -296,9 +309,38 @@
   };
 
   /* ---------- status text ---------- */
-  var st = { offline: false, busy: '', last: 0, err: '' };
+  var st = { offline: false, busy: '', last: 0, err: '', full: false };
   function pending() { return Object.keys(dirty).length; }
+  /* shown only when something is wrong: changes that cannot reach the person's storage (full, offline with changes waiting, or another problem) */
+  function syncBar() {
+    var hd = document.querySelector('#app > header.top'); if (!hd) return;
+    var n = pending(), nTxt = n ? n + ' change' + (n > 1 ? 's' : '') : '', msg = '', btns = '';
+    var retry = '<button type="button" data-sbretry="1">Try again</button>';
+    if (tok() && st.err && st.full) {
+      msg = '<b>Your ' + SNAME() + ' is full.</b> ' + (n ? nTxt + (n > 1 ? ' are' : ' is') + ' waiting and safe on this device. ' : 'New changes cannot be saved yet. ') + 'Free up space or add storage, and they will save by themselves. If you log out or clear this browser before then, they would be lost.';
+      btns = storageLinks().map(function (l) { return '<a href="' + l[1] + '" target="_blank" rel="noopener">' + l[0] + '</a>'; }).join('') + retry;
+    } else if (tok() && st.err && /Sign-in needed/.test(st.err)) {
+      msg = '<b>Please sign in again.</b> ' + (n ? nTxt + (n > 1 ? ' are' : ' is') + ' waiting and safe on this device, and will ' : 'Your changes will ') + 'be saved to your ' + SNAME() + ' once you have signed in.';
+      btns = '<button type="button" data-sbout="1">Log out and sign in</button>';
+    } else if (tok() && st.err) {
+      msg = '<b>We could not save ' + (nTxt || 'your changes') + ' to your ' + SNAME() + '.</b> ' + (n ? 'They are' : 'Anything new is') + ' safe on this device and we keep trying every half minute.';
+      btns = retry;
+    } else if (tok() && st.offline && n) {
+      msg = '<b>You are offline.</b> ' + nTxt + (n > 1 ? ' are' : ' is') + ' saved on this device and will go to your ' + SNAME() + ' when you are back online.';
+    }
+    var el = $('syncBar');
+    if (!msg) { if (el) el.hidden = true; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'syncBar'; el.setAttribute('role', 'alert'); hd.appendChild(el); }
+    el.hidden = false; el.innerHTML = '<span class="sbm">' + msg + '</span><span class="sbb">' + btns + '</span>';
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target; if (!t || !t.closest) return;
+    if (t.closest('[data-sbretry]')) { st.busy = 'Trying again…'; setState(); Promise.resolve(flush()).then(function () { return pull(); }).catch(function () {}).then(function () { st.busy = ''; setState(); }); }
+    else if (t.closest('[data-sbout]')) signOut();
+  });
   function setState() {
+    if (!st.err) st.full = false;
+    syncBar();
     var el = $('syncState'); if (!el) return;
     var txt, col = '#58697A';
     if (!tok()) txt = 'Not signed in';
@@ -361,14 +403,14 @@
       flushing = false; setState();
       if (pending()) scheduleFlush(300);
     } catch (e) {
-      flushing = false; handleErr(e);
+      flushing = false; if (e && e.bodyP) { try { await e.bodyP; } catch (x) {} } handleErr(e);
       if (!e.auth) scheduleFlush(30000);
     }
   }
   function handleErr(e) {
     if (e && e.auth) { st.err = e.renew ? 'Reconnect Google Drive to sync' : 'Sign-in needed'; setState(); return; }
     if (e instanceof TypeError || (e && /Failed to fetch|NetworkError|Load failed/i.test(e.message))) { st.offline = true; st.err = ''; }
-    else { st.err = 'Sync problem (' + (e && e.message || 'unknown') + ')'; st.offline = false; }
+    else { st.err = 'Sync problem (' + (e && e.message || 'unknown') + ')'; st.offline = false; st.full = isFull(e); }
     setState();
   }
 
@@ -1575,7 +1617,7 @@
   async function signOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
     var msg = pending()
-      ? pending() + ' change(s) have not reached ' + SNAME() + ' yet and will be lost. Log out anyway?'
+      ? (st.full ? 'Your ' + SNAME() + ' is full, so ' + pending() + ' change(s) are only on this device and will be LOST if you log out. Free up space first. Log out anyway?' : pending() + ' change(s) have not reached ' + SNAME() + ' yet and will be lost. Log out anyway?')
       : 'Log out? Records are removed from this device and load again when you sign in. Signing in again also loads the latest version of the app.';
     if (!confirm(msg)) return;
     rememberMail(); await wipeAndReload(false);
@@ -1885,6 +1927,11 @@
     document.body.appendChild(ov);
     var ap = $('app'); if (ap) { try { ap.inert = true; } catch (x) {} }
     (buttons || []).forEach(function (b, n) { ov.querySelector('[data-vb="' + n + '"]').onclick = b[1]; });
+  }
+  function fullScreen() {
+    var L = storageLinks();
+    vScreen('&#128230;', 'Your ' + SNAME() + ' is full', (sget('cd.reg') ? 'Your registration went through. ' : '') + esc(APPN) + ' keeps your records in your own ' + SNAME() + ', and there is no space left in it, so nothing can be saved yet. Free up some space (empty the recycle bin too) or add storage, then press <b>Try again</b>. You stay signed in.',
+      [['Try again', function () { location.reload(); }], [L[0][0] + ' to free up space', function () { window.open(L[0][1], '_blank', 'noopener'); }], [L[1][0], function () { window.open(L[1][1], '_blank', 'noopener'); }], ['Log out', function () { wipeAndReload(false); }]]);
   }
   function vNoReg(em) {
     vScreen('&#128274;', 'Please register first', 'We could not find a registration for <b>' + esc(em) + '</b>. ' + esc(APPN) + ' is only for people who have registered and confirmed their email address. If you registered with a different email address, log out and log in with that one.',
@@ -2392,10 +2439,15 @@
       try { await ensureWorkspace(); }
       catch (e) {
         if (e && e.renew) { await new Promise(function (r) { window.CD_gAfter = r; gBanner('Google needs you to confirm access before your folder can be opened.'); }); await ensureWorkspace(); }
-        else { showSignIn('Could not open your ' + SNAME() + ' folder (' + (e && e.message || 'error') + '). Check your connection and sign in again.'); setTok(null); return; }
+        else {
+          if (e && e.bodyP) { try { await e.bodyP; } catch (x) {} }
+          if (isFull(e)) { fullScreen(); return; }
+          showSignIn('Could not open your ' + SNAME() + ' folder (' + (e && e.message || 'error') + '). Check your connection and sign in again.'); setTok(null); return;
+        }
       }
     }
     startIdleWatch(); startLockWatch(); setTimeout(pinWarnMaybe, 2500);
+    window.addEventListener('beforeunload', function (e) { if (pending() && (st.err || st.offline)) { e.preventDefault(); e.returnValue = ''; } });
     var o = $('mdSign'); if (o) o.remove();
     if (SHARED) {
       setTimeout(function () { toast('Shared computer: nothing is kept on this device. Log out when you finish.'); }, 3500);

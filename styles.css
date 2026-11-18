@@ -1069,3 +1069,14 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 :root[data-theme="dark"] .prichk{color:#F2A29C}
 :root[data-theme="dark"] .tnsum.warn{color:#E6B85C}
 :root[data-theme="dark"] .tnsum.bad{color:#F2A29C}
+
+/* a bar under the top menu, shown only when changes cannot be saved to the person's storage */
+#syncBar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:10px 16px;background:#FFE9B8;color:#3d2800;border-top:1px solid #E6B94E;border-bottom:3px solid #D98A00;font-size:14px;line-height:1.5}
+#syncBar[hidden]{display:none}
+#syncBar .sbm{flex:1 1 360px;min-width:0}
+#syncBar .sbb{display:flex;flex-wrap:wrap;gap:8px}
+#syncBar a,#syncBar button{display:inline-block;border:1px solid #8a5a00;background:#fff;color:#3d2800;border-radius:8px;padding:7px 12px;font:600 13.5px/1.2 inherit;text-decoration:none;cursor:pointer}
+#syncBar button[data-sbretry]{background:#3d2800;color:#fff}
+#syncBar a:hover,#syncBar button:hover{filter:brightness(.95)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #syncBar{background:#3a2c0d;color:#ffe9b8;border-color:#a77a1c}:root:not([data-theme="light"]) #syncBar a,:root:not([data-theme="light"]) #syncBar button{background:#2a1f08;color:#ffe9b8;border-color:#a77a1c}:root:not([data-theme="light"]) #syncBar button[data-sbretry]{background:#ffe9b8;color:#2a1f08}}
+:root[data-theme="dark"] #syncBar{background:#3a2c0d;color:#ffe9b8;border-color:#a77a1c}:root[data-theme="dark"] #syncBar a,:root[data-theme="dark"] #syncBar button{background:#2a1f08;color:#ffe9b8;border-color:#a77a1c}:root[data-theme="dark"] #syncBar button[data-sbretry]{background:#ffe9b8;color:#2a1f08}
