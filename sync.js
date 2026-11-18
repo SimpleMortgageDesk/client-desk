@@ -1454,6 +1454,8 @@
       if (!(ok.ms && ok.g)) { proceed(which); return; }
       /* both are available: the next screen asks which account, with the one that matches the email address shown first */
       var dom = (mail.split('@')[1] || '').toLowerCase(), guess = /^(gmail|googlemail)\./.test(dom) ? 'google' : /^(outlook|hotmail|live|msn|passport)\./.test(dom) ? 'ms' : '';
+      /* the address itself says which: Outlook, Hotmail, Live, MSN go to Microsoft and Gmail goes to Google, with no question asked. Only an address that does not say (a work or other email) is asked. */
+      if (guess) { proceed(guess); return; }
       var opt = function (k, title, where) { var rec = guess === k; return '<button type="button" data-rgpick="' + k + '" style="' + (rec ? pri : sec) + '">' + title + sub(where + (rec ? ' · matches your email address' : ''), rec) + '</button>'; };
       var pk = o.querySelector('#rgPick');
       pk.innerHTML = '<h2 style="margin:0 0 6px;font-size:20px">Which account will you sign in with?</h2><p style="margin:0 0 4px;color:#58697A;font-size:14px">Your records are kept in that account\'s own storage. Choose the account you use for <b>' + esc(mail) + '</b>.</p>' +
