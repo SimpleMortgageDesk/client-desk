@@ -1080,3 +1080,13 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 #syncBar a:hover,#syncBar button:hover{filter:brightness(.95)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #syncBar{background:#3a2c0d;color:#ffe9b8;border-color:#a77a1c}:root:not([data-theme="light"]) #syncBar a,:root:not([data-theme="light"]) #syncBar button{background:#2a1f08;color:#ffe9b8;border-color:#a77a1c}:root:not([data-theme="light"]) #syncBar button[data-sbretry]{background:#ffe9b8;color:#2a1f08}}
 :root[data-theme="dark"] #syncBar{background:#3a2c0d;color:#ffe9b8;border-color:#a77a1c}:root[data-theme="dark"] #syncBar a,:root[data-theme="dark"] #syncBar button{background:#2a1f08;color:#ffe9b8;border-color:#a77a1c}:root[data-theme="dark"] #syncBar button[data-sbretry]{background:#ffe9b8;color:#2a1f08}
+
+/* Calendar spreads across the whole page for every trade. On wide screens the Reminders panel sits under it, beside the Tasks list. */
+@media (min-width:1100px){
+  .homesplit.nocal{align-items:stretch}
+  .homesplit:not(.nocal){grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"cal cal" "tasks rem";grid-template-rows:auto auto;height:auto;align-items:start}
+  .homesplit:not(.nocal) #homeCal{max-height:none;height:auto;overflow:visible}
+  .homesplit:not(.nocal) .htk,.homesplit:not(.nocal) .hrem{height:auto;max-height:none;overflow:visible;position:static;align-self:start}
+  .homesplit.calfull .htk{grid-column:1}
+  .homesplit.calfull:not(:has(.htk)) .hrem{grid-column:1 / -1}
+}
