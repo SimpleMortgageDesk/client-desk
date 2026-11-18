@@ -1439,9 +1439,9 @@
       if (trade2 && window.CD_tradeOpen && !window.CD_tradeOpen(trade2)) trade2 = '';
       /* an address that already has an account cannot register again. If the check cannot be made, registration carries on and the server still keeps one account per address. */
       if (vOn()) {
-        var sbtn = f.querySelectorAll('button'); sbtn.forEach(function (x) { x.disabled = true; });
+        var sbtn = f.querySelectorAll('button'), nb = f.querySelector('[data-rg="next"]'), nbT = nb ? nb.innerHTML : ''; sbtn.forEach(function (x) { x.disabled = true; }); if (nb) nb.textContent = 'Checking\u2026';
         var tk = null; try { var tr = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'taken', email: mail }) }); if (tr.ok) tk = await tr.json(); } catch (x) {}
-        sbtn.forEach(function (x) { x.disabled = false; });
+        sbtn.forEach(function (x) { x.disabled = false; }); if (nb) nb.innerHTML = nbT;
         if (tk && tk.taken) {
           say(tk.confirmed ? 'There is already an account with this email address, so it cannot be used to register again. Please log in instead.' : 'This email address has already been used to register, but it has not been confirmed yet. Log in to be sent the confirmation email again.', 'rgMail');
           var tp = o.querySelector('#rgTop'); if (tp) { tp.appendChild(document.createTextNode(' ')); var la = document.createElement('a'); la.href = '#'; la.setAttribute('data-sp', 'login'); la.style.cssText = 'color:inherit;font-weight:700;text-decoration:underline'; la.textContent = 'Log in'; tp.appendChild(la); }
