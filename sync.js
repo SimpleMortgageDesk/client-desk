@@ -1437,6 +1437,17 @@
       var t2s = o.querySelector('#rgTrade2'), trade2 = t2s ? t2s.value : '';
       if (trade2 && trade2 === trade) return say('Choose two different ones, or leave the second as "No, just one".', 'rgTrade2');
       if (trade2 && window.CD_tradeOpen && !window.CD_tradeOpen(trade2)) trade2 = '';
+      /* an address that already has an account cannot register again. If the check cannot be made, registration carries on and the server still keeps one account per address. */
+      if (vOn()) {
+        var sbtn = f.querySelectorAll('button'); sbtn.forEach(function (x) { x.disabled = true; });
+        var tk = null; try { var tr = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'taken', email: mail }) }); if (tr.ok) tk = await tr.json(); } catch (x) {}
+        sbtn.forEach(function (x) { x.disabled = false; });
+        if (tk && tk.taken) {
+          say(tk.confirmed ? 'There is already an account with this email address, so it cannot be used to register again. Please log in instead.' : 'This email address has already been used to register, but it has not been confirmed yet. Log in to be sent the confirmation email again.', 'rgMail');
+          var tp = o.querySelector('#rgTop'); if (tp) { tp.appendChild(document.createTextNode(' ')); var la = document.createElement('a'); la.href = '#'; la.setAttribute('data-sp', 'login'); la.style.cssText = 'color:inherit;font-weight:700;text-decoration:underline'; la.textContent = 'Log in'; tp.appendChild(la); }
+          return;
+        }
+      }
       var reg = { name: nm, email: mail, phone: ph, phoneRaw: raw, mode: mode, prov: which, trade: trade, trade2: trade2, t: Date.now() };
       if (mode === 'pw') {
         var p1 = o.querySelector('#rgPw').value, p2 = o.querySelector('#rgPw2').value;

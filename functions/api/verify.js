@@ -65,6 +65,16 @@ export async function onRequestPost({ request, env }) {
   if (!EMAIL.test(email)) return json({ error: 'bad email' }, 400);
   await table(env.DB);
   const row = await env.DB.prepare('SELECT sent_at, sent_day, sent_n, confirmed_at FROM verify WHERE email = ?1').bind(email).first();
+  if (d.action === 'taken') {
+    /* asked from the Register form before anything is sent: is there already an account for this address? Limited per sender like the status check. */
+    if (await rateLimit(env.DB, request, new Date().toISOString(), 'status', 120)) return json({ error: 'too many requests' }, 429);
+    try {
+      const u = await env.DB.prepare('SELECT 1 AS x FROM users WHERE (email = ?1 OR lower(account_email) = ?1) AND deleted_at IS NULL LIMIT 1').bind(email).first();
+      const vr = await env.DB.prepare('SELECT confirmed_at FROM verify WHERE email = ?1').bind(email).first();
+      const taken = !!u || !!(vr && vr.confirmed_at);
+      return json({ taken, confirmed: !!(vr && vr.confirmed_at) || (taken && !vr) });
+    } catch (e) { return json({ error: 'could not check' }, 503); }
+  }
   if (d.action === 'status') {
     /* anyone can ask whether an address is registered, so each sender is limited: it stops people trying a long list of addresses */
     if (await rateLimit(env.DB, request, new Date().toISOString(), 'status', 120)) return json({ error: 'too many requests' }, 429);
