@@ -1507,6 +1507,14 @@
           row('Import a backup file', 'Adds records from a ' + esc(APPN) + ' backup (.json). Records you already have are not changed.', '<label class="cds-btn" for="mdImp">Choose file</label><input type="file" id="mdImp" accept=".json,application/json" class="cds-file">') +
           row('Restore from a backup', 'Puts records back after a mistake. Records in the file replace the matching records here.', '<label class="cds-btn" for="mdRes">Choose file</label><input type="file" id="mdRes" accept=".json,application/json" class="cds-file">'))
         +
+        grp('Sign-in and devices',
+          row('How you sign in', 'You sign in with your ' + (isG ? 'Google' : 'Microsoft') + ' account, on its own secure page. ' + esc(APPN) + ' never sees your password and does not keep one. Your account\'s own protection applies: its sign-in checks, alerts and lock-outs.', '') +
+          row('Two-step verification', 'Strongly recommended. It stops someone getting into your account, and so your records, with just a password. Turn it on in your ' + (isG ? 'Google' : 'Microsoft') + ' account.', '<a class="cds-btn pri" href="' + (isG ? 'https://myaccount.google.com/security' : 'https://account.microsoft.com/security') + '" target="_blank" rel="noopener">Open</a>') +
+          row('Your devices', 'See every device signed in to your account, and remove any you do not recognise.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/device-activity' : 'https://account.microsoft.com/devices') + '" target="_blank" rel="noopener">Open</a>') +
+          row('Recent sign-ins', 'Check for sign-ins you do not recognise.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/notifications' : 'https://account.live.com/activity') + '" target="_blank" rel="noopener">Open</a>') +
+          row('Sign out everywhere', 'Removing ' + esc(APPN) + '\'s access signs it out on every device at once. Your records are not deleted, and you can log in again whenever you like.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/connections' : 'https://account.live.com/consent/Manage') + '" target="_blank" rel="noopener">Open</a>') +
+          row('This device', 'The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity and signs you out after ' + idleLabel() + '. On a shared or public computer, tick that box when you log in and nothing is kept on it.', btn('out', 'Log out of this device')))
+        +
         grp('Help',
           row('Quick guide', 'A short tour of the main screens.', btn('guide', 'Open')) +
           row('Contact MySimpleDesk', 'Questions, problems or ideas? Email support@mysimpledesk.co.uk and we will reply.', '<a class="cds-btn" href="mailto:support@mysimpledesk.co.uk?subject=' + encodeURIComponent('MySimpleDesk help') + '">Email us</a>') +

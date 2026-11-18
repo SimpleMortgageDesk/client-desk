@@ -42,13 +42,13 @@ th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}
   function load() {
     $('out').innerHTML = '<div class="msg">Loading…</div>';
     fetch('../api/admin/users', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || ('Error ' + r.status)); return j; }); })
-      .then(function (j) { users = j.users || []; deleted = j.deleted || []; $('who').textContent = 'Signed in as ' + j.admin; draw(); })
+      .then(function (j) { users = j.users || []; deleted = j.deleted || []; hardened = j.hardened !== false; $('who').textContent = 'Signed in as ' + j.admin; draw(); })
       .catch(function (e) { $('out').innerHTML = '<div class="msg err">' + esc(e.message || 'Could not load the list.') + '</div>'; });
   }
   /* which plan they would be on: home owners free, landlords 0.99 up to 5 let properties, 1.99 above */
   function ll(u) { return /landlord/i.test(u.trade || ''); }
   function prof(u) { return String(u.trade || '').split('+').some(function (x) { x = x.trim(); return x && !/landlord/i.test(x); }); }
-  var deleted = [];
+  var deleted = [], hardened = true;
   function plan(u) { if (prof(u)) return '£1.99'; if (!ll(u)) return ''; if (u.props == null) return ''; return u.props === 0 ? 'Home owner (free)' : u.props <= 5 ? '£0.99' : '£1.99'; }
   var PAY = { trial: ['Trial', '#EAF4EF', '#0A6B50'], paid: ['Paid', '#DCEFE8', '#07543f'], due: ['Due', '#FADDD9', '#A3261F'] };
   function payOf(u) { return PAY[u.pay] ? u.pay : 'trial'; }
@@ -56,14 +56,19 @@ th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}
   function no(u) { return u.user_no ? 'MSD-' + u.user_no : ''; }
   /* landlords: the free year runs 12 months from sign-up; home owners never pay */
   function ends(u) { if (ll(u) && !prof(u) && u.props === 0) return 'never (free)'; var s = u.signed_up || u.first_seen; if (!s) return ''; var d = new Date(s); d.setFullYear(d.getFullYear() + 1); var left = Math.ceil((d - Date.now()) / 864e5); return day(d) + (left < 0 ? '<div style="color:#A3261F;font-weight:700;font-size:12px">ended</div>' : left <= 30 ? '<div style="color:#8A5A00;font-weight:700;font-size:12px">in ' + left + ' days</div>' : ''); }
+  /* a warning shown above the list until the two safeguards for this page are in place */
+  function secNote() {
+    if (hardened) return '';
+    return '<div style="margin:0 0 14px;padding:12px 14px;border:2px solid #D98A00;border-left-width:8px;border-radius:10px;background:#FFE9B8;color:#3d2800;font-size:14px;line-height:1.5"><b>Protect this page:</b> the allowed-email check is not switched on. Anyone Cloudflare Access lets in could use it. In Cloudflare, open Workers &amp; Pages, then your project, then Settings, Variables and Secrets, and add <code>ADMIN_EMAILS</code> with your own email address. Also make sure your Access policy asks for two-step verification.</div>';
+  }
   function draw() {
     var q = $('q').value.trim().toLowerCase();
     var pf = $('pf').value; var list = users.filter(function (u) { return (!pf || payOf(u) === pf) && (!q || [no(u), u.name, u.email, u.mobile, u.business, u.trade].join(' ').toLowerCase().indexOf(q) > -1); });
     $('stats').innerHTML = [[users.length, 'Users'], [users.filter(function (u) { return ago(u.signed_up || u.first_seen, 7); }).length, 'New in the last 7 days'],
       [users.filter(function (u) { return ago(u.signed_up || u.first_seen, 30); }).length, 'New in the last 30 days'], [users.filter(function (u) { return ago(u.last_seen, 30); }).length, 'Active in the last 30 days'], [users.filter(function (u) { return u.suspended; }).length, 'Suspended'], [users.filter(function (u) { return payOf(u) === 'trial'; }).length, 'On trial'], [users.filter(function (u) { return payOf(u) === 'paid'; }).length, 'Paid'], [users.filter(function (u) { return payOf(u) === 'due'; }).length, 'Payment due']]
       .map(function (s) { return '<div class="stat"><b>' + s[0] + '</b><span>' + s[1] + '</span></div>'; }).join('');
-    if (!users.length) { $('out').innerHTML = '<div class="msg">No users yet. People appear here when they register, or the next time an existing user opens the app.</div>'; return; }
-    $('out').innerHTML = '<div class="tw"><table><thead><tr><th>User no</th><th>Name</th><th>Email</th><th>Mobile</th><th>Business</th><th>Kind of work</th><th>Properties</th><th>Plan</th><th>Free year ends</th><th>Payment</th><th>Account</th><th>Signed up</th><th>Last active</th><th>Days active</th><th></th></tr></thead><tbody>' +
+    if (!users.length) { $('out').innerHTML = secNote() + '<div class="msg">No users yet. People appear here when they register, or the next time an existing user opens the app.</div>'; return; }
+    $('out').innerHTML = secNote() + '<div class="tw"><table><thead><tr><th>User no</th><th>Name</th><th>Email</th><th>Mobile</th><th>Business</th><th>Kind of work</th><th>Properties</th><th>Plan</th><th>Free year ends</th><th>Payment</th><th>Account</th><th>Signed up</th><th>Last active</th><th>Days active</th><th></th></tr></thead><tbody>' +
       list.map(function (u) { return '<tr' + (u.delete_requested ? ' style="background:#FDECEA"' : '') + '><td style="white-space:nowrap;font-weight:700">' + no(u) + (u.ms_sub ? '<div title="This account has proved its Microsoft sign-in to the server" style="color:#0A6B50;font-size:11px;font-weight:700">&#10003; sign-in verified</div>' : '') + '</td><td>' + esc(u.name) + (ago(u.signed_up || u.first_seen, 7) ? '<span class="new">NEW</span>' : '') + (u.trade_unlock ? '<div style="color:#0A6B50;font-weight:700;font-size:12px">Trades unlocked ' + day(u.trade_unlock) + '</div>' : '') + (u.suspended ? '<div style="color:#8A5A00;font-weight:700;font-size:12px">Suspended ' + day(u.suspended) + '</div>' : '') + (u.delete_requested ? '<div style="color:#A3261F;font-weight:700;font-size:12px">Asked to be deleted ' + day(u.delete_requested) + '. Delete within one month.</div>' : '') + '</td><td><a href="mailto:' + esc(u.email) + '">' + esc(u.email) + '</a></td><td>' + esc(u.mobile) + '</td><td>' + esc(u.business) + '</td><td>' + esc(u.trade) + '</td><td>' + (u.props == null ? '<span title="Shown after they next open the app">not yet</span>' : esc(u.props) + (u.home ? ' + home' : '')) + '</td><td>' + plan(u) + '</td><td>' + ends(u) + '</td><td>' + paySel(u) + '</td><td>' + esc(u.account) + '</td><td>' + (u.signed_up ? day(u.signed_up) : '<span title="Recorded when they next used the app">' + day(u.first_seen) + '*</span>') + '</td><td>' + day(u.last_seen) + '</td><td>' + esc(u.days_active) + '</td><td style="white-space:nowrap"><button data-sus="' + esc(u.email) + '" data-on="' + (u.suspended ? '0' : '1') + '" style="margin-right:6px">' + (u.suspended ? 'Restore' : 'Suspend') + '</button><button data-tu="' + esc(u.email) + '" data-on="' + (u.trade_unlock ? '0' : '1') + '" title="People with two trades can only change them if you unlock it here. It is used up when they next save their trades." style="margin-right:6px">' + (u.trade_unlock ? 'Re-lock trades' : 'Unlock trades') + '</button><button class="del" data-del="' + esc(u.email) + '">Delete</button></td></tr>'; }).join('') +
       '</tbody></table></div>' + (users.some(function (u) { return !u.signed_up; }) ? '<p class="note">* Already using the app before the list started; date first recorded.</p>' : '') + delHtml();
   }

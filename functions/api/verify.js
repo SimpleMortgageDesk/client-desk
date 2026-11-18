@@ -5,7 +5,7 @@
    Optional variable MAIL_FROM, default "MySimpleDesk <support@mysimpledesk.co.uk>".
    Only an address that has asked for a link can be 'pending'. People who registered before this existed have no row, so are never locked out.
    Tokens are stored only as a hash and expire after 48 hours. */
-import { ensureTable, tooMany, verifyMs } from './signup.js';
+import { ensureTable, tooMany, rateLimit, verifyMs } from './signup.js';
 
 const say = (t, s, h) => new Response(t, { status: s || 200, headers: Object.assign({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cross-Origin-Resource-Policy': 'same-origin' }, h || {}) });
 const json = (o, s) => say(JSON.stringify(o), s, { 'Content-Type': 'application/json' });
@@ -52,6 +52,8 @@ export async function onRequestPost({ request, env }) {
   await table(env.DB);
   const row = await env.DB.prepare('SELECT sent_at, sent_day, sent_n, confirmed_at FROM verify WHERE email = ?1').bind(email).first();
   if (d.action === 'status') {
+    /* anyone can ask whether an address is registered, so each sender is limited: it stops people trying a long list of addresses */
+    if (await rateLimit(env.DB, request, new Date().toISOString(), 'status', 120)) return json({ error: 'too many requests' }, 429);
     const key = /^[a-f0-9]{32,64}$/.test(String(d.k || '')) ? String(d.k) : '';
     let sus = false, no = null, since = null, pay = 'trial', tu = null, gate = 'register', confirmed = false, pending = false;
     try {

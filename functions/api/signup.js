@@ -33,6 +33,16 @@ export async function giveNumber(db, email) {
     await db.prepare("INSERT INTO counters (k, n) VALUES ('user_no', (SELECT COALESCE(MAX(user_no), 1000) FROM users)) ON CONFLICT(k) DO UPDATE SET n = MAX(counters.n, excluded.n)").run();
   } catch (e) {}
 }
+/* the same idea for any other kind of call, counted separately: scope names the kind, max is the most allowed from one sender in an hour */
+export async function rateLimit(db, request, now, scope, max) {
+  try {
+    const hr = now.slice(0, 13), ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const dig = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(scope + '|' + ip + '|' + hr));
+    const k = Array.from(new Uint8Array(dig)).slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+    const r = await db.prepare('INSERT INTO hits (k, hr, n) VALUES (?1, ?2, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n').bind(k, hr).first();
+    return !!r && r.n > max;
+  } catch (e) { return false; }
+}
 /* true when this sender has made too many calls this hour */
 export async function tooMany(db, request, now) {
   try {

@@ -46,7 +46,9 @@ export async function onRequest({ request, env }) {
     for (const u of (none.results || [])) await giveNumber(env.DB, u.email);
     const r = await env.DB.prepare('SELECT * FROM users WHERE deleted_at IS NULL ORDER BY COALESCE(signed_up, first_seen) DESC').all();
     const dl = await env.DB.prepare('SELECT user_no, name, email, account_email, mobile, business, trade, pay, signed_up, first_seen, deleted_at FROM users WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').all();
-    return json({ admin: who, users: r.results || [], deleted: dl.results || [] });
+    /* false means anyone Cloudflare Access lets in could use this page: ADMIN_EMAILS (your own address) should be set */
+    const hardened = String(env.ADMIN_EMAILS || '').split(',').some(x => x.trim());
+    return json({ admin: who, hardened, users: r.results || [], deleted: dl.results || [] });
   }
   if (request.method === 'DELETE') {
     const email = (new URL(request.url).searchParams.get('email') || '').toLowerCase();
