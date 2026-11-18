@@ -91,7 +91,7 @@ export async function verifyMs(idt, env) {
   } catch (e) { return null; }
 }
 const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, n);
-const say = (t, s) => new Response(t, { status: s || 200, headers: { 'Cache-Control': 'no-store' } });
+const say = (t, s) => new Response(t, { status: s || 200, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cross-Origin-Resource-Policy': 'same-origin' } });
 
 export async function onRequestPost({ request, env }) {
   if (!env.DB) return say('sign-up list not set up', 503);

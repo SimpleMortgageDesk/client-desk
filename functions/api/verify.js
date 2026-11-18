@@ -7,7 +7,7 @@
    Tokens are stored only as a hash and expire after 48 hours. */
 import { ensureTable, tooMany, verifyMs } from './signup.js';
 
-const say = (t, s, h) => new Response(t, { status: s || 200, headers: Object.assign({ 'Cache-Control': 'no-store' }, h || {}) });
+const say = (t, s, h) => new Response(t, { status: s || 200, headers: Object.assign({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cross-Origin-Resource-Policy': 'same-origin' }, h || {}) });
 const json = (o, s) => say(JSON.stringify(o), s, { 'Content-Type': 'application/json' });
 const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]+/g, ' ').trim().slice(0, n);
 const hex = buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
