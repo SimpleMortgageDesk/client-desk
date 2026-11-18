@@ -25,6 +25,19 @@ async function table(db) {
 }
 const page = (title, body) => say('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + '</title><style>body{font:16px system-ui,sans-serif;background:#FBFAF7;color:#101C26;margin:0;display:grid;place-items:center;min-height:100vh;padding:20px}main{max-width:440px;background:#fff;border:1px solid #D4DBDF;border-radius:14px;padding:28px}h1{font-size:22px;margin:0 0 10px}a.b{display:inline-block;margin-top:14px;background:#0A6B50;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600}</style></head><body><main>' + body + '</main></body></html>', 200, { 'Content-Type': 'text/html;charset=utf-8' });
 
+/* Welcome email, sent once when the address is first confirmed. Best effort: a failure never blocks confirming. */
+async function welcome(env, email, origin) {
+  if (!env.RESEND_API_KEY || env.WELCOME_EMAIL === 'off') return;
+  try {
+    const u = await env.DB.prepare('SELECT name FROM users WHERE email = ?1 OR lower(account_email) = ?1 LIMIT 1').bind(email).first();
+    const name = clean(u && u.name, 80).split(' ')[0] || 'there', from = env.MAIL_FROM || 'MySimpleDesk <support@mysimpledesk.co.uk>';
+    const app = origin + '/?p=login', btn = 'display:inline-block;background:#0A6B50;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600';
+    const html = '<div style="font:16px system-ui,sans-serif;color:#101C26;max-width:480px;line-height:1.5"><p>Hello ' + name + ',</p><p>Welcome to MySimpleDesk. Your email is confirmed and your account is ready.</p><p><b>Getting started</b></p><ol style="padding-left:20px"><li>Log in with the same Microsoft or Google account you registered with.</li><li>Add your first client, property or job.</li><li>Set a reminder so nothing gets missed.</li></ol><p><a href="' + app + '" style="' + btn + '">Open MySimpleDesk</a></p><p>Your records are saved in your own OneDrive or Google Drive, so they stay yours.</p><p style="font-size:14px;color:#58697A">Need a hand? Just reply to this email or use Contact support in the Help section.</p><p>Thank you for joining,<br>The MySimpleDesk team</p></div>';
+    const text = 'Hello ' + name + ',\n\nWelcome to MySimpleDesk. Your email is confirmed and your account is ready.\n\nGetting started:\n1. Log in with the same Microsoft or Google account you registered with.\n2. Add your first client, property or job.\n3. Set a reminder so nothing gets missed.\n\nOpen the app: ' + app + '\n\nYour records are saved in your own OneDrive or Google Drive, so they stay yours.\n\nNeed a hand? Reply to this email or use Contact support in the Help section.\n\nThe MySimpleDesk team';
+    await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to: [email], reply_to: 'support@mysimpledesk.co.uk', subject: 'Welcome to MySimpleDesk', html, text }) });
+  } catch (x) { /* ignore */ }
+}
+
 export async function onRequestGet({ request, env }) {
   if (!env.DB) return page('Not ready', '<h1>Not ready yet</h1><p>Please try again later.</p>');
   const u = new URL(request.url), t = u.searchParams.get('t') || '', e = clean(u.searchParams.get('e'), 160).toLowerCase();
@@ -34,6 +47,7 @@ export async function onRequestGet({ request, env }) {
   if (row && row.confirmed_at) return page('Confirmed', '<h1>Already confirmed</h1><p>Your email address is confirmed. You can log in.</p><a class="b" href="/?p=login">Log in</a>');
   if (!row || row.token_hash !== await sha(t) || Date.now() - Date.parse(row.sent_at) > 48 * 3600e3) return page('Link problem', '<h1>This link has expired or is not valid</h1><p>Go back to the app and press <b>Send the email again</b>.</p><a class="b" href="/?p=login">Open the app</a>');
   await env.DB.prepare('UPDATE verify SET confirmed_at = ?2, token_hash = NULL WHERE email = ?1').bind(e, new Date().toISOString()).run();
+  await welcome(env, e, u.origin); /* once only: the 'already confirmed' branch above returns before reaching here */
   return page('Confirmed', '<h1>Email confirmed</h1><p>Thank you. Your email address is confirmed. You can now log in.</p><a class="b" href="/?p=login">Log in</a>');
 }
 
