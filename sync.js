@@ -1323,7 +1323,7 @@
       html = '<form id="lgForm" novalidate class="mdl">' + hdr('register') + '<h1>Welcome back</h1>' +
       '<p class="lead">Log in with the email you registered with. Your records load from your own ' + (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') + '.</p>' +
       '<label style="font-size:14px">User ID (your email address)<input id="lgMail" type="email" name="username" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" value="' + esc(lastMail) + '" style="' + lgInp + '"></label>' +
-      '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' + (SHARED ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>Shared or public computer</b><br><span style="color:#58697A;font-size:13px">Nothing is kept on this computer.</span></span></label>' +
+      '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' + (SHARED ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>Shared or public computer</b><br><span style="color:#58697A;font-size:13px">Tick this on a computer that is not yours. Nothing is kept on it and you are logged out after 2 hours. Leave it unticked on your own phone or computer and you stay logged in for 30 days.</span></span></label>' +
       '<button type="submit" id="lgGo" style="' + pri + '">Log in' + sub('You type your password on ' + (ok.g ? 'their' : 'Microsoft\'s') + ' own page', 1) + '</button>' +
       '<p id="lgLock" role="alert" style="display:none;margin:12px 0 0;padding:10px 12px;background:#FDECEA;color:#A3261F;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
       '<p style="margin:18px 0 0;font-size:14px"><a href="#" data-sp="forgot" style="color:#0A6B50;font-weight:600">Forgot your password or user ID?</a></p>' +
@@ -1568,7 +1568,7 @@
           row('Your devices', 'See every device signed in to your account, and remove any you do not recognise.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/device-activity' : 'https://account.microsoft.com/devices') + '" target="_blank" rel="noopener">Open</a>') +
           row('Recent sign-ins', 'Check for sign-ins you do not recognise.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/notifications' : 'https://account.live.com/activity') + '" target="_blank" rel="noopener">Open</a>') +
           row('Sign out everywhere', 'Removing ' + esc(APPN) + '\'s access signs it out on every device at once. Your records are not deleted, and you can log in again whenever you like.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/connections' : 'https://account.live.com/consent/Manage') + '" target="_blank" rel="noopener">Open</a>') +
-          row('This device', 'The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity and signs you out after ' + idleLabel() + '. On a shared or public computer, tick that box when you log in and nothing is kept on it.', btn('out', 'Log out of this device')))
+          row('This device', (SHARED ? 'This is a shared or public computer, so you are signed out after ' + idleLabel() + ' with no activity, and nothing is kept on it when you close the browser.' : 'This is your own device, so you stay logged in until ' + idleLabel() + ' have passed with no use of the app.') + (lockable() ? ' The screen also locks after ' + (LOCK_MS / 60000) + ' minutes with no activity until you enter your app password.' : ' To protect it if someone else picks it up, set an app password under Sign-in and devices: the screen then locks after ' + (LOCK_MS / 60000) + ' minutes.') + ' On a shared or public computer, tick that box when you log in and nothing is kept on it.', btn('out', 'Log out of this device')))
         +
         grp('Help',
           row('Quick guide', 'A short tour of the main screens.', btn('guide', 'Open')) +
@@ -1680,10 +1680,15 @@
   }
   /* ---------- automatic log out after a period with no activity (default 2 hours) ---------- */
   var IDLE_MS = Math.max(0.05, +(CFG.idleMinutes || 120)) * 60000, idleBusy = false, lastW = 0;
-  function idleLabel() { var m = IDLE_MS / 60000; return m >= 60 ? (m / 60 === 1 ? '1 hour' : (m / 60) + ' hours') : m + ' minutes'; }
+  /* your own phone or computer stays logged in for 30 days of not using the app; a shared or public computer logs out after 2 hours (and when the browser is closed) */
+  var STAY_MS = Math.max(IDLE_MS, Math.max(1, +(CFG.stayDays || 30)) * 864e5);
+  function idleMs() { return SHARED ? IDLE_MS : STAY_MS; }
+  function labelFor(ms) { var m = ms / 60000; if (m >= 1440) { var d = Math.round(m / 1440); return d === 1 ? '1 day' : d + ' days'; } return m >= 60 ? (m / 60 === 1 ? '1 hour' : (m / 60) + ' hours') : m + ' minutes'; }
+  function idleLabel() { return labelFor(idleMs()); }
+  window.CD_idleInfo = function (sh, ago) { var shared = sh == null ? SHARED : !!sh, ms = shared ? IDLE_MS : STAY_MS, a = ago == null ? Date.now() - lastAct() : ago; return { ms: ms, label: labelFor(ms), shared: shared, idle: a >= ms }; };
   function markAct() { if (locked) return; try { store().setItem('cd.act', String(Date.now())); } catch (e) {} }
   function lastAct() { var v = 0; try { v = +store().getItem('cd.act') || 0; } catch (e) {} return v || Date.now(); }
-  function isIdle() { return Date.now() - lastAct() >= IDLE_MS; }
+  function isIdle() { return Date.now() - lastAct() >= idleMs(); }
   async function autoSignOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
     if (pending()) {
