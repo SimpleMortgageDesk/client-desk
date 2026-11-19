@@ -1529,7 +1529,9 @@
       var pend = pending() ? pending() + ' change(s) waiting to upload.' : 'Everything is uploaded.';
       var sec = pinData() ? row('App password ' + on(true), 'Asked when you log in. The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.', btn('pin', 'Change'))
         : acctMode() ? row('Password ' + on(true, isG ? 'Gmail' : 'Outlook'), 'You unlock with your ' + (isG ? 'Gmail' : 'Outlook') + ' account password. The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.', btn('pin', 'Use an app password'))
-        : row('App password ' + on(false, 'Not set'), '<span class="cds-warn">Anyone who picks up this device while you are signed in can see your records.</span>', btn('pin', 'Set password', 1));
+        : row('App password ' + on(false, 'Not set'), '' + (qpinData() ? '<span>Optional. Your quick PIN already locks this device.</span>' : '<span class="cds-warn">Anyone who picks up this device while you are signed in can see your records.</span>') + '', btn('pin', 'Set password', 1));
+      var qrow = qpinData() ? row('Quick PIN ' + on(true), 'Unlocks this device after the app locks (' + (LOCK_MS / 60000) + ' minutes with no activity). It works on this device only.', btn('qpin', 'Change'))
+        : row('Quick PIN ' + on(false, 'Not set'), 'A 4 to 6 digit number that unlocks this device quickly. It works on this device only.', btn('qpin', 'Set PIN', !pinData() && !acctMode()));
       ov.innerHTML = '<div class="cds" role="dialog" aria-modal="true" aria-labelledby="cdsT">' +
         '<div class="cds-head"><h2 id="cdsT">Settings</h2><button type="button" class="cds-x" data-a="close" aria-label="Close settings">&times;</button></div>' +
         '<div class="cds-body">' +
@@ -1542,7 +1544,7 @@
           (TR().tenancyMode ? row('Your accountant', esc((ACCN() || 'Name, phone, email and address') + '. Used for the rent and expenses report.'), btn('acc', 'Edit')) : '') +
           ((window.CD_TRADES || {}).only ? '' : (window.CD_tradesLocked && window.CD_tradesLocked() ? row('Your trades', esc(tradeLabels()) + '. Locked, because two trades are chosen. To change them, email support@mysimpledesk.co.uk.', '<a class="cds-btn" href="mailto:support@mysimpledesk.co.uk?subject=Change%20my%20trades">Email support</a>') : row(tradeIds().length > 1 ? 'Your trades' : 'Your trade', esc(tradeLabels()) + '. Sets the fields, stages and reminders. You can work in up to two trades at no extra charge. Once two are chosen they are locked.', btn('trade', 'Change or add')))))
         +
-        grp('Security', sec)
+        grp('Security', sec + qrow)
         +
         grp('Storage and sync',
           row('Where your records are saved', '<b style="color:#101C26">' + esc(rootLabel()) + '</b>', btn('folder', 'Open folder'), isG ? '<span class="cds-note">Google asks you to confirm access about once an hour. A yellow bar appears when it does, and your changes wait safely on this device.</span>' : '') +
@@ -1568,7 +1570,7 @@
           row('Your devices', 'See every device signed in to your account, and remove any you do not recognise.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/device-activity' : 'https://account.microsoft.com/devices') + '" target="_blank" rel="noopener">Open</a>') +
           row('Recent sign-ins', 'Check for sign-ins you do not recognise.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/notifications' : 'https://account.live.com/activity') + '" target="_blank" rel="noopener">Open</a>') +
           row('Sign out everywhere', 'Removing ' + esc(APPN) + '\'s access signs it out on every device at once. Your records are not deleted, and you can log in again whenever you like.', '<a class="cds-btn" href="' + (isG ? 'https://myaccount.google.com/connections' : 'https://account.live.com/consent/Manage') + '" target="_blank" rel="noopener">Open</a>') +
-          row('This device', (SHARED ? 'This is a shared or public computer, so you are signed out after ' + idleLabel() + ' with no activity, and nothing is kept on it when you close the browser.' : 'This is your own device, so you stay logged in until ' + idleLabel() + ' have passed with no use of the app.') + (lockable() ? ' The screen also locks after ' + (LOCK_MS / 60000) + ' minutes with no activity until you enter your app password.' : ' To protect it if someone else picks it up, set an app password under Sign-in and devices: the screen then locks after ' + (LOCK_MS / 60000) + ' minutes.') + ' On a shared or public computer, tick that box when you log in and nothing is kept on it.', btn('out', 'Log out of this device')))
+          row('This device', (SHARED ? 'This is a shared or public computer, so you are signed out after ' + idleLabel() + ' with no activity, and nothing is kept on it when you close the browser.' : 'This is your own device, so you stay logged in until ' + idleLabel() + ' have passed with no use of the app.') + (lockable() ? ' The screen also locks after ' + (LOCK_MS / 60000) + ' minutes with no activity until you enter your app password.' : ' To protect it if someone else picks it up, set a quick PIN under Security: the screen then locks after ' + (LOCK_MS / 60000) + ' minutes.') + ' On a shared or public computer, tick that box when you log in and nothing is kept on it.', btn('out', 'Log out of this device')))
         +
         grp('Help',
           row('Quick guide', 'A short tour of the main screens.', btn('guide', 'Open')) +
@@ -1619,6 +1621,7 @@
       else if (a === 'mailoff') { lset('cd.mail', null); ov.remove(); toast('Emailing invoices is off.'); }
       else if (a === 'trade') { ov.remove(); if (window.CD_openTrade) window.CD_openTrade(); }
       else if (a === 'pin') { ov.remove(); openPin(); }
+      else if (a === 'qpin') { ov.remove(); openQPin(); }
       else if (a === 'guide') { e.preventDefault(); openGuide(); }
       else if (a === 'out') { ov.remove(); signOut(); }
       else if (a === 'delacct') { ov.remove(); openAcctDelete(); }
@@ -1672,6 +1675,7 @@
     try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
     try { if (navigator.serviceWorker) { var rg = await navigator.serviceWorker.getRegistrations(); await Promise.all(rg.map(function (r) { return r.unregister(); })); } } catch (e) {}
     await idbClearAll(); setTok(null);
+    if (ls('cd.qpinForgot') === '1') { lset('cd.qpin', null); lset('cd.qpinForgot', null); }
     if (SHARED) { try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('cd.') === 0) sessionStorage.removeItem(k); }); } catch (e) {} }
     /* cd.owner is kept on purpose: it records whose settings are still on this device, so that if a different account signs in next, ownerCheck removes them */
     ['cd.pkce', 'cd.reauthOk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.prov', 'cd.gstate', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.oidc', 'cd.vok'].forEach(function (k) { lset(k, null); });
@@ -1714,7 +1718,10 @@
   function pinData() { try { return JSON.parse(ls('cd.pin') || 'null'); } catch (e) { return null; } }
   /* 'acct' = the user unlocks by signing in to Microsoft/Google again instead of an app password */
   function acctMode() { return ls('cd.auth') === 'acct' && !pinData(); }
-  function lockable() { return !!pinData() || acctMode(); }
+  /* quick PIN: 4 to 6 digits that only unlock this one device. It is never sent anywhere and does not change how logging in works. */
+  function qpinData() { try { return JSON.parse(ls('cd.qpin') || 'null'); } catch (e) { return null; } }
+  function qpinWeak(p) { return /^(\d)\1+$/.test(p) || '01234567890123456789'.indexOf(p) > -1 || '98765432109876543210'.indexOf(p) > -1; }
+  function lockable() { return !!pinData() || acctMode() || !!qpinData(); }
   /* a scrambled copy of the app password goes into the user's own storage, so "Log in" works on any device */
   function authBlob() { var d = pinData(); return d ? { auth: { mode: 'pw', s: d.s, h: d.h } } : acctMode() ? { auth: { mode: 'acct' } } : {}; }
   function profPush() { var p = profGet(); if (!p.name) return; try { localWrite('settings', 'profile', Object.assign({}, p, authBlob(), { updatedAt: Date.now() }), 'set'); } catch (e) {} }
@@ -1725,6 +1732,8 @@
     return b64(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: salt, iterations: 150000, hash: 'SHA-256' }, k, 256));
   }
   async function pinSet(pin) { var salt = crypto.getRandomValues(new Uint8Array(16)); lset('cd.pin', JSON.stringify({ kind: 'pw', s: b64(salt), h: await pinHash(pin, salt) })); lset('cd.auth', null); profPush(); }
+  async function qpinSet(pin) { var salt = crypto.getRandomValues(new Uint8Array(16)); lset('cd.qpin', JSON.stringify({ s: b64(salt), h: await pinHash(pin, salt), n: pin.length })); }
+  async function qpinCheck(pin) { var d = qpinData(); return !!d && (await pinHash(pin, unb64(d.s))) === d.h; }
   async function pinCheck(pin) { var d = pinData(); if (!d) return true; return (await pinHash(pin, unb64(d.s))) === d.h; }
   function lockDue() { return lockable() && Date.now() - lastAct() >= LOCK_MS; }
   function lockNow(note) {
@@ -1732,6 +1741,35 @@
     locked = true; lset('cd.locked', '1'); pinFails = 0;
     var ov = document.createElement('div'); ov.id = 'mdLock';
     ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:#0f1f1a;color:#fff;display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,sans-serif';
+    if (qpinData()) {
+      var qd = qpinData();
+      ov.innerHTML = '<form style="width:min(320px,100%);text-align:center" autocomplete="off"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px;font-size:22px">' + esc(note || APPN + ' is locked') + '</h2><p style="margin:0 0 16px;color:#b9c8c0;font-size:13px">Enter your PIN to carry on.</p>' +
+        '<input id="mdLockQ" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="' + (qd.n || 6) + '" aria-label="PIN" style="width:100%;box-sizing:border-box;padding:14px;font-size:26px;letter-spacing:10px;text-align:center;border-radius:8px;border:1px solid #3d5a4e;background:#fff;color:#101C26">' +
+        '<button type="submit" id="mdLockGo" style="width:100%;margin-top:12px;padding:12px;font-size:16px;border:0;border-radius:8px;background:#2f8f6b;color:#fff;cursor:pointer">Unlock</button>' +
+        '<p id="mdLockMsg" role="alert" style="min-height:20px;margin:10px 0 0;color:#ffb4a8;font-size:13px"></p><p style="margin:26px 0 0;padding-top:16px;border-top:1px solid #3d5a4e;color:#b9c8c0;font-size:13px">Forgot your PIN?</p><button type="button" id="mdLockOut" style="margin-top:8px;background:none;border:1px solid #6f8a7e;border-radius:8px;color:#d6e2dc;cursor:pointer;font-size:14px;padding:9px 18px">Log out, then log in again</button></form>';
+      document.body.appendChild(ov);
+      var appq = $('app'); if (appq) { try { appq.inert = true; } catch (e) {} }
+      var qi = $('mdLockQ'), qm = $('mdLockMsg'), qgo = $('mdLockGo'), qiv = null, qbusy = false;
+      setTimeout(function () { qi.focus(); }, 30);
+      function qPause() {
+        clearInterval(qiv);
+        function t() { var left = (+ls('cd.pinLock') || 0) - Date.now(); if (left <= 0) { clearInterval(qiv); qi.disabled = false; qgo.disabled = false; qm.textContent = ''; try { qi.focus(); } catch (x) {} return; } qi.disabled = true; qgo.disabled = true; qm.textContent = '3 wrong attempts. Try again in ' + Math.floor(left / 60000) + ':' + String(Math.floor(left % 60000 / 1000)).padStart(2, '0') + '.'; }
+        qiv = setInterval(t, 1000); t();
+      }
+      if ((+ls('cd.pinLock') || 0) > Date.now()) qPause();
+      async function qTry() {
+        if (qbusy || qi.disabled) return; var v = qi.value.replace(/\D/g, ''); if (v.length < 4) return;
+        qbusy = true; var okq = false; try { okq = await qpinCheck(v); } catch (x) { okq = false; } qbusy = false;
+        if (okq) { pinFails = 0; unlock(); return; }
+        pinFails++; qi.value = '';
+        if (pinFails >= 3) { pinFails = 0; lset('cd.pinLock', String(Date.now() + 5 * 60000)); qPause(); return; }
+        qm.textContent = 'Wrong PIN. ' + (3 - pinFails) + ' attempt' + (3 - pinFails === 1 ? '' : 's') + ' left.'; qi.focus();
+      }
+      qi.addEventListener('input', function () { qi.value = qi.value.replace(/\D/g, ''); if (qi.value.length >= (qd.n || 6)) qTry(); });
+      ov.querySelector('form').addEventListener('submit', function (e) { e.preventDefault(); qTry(); });
+      $('mdLockOut').addEventListener('click', function () { lset('cd.qpinForgot', '1'); signOut(); });
+      return;
+    }
     if (acctMode()) {
       ov.innerHTML = '<div style="width:min(360px,100%);text-align:center"><div style="font-size:40px">🔒</div><h2 style="margin:8px 0 4px;font-size:22px">' + esc(note || APPN + ' is locked') + '</h2><p style="margin:0 0 16px;color:#b9c8c0;font-size:13px">Sign in to your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account again to carry on.</p>' +
         '<button type="button" id="mdLockAcct" style="width:100%;padding:12px;font-size:16px;border:0;border-radius:8px;background:#2f8f6b;color:#fff;cursor:pointer">Unlock with ' + (PROV === 'google' ? 'Gmail' : 'Outlook') + '</button><p style="margin:34px 0 0;padding-top:18px;border-top:1px solid #3d5a4e"><button type="button" id="mdLockOut" style="background:none;border:1px solid #6f8a7e;border-radius:8px;color:#d6e2dc;cursor:pointer;font-size:14px;padding:9px 18px">Log out instead</button></p></div>';
@@ -1776,8 +1814,44 @@
     });
     $('mdLockOut').addEventListener('click', function () { signOut(); });
   }
+  /* set, change or remove the quick PIN; first = the one-time offer after logging in */
+  function openQPin(first) {
+    if ($('mdQpin')) return;
+    var has = !!qpinData(), ov = document.createElement('div'); ov.id = 'mdQpin';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(8,14,18,.6);display:flex;align-items:center;justify-content:center;padding:16px;font:15px system-ui,sans-serif';
+    var inp = 'width:100%;box-sizing:border-box;padding:12px;font-size:22px;letter-spacing:8px;text-align:center;border:1px solid #c9d3da;border-radius:8px;margin:4px 0 10px';
+    ov.innerHTML = '<form role="dialog" aria-modal="true" aria-labelledby="qpT" style="background:#fff;color:#101C26;width:min(400px,100%);border-radius:14px;padding:22px 22px 18px;box-shadow:0 12px 40px rgba(16,28,38,.35)" autocomplete="off">' +
+      '<h2 id="qpT" style="margin:0 0 6px;font-size:20px">' + (first ? 'Protect this device with a PIN?' : has ? 'Change your PIN' : 'Set a quick PIN') + '</h2>' +
+      '<p style="margin:0 0 12px;color:#58697A;font-size:14px;line-height:1.45">' + (first ? 'You stay logged in on this device, so a PIN keeps your records private if someone else picks it up. ' : '') + 'Choose 4 to 6 digits. The app locks after ' + (LOCK_MS / 60000) + ' minutes with no activity and you unlock it with your PIN. It works on this device only.</p>' +
+      '<label style="font-size:14px;font-weight:600">PIN<input id="qpA" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" style="' + inp + '"></label>' +
+      '<label style="font-size:14px;font-weight:600">Type it again<input id="qpB" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" style="' + inp + '"></label>' +
+      '<p id="qpM" role="alert" style="min-height:18px;margin:0 0 8px;color:#A3261F;font-size:13px;font-weight:600"></p>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="submit" style="flex:1;min-width:120px;padding:12px;border:0;border-radius:9px;background:#0A6B50;color:#fff;font:600 15px system-ui;cursor:pointer">' + (has ? 'Save new PIN' : 'Set PIN') + '</button><button type="button" id="qpX" style="flex:1;min-width:120px;padding:12px;border:1px solid #C9D2D7;border-radius:9px;background:#fff;color:#101C26;font:600 15px system-ui;cursor:pointer">' + (first ? 'Not now' : 'Cancel') + '</button></div>' +
+      (has ? '<p style="margin:14px 0 0;padding-top:12px;border-top:1px solid #E3E8EB"><button type="button" id="qpR" style="background:none;border:0;color:#A3261F;font:600 14px system-ui;cursor:pointer;padding:0">Remove my PIN</button></p>' : '') + '</form>';
+    document.body.appendChild(ov);
+    var A = $('qpA'), B = $('qpB'), M = $('qpM'); setTimeout(function () { A.focus(); }, 30);
+    [A, B].forEach(function (i) { i.addEventListener('input', function () { i.value = i.value.replace(/\D/g, ''); }); });
+    function close() { ov.remove(); }
+    $('qpX').onclick = function () { if (first) lset('cd.pinAsk', String(Date.now())); close(); };
+    if (has) $('qpR').onclick = function () { lset('cd.qpin', null); close(); toast('PIN removed.'); };
+    ov.querySelector('form').addEventListener('submit', async function (e) {
+      e.preventDefault(); var a = A.value, b = B.value;
+      if (!/^\d{4,6}$/.test(a)) { M.textContent = 'Use 4 to 6 digits.'; A.focus(); return; }
+      if (qpinWeak(a)) { M.textContent = 'Choose a PIN that is not all the same digit or a simple run like 1234.'; A.focus(); return; }
+      if (a !== b) { M.textContent = 'The two PINs do not match.'; B.focus(); return; }
+      try { await qpinSet(a); } catch (x) { M.textContent = 'This browser cannot store a PIN here.'; return; }
+      lset('cd.pinAsk', null); close(); toast('PIN set. This device locks after ' + (LOCK_MS / 60000) + ' minutes with no activity.');
+    });
+  }
+  /* offered once after logging in on your own device when nothing locks it; "Not now" asks again after a week */
+  function pinOffer() {
+    if (!tok() || SHARED || lockable() || locked || $('mdLock') || $('mdVerify') || $('mdQpin') || $('mdSign')) return;
+    var t = +ls('cd.pinAsk') || 0; if (t && Date.now() - t < 7 * 864e5) return;
+    openQPin(true);
+  }
+  window.CD_openQPin = openQPin; window.CD_pinOffer = pinOffer; window.CD_lockNow = function () { lockNow(); }; window.CD_isLocked = function () { return locked; };
   function unlock() {
-    locked = false; lset('cd.locked', null); markAct();
+    locked = false; lset('cd.locked', null); lset('cd.qpinForgot', null); markAct();
     var ov = $('mdLock'); if (ov) ov.remove();
     var app = $('app'); if (app) { try { app.inert = false; } catch (e) {} }
   }
@@ -1883,7 +1957,7 @@
         (files ? 'Your records are in your ' + w + ' ' + bin + '.' : 'Your records are still in your ' + w + '. You can delete that folder yourself at any time.') + '\n\n' +
         'To finish, you can also remove ' + APPN + '\'s permission in your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account, under apps with access to your account.\n\nYou will now be logged out.');
       dirty = {};
-      ['cd.resume', 'cd.profile', 'cd.pin', 'cd.auth', 'cd.locked', 'cd.guide', 'cd.readme', 'cd.su', 'cd.bkpw', 'cd.act', 'cd.lastMail', 'cd.signMsg'].forEach(function (k) { lset(k, null); });
+      ['cd.resume', 'cd.qpin', 'cd.pinAsk', 'cd.profile', 'cd.pin', 'cd.auth', 'cd.locked', 'cd.guide', 'cd.readme', 'cd.su', 'cd.bkpw', 'cd.act', 'cd.lastMail', 'cd.signMsg'].forEach(function (k) { lset(k, null); });
       await wipeAndReload(false);
     });
   }
@@ -2253,7 +2327,7 @@
       }
       await idbClearAll(); COLS.forEach(function (c) { mem[c] = {}; }); dirty = {};
       /* everything the last account left on this device goes: its profile, app password, backup password and backup folders, calendar and email choices */
-      ['cd.resume', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.pin', 'cd.profile', 'cd.auth', 'cd.locked',
+      ['cd.resume', 'cd.qpin', 'cd.pinAsk', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.pin', 'cd.profile', 'cd.auth', 'cd.locked',
         'cd.bkpw', 'cd.bk', 'cd.bkrec', 'cd.bkq', 'cd.bkhint', 'cd.bkwa', 'cd.calkd', 'cd.calwant', 'cd.mailwant', 'cd.calnote', 'cd.su', 'cd.trialHide', 'cd.readme', 'cd.reopen', 'cd.reauthNext', 'cd.reauthOk'].forEach(function (k) { lset(k, null); }); gcols = {};
       try { indexedDB.deleteDatabase('cd-bk'); } catch (e) {}
     }
@@ -2498,6 +2572,7 @@
     }
     startIdleWatch(); startLockWatch(); setTimeout(pinWarnMaybe, 2500);
     resumeStart();
+    setTimeout(pinOffer, 9000);
     window.addEventListener('beforeunload', function (e) { if (pending() && (st.err || st.offline)) { e.preventDefault(); e.returnValue = ''; } });
     var o = $('mdSign'); if (o) o.remove();
     if (SHARED) {
