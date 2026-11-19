@@ -1627,6 +1627,37 @@
   /* keep the email (never a password) so the login screen can fill in the User ID next time */
   window.CD_loginMail = function () { try { return String(((tok() || {}).account || {}).mail || ''); } catch (e) { return ''; } };
   function rememberMail() { try { var m = ((tok() || {}).account || {}).mail; if (m) lset('cd.lastMail', m); } catch (e) {} }
+  /* ---------- pick up where you left off ---------- */
+  var RES_DAYS = 7, resLast = '';
+  function resAcct() { return ls('cd.owner') || (window.CD_TEST ? 'test' : ''); }
+  function resumeSave() {
+    try {
+      var s = window.CD_resumeGet && window.CD_resumeGet(), a = resAcct();
+      if (!s || !a) return;
+      var j = JSON.stringify({ a: a, s: s, t: Date.now() });
+      if (s.home && !s.id) { if (resLast) { lset('cd.resume', null); resLast = ''; } return; }
+      lset('cd.resume', j); resLast = j;
+    } catch (e) {}
+  }
+  window.CD_resumeOffer = function () { resTried = 0; resumeOffer(); };
+  function resumeStart() { setInterval(resumeSave, 4000); window.addEventListener('pagehide', resumeSave); setTimeout(resumeOffer, 1500); }
+  function resumeClear() { lset('cd.resume', null); resLast = ''; var b = $('resumeBar'); if (b) b.remove(); }
+  var resTried = 0;
+  function resumeOffer() {
+    var raw = ls('cd.resume'); if (!raw || $('resumeBar')) return;
+    var r; try { r = JSON.parse(raw); } catch (e) { lset('cd.resume', null); return; }
+    if (!r || !r.s || r.a !== resAcct() || Date.now() - (r.t || 0) > RES_DAYS * 864e5) { lset('cd.resume', null); return; }
+    if ((vState !== 'ok' && !window.CD_TEST) || !window.CD_resumeGet || !window.CD_resumeGet()) { if (++resTried < 40) setTimeout(resumeOffer, 500); return; }
+    var name = window.CD_resumeLabel ? window.CD_resumeLabel(r.s) : null;
+    if (r.s.id && !name) r.s.id = null;
+    var wEl = r.s.view && document.querySelector('[data-v="' + r.s.view + '"]'), where = wEl ? wEl.textContent.replace(/\s+\d.*$/, '').replace(/\s+/g, ' ').trim() : '';
+    if (!name && !where) { lset('cd.resume', null); return; }
+    var bar = document.createElement('div'); bar.id = 'resumeBar'; bar.setAttribute('role', 'dialog'); bar.setAttribute('aria-label', 'Pick up where you left off');
+    bar.innerHTML = '<div class="rb-t"><b>Pick up where you left off?</b><span>' + (name ? esc(name) : '') + (name && where ? ' &middot; ' : '') + esc(where) + '</span></div><div class="rb-b"><button type="button" class="rb-go">Continue</button><button type="button" class="rb-no">No thanks</button></div>';
+    document.body.appendChild(bar);
+    bar.querySelector('.rb-go').onclick = function () { var s = r.s; resumeClear(); try { window.CD_resumeGo(s); } catch (e) {} };
+    bar.querySelector('.rb-no').onclick = resumeClear;
+  }
   async function signOut() {
     if (pending()) { try { await flush(); } catch (e) {} }
     var msg = pending()
@@ -1636,6 +1667,7 @@
     rememberMail(); await wipeAndReload(false);
   }
   async function wipeAndReload(auto, dest) {
+    try { if (window.CD_saveForm) window.CD_saveForm(); } catch (e) {} resumeSave();
     if (window.CD_TEST) { location.href = 'home.html'; return; }
     try { if (window.caches) { var ks = await caches.keys(); await Promise.all(ks.map(function (k) { return caches.delete(k); })); } } catch (e) {}
     try { if (navigator.serviceWorker) { var rg = await navigator.serviceWorker.getRegistrations(); await Promise.all(rg.map(function (r) { return r.unregister(); })); } } catch (e) {}
@@ -1846,7 +1878,7 @@
         (files ? 'Your records are in your ' + w + ' ' + bin + '.' : 'Your records are still in your ' + w + '. You can delete that folder yourself at any time.') + '\n\n' +
         'To finish, you can also remove ' + APPN + '\'s permission in your ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ' account, under apps with access to your account.\n\nYou will now be logged out.');
       dirty = {};
-      ['cd.profile', 'cd.pin', 'cd.auth', 'cd.locked', 'cd.guide', 'cd.readme', 'cd.su', 'cd.bkpw', 'cd.act', 'cd.lastMail', 'cd.signMsg'].forEach(function (k) { lset(k, null); });
+      ['cd.resume', 'cd.profile', 'cd.pin', 'cd.auth', 'cd.locked', 'cd.guide', 'cd.readme', 'cd.su', 'cd.bkpw', 'cd.act', 'cd.lastMail', 'cd.signMsg'].forEach(function (k) { lset(k, null); });
       await wipeAndReload(false);
     });
   }
@@ -2216,7 +2248,7 @@
       }
       await idbClearAll(); COLS.forEach(function (c) { mem[c] = {}; }); dirty = {};
       /* everything the last account left on this device goes: its profile, app password, backup password and backup folders, calendar and email choices */
-      ['cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.pin', 'cd.profile', 'cd.auth', 'cd.locked',
+      ['cd.resume', 'cd.folder', 'cd.gfid', 'cd.gcols', 'cd.cal', 'cd.mail', 'cd.caldel', 'cd.pin', 'cd.profile', 'cd.auth', 'cd.locked',
         'cd.bkpw', 'cd.bk', 'cd.bkrec', 'cd.bkq', 'cd.bkhint', 'cd.bkwa', 'cd.calkd', 'cd.calwant', 'cd.mailwant', 'cd.calnote', 'cd.su', 'cd.trialHide', 'cd.readme', 'cd.reopen', 'cd.reauthNext', 'cd.reauthOk'].forEach(function (k) { lset(k, null); }); gcols = {};
       try { indexedDB.deleteDatabase('cd-bk'); } catch (e) {}
     }
@@ -2435,7 +2467,7 @@
   }
   async function boot() {
     addSyncBadge();
-    if (window.CD_TEST) { testBoot(); return; }
+    if (window.CD_TEST) { testBoot(); resumeStart(); return; }
     if (SHARED) {
       /* remove any working copy left here earlier, unless it still holds changes that never reached the person's storage */
       await openIdb(); var left = await idbAll('dirty');
@@ -2460,6 +2492,7 @@
       }
     }
     startIdleWatch(); startLockWatch(); setTimeout(pinWarnMaybe, 2500);
+    resumeStart();
     window.addEventListener('beforeunload', function (e) { if (pending() && (st.err || st.offline)) { e.preventDefault(); e.returnValue = ''; } });
     var o = $('mdSign'); if (o) o.remove();
     if (SHARED) {

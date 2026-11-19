@@ -1090,3 +1090,12 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
   .homesplit.calfull .htk{grid-column:1}
   .homesplit.calfull:not(:has(.htk)) .hrem{grid-column:1 / -1}
 }
+
+/* pick up where you left off */
+#resumeBar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:260;width:min(560px,calc(100% - 24px));display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#0A6B50;color:#fff;border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(8,14,18,.35);font:14px system-ui,-apple-system,"Segoe UI",sans-serif}
+#resumeBar .rb-t{display:flex;flex-direction:column;min-width:0;flex:1 1 220px}#resumeBar .rb-t b{font-size:15px}#resumeBar .rb-t span{opacity:.92;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#resumeBar .rb-b{display:flex;gap:8px;flex:none}
+#resumeBar button{min-height:40px;padding:8px 16px;border-radius:9px;border:1px solid rgba(255,255,255,.55);background:none;color:#fff;font:600 14px system-ui,sans-serif;cursor:pointer}
+#resumeBar button.rb-go{background:#fff;color:#0A6B50;border-color:#fff}
+#resumeBar button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media (max-width:560px){#resumeBar .rb-b{width:100%}#resumeBar button{flex:1}}

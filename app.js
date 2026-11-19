@@ -1848,6 +1848,29 @@ var tpSel=[];
 /* choosing two trades locks the choice; support unlocks it (admin page) and the unlock is used up when the person next saves their trades */
 function tradesLocked(){var tu=window.CD_tuAt&&window.CD_tuAt();return TRADES.length>=2&&!(tu&&tu!==USEDTU)}
 window.CD_tradesLocked=tradesLocked;
+/* where the person is, so that after they log out and back in the app can offer to take them back. Only ids and view names are remembered, never client details. */
+window.CD_resumeGet=function(){
+  if(!loaded||!T)return null;
+  var d=document.getElementById('drawer'),sc=0;
+  if(openId&&d&&!d.hidden){var all=d.querySelectorAll('*');for(var i=0;i<all.length;i++){var e=all[i];if(e.scrollHeight>e.clientHeight+20&&/(auto|scroll)/.test(getComputedStyle(e).overflowY)){sc=e.scrollTop;break}}}
+  var home=!openId&&(view===(T.landing||'tasks')||view===undefined);
+  return {trade:T.id,view:view,id:openId||null,sc:Math.round(sc),home:home};
+};
+window.CD_resumeLabel=function(s){
+  if(!s||!s.id)return null;
+  var c=casesAll.filter(function(x){return x.id===s.id})[0];
+  return c?names(c):null;
+};
+window.CD_resumeGo=function(s){
+  if(!s)return;
+  if(s.trade&&s.trade!==T.id&&TRADES.indexOf(s.trade)>-1)switchTrade(s.trade);
+  if(s.view&&s.view!==view&&document.querySelector('[data-v="'+s.view+'"]')){view=s.view;render();renderSide();renderNav()}
+  if(s.id&&cases.some(function(x){return x.id===s.id})){
+    openDrawer(s.id);
+    if(s.sc)setTimeout(function(){var d=document.getElementById('drawer');if(!d)return;var all=d.querySelectorAll('*');for(var i=0;i<all.length;i++){var e=all[i];if(e.scrollHeight>e.clientHeight+20&&/(auto|scroll)/.test(getComputedStyle(e).overflowY)){e.scrollTop=s.sc;break}}},350);
+  }
+};
+window.CD_saveForm=function(){try{if(openId!==undefined)autoSave()}catch(e){}};
 function tradeLockedNote(){
   if($('#tpOv'))return;var o=document.createElement('div');o.id='tpOv';o.className='mkov';
   o.innerHTML='<div class="mkpanel tpick" role="dialog" aria-label="Your trades are locked"><h2>Your two trades are locked</h2><p class="muted" style="margin:4px 0 12px">Once two trades are chosen they stay as they are. You can still switch between them with the tabs at the top. To change them, email <a href="mailto:support@mysimpledesk.co.uk?subject=Change%20my%20trades">support@mysimpledesk.co.uk</a> and we will unlock the choice for you.</p><div class="mkact"><button type="button" class="btn ghost" data-tpclose="1">Close</button><a class="btn" href="mailto:support@mysimpledesk.co.uk?subject=Change%20my%20trades">Email support</a></div></div>';
