@@ -10,6 +10,8 @@
 .wrap{width:min(1200px,100% - 32px);margin:0 auto;padding:24px 0 48px}
 header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}h1{font-size:24px;margin:0}
 .who{margin-left:auto;color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:6px}.tab{padding:8px 16px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 14px system-ui;text-decoration:none}.tab.on{background:var(--acc);border-color:var(--acc);color:#fff}.tab.out{border-color:#E3B5B0;color:var(--bad)}.tab.out:hover{background:#FDF1EF}.tab:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media (prefers-color-scheme:dark){.tab{background:#1A2124}.tab.on{background:var(--acc)}.tab.out:hover{background:#2A1B1A}}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
 .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}.stat b{display:block;font-size:26px}.stat span{color:var(--muted);font-size:13px}
 .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -27,7 +29,7 @@ th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}
 </head>
 <body>
 <div class="wrap">
-  <header><h1>Users</h1><span class="who" id="who"></span></header>
+  <header><h1>Users</h1><span class="who" id="who"></span><nav class="tabs" aria-label="Admin"><a class="tab on" href="./" aria-current="page">Users</a><a class="tab out" id="lo" href="/cdn-cgi/access/logout">Log out</a></nav></header>
   <div class="stats" id="stats"></div>
   <div class="bar"><input type="search" id="q" placeholder="Search user no, name, email, mobile or business" aria-label="Search users"><select id="pf" aria-label="Show payment status" style="padding:9px 10px;border-radius:8px;border:1px solid #c9d2d6;font:inherit"><option value="">All payment statuses</option><option value="trial">Trial</option><option value="paid">Paid</option><option value="due">Due</option></select><button class="pri" id="csv">Download CSV</button><button id="reload">Refresh</button></div>
   <div id="out"><div class="msg">Loading…</div></div>
@@ -130,7 +132,7 @@ th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}
   ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'wheel'].forEach(function (ev) { window.addEventListener(ev, function () { if (loggedOut) return; var n = Date.now(); if (n - lastMark > 5000) { lastMark = n; mark(); } }, { passive: true, capture: true }); });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) idleCheck(); });
   setInterval(idleCheck, 30000);
-  var lg = document.createElement('a'); lg.href = '/cdn-cgi/access/logout'; lg.textContent = 'Log out'; lg.style.cssText = 'margin-left:12px;font-size:13px;color:inherit'; var wh = $('who'); if (wh && wh.parentNode) wh.parentNode.insertBefore(lg, wh.nextSibling);
+  var lo = $('lo'); if (lo) lo.addEventListener('click', function () { try { localStorage.removeItem(LKEY); } catch (e) {} });
   var prevAct = 0; try { prevAct = +localStorage.getItem(LKEY) || 0; } catch (e) {}
   if (prevAct && Date.now() - prevAct >= IDLE) { logOut(); return; }
   mark();
