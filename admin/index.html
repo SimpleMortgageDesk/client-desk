@@ -115,6 +115,25 @@ th{background:#FAFBFB;font-size:12.5px;color:var(--muted);position:sticky;top:0}
     if (!confirm('Delete ' + em + ' from the list? They move to Deleted accounts for 30 days, where you can restore them, then they are erased for good.')) return;
     fetch('../api/admin/users?email=' + encodeURIComponent(em), { method: 'DELETE', credentials: 'same-origin' }).then(function (r) { if (!r.ok) throw 0; load(); }).catch(function () { alert('Could not delete. Try again.'); });
   });
+  /* automatic log-out after 2 hours without any activity (mouse, keys, touch, scrolling). The time is shared by every open admin tab, so one busy tab keeps them all in; a tab opened again after a long gap logs out straight away. */
+  var IDLE = 2 * 3600e3, LKEY = 'mdAdminLast', lastAct = Date.now(), loggedOut = false;
+  function seen() { var v = 0; try { v = +localStorage.getItem(LKEY) || 0; } catch (e) {} return Math.max(v, lastAct); }
+  function mark() { lastAct = Date.now(); try { localStorage.setItem(LKEY, String(lastAct)); } catch (e) {} }
+  function logOut() {
+    if (loggedOut) return; loggedOut = true; users = []; deleted = [];
+    try { localStorage.removeItem(LKEY); } catch (e) {}
+    document.body.innerHTML = '<main style="max-width:420px;margin:12vh auto;padding:0 16px;font:16px system-ui,sans-serif;text-align:center"><h1 style="font-size:22px">Logged out</h1><p>You were logged out after 2 hours of inactivity.</p></main>';
+    setTimeout(function () { location.replace('/cdn-cgi/access/logout'); }, 1200);
+  }
+  function idleCheck() { if (Date.now() - seen() >= IDLE) logOut(); }
+  var lastMark = 0;
+  ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'wheel'].forEach(function (ev) { window.addEventListener(ev, function () { if (loggedOut) return; var n = Date.now(); if (n - lastMark > 5000) { lastMark = n; mark(); } }, { passive: true, capture: true }); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) idleCheck(); });
+  setInterval(idleCheck, 30000);
+  var lg = document.createElement('a'); lg.href = '/cdn-cgi/access/logout'; lg.textContent = 'Log out'; lg.style.cssText = 'margin-left:12px;font-size:13px;color:inherit'; var wh = $('who'); if (wh && wh.parentNode) wh.parentNode.insertBefore(lg, wh.nextSibling);
+  var prevAct = 0; try { prevAct = +localStorage.getItem(LKEY) || 0; } catch (e) {}
+  if (prevAct && Date.now() - prevAct >= IDLE) { logOut(); return; }
+  mark();
   load();
 })();
 </script>
