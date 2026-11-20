@@ -1458,7 +1458,7 @@
       say('');
       var proceed = async function (pick) {
         reg.prov = pick; f.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
-        if (vOn()) { try { await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', email: mail, name: nm }) }); } catch (x) {} }
+        if (vOn()) { try { await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', email: mail, name: nm, mobile: ph, trade: trade }) }); } catch (x) {} }
         sset('cd.reg', reg); sset('cd.intent', 'register');
         if (pick === 'google') gStart(); else { lset('cd.prov', 'ms'); startLogin(); }
       };
@@ -1969,7 +1969,7 @@
     if (reg) {
       var am = ((tok() || {}).account || {}).mail;
       if (am && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(am) && String(reg.email || '').trim().toLowerCase() !== String(am).toLowerCase()) { setTimeout(function () { toast('Your account email is ' + am + ', confirmed by ' + (PROV === 'google' ? 'Google' : 'Microsoft') + ', so that is the one we saved.'); }, 2500); reg.email = am; }
-      if (sp && sp.name) { adopt(sp, true); return true; }
+      if (sp && sp.name) { adopt(sp, true); setTimeout(function () { suSend('signup'); }, 2000); return true; }
       var p = profGet();
       lset('cd.profile', JSON.stringify({ name: reg.name, role: p.role || '', biz: p.biz || '', reg: p.reg || '', phone: reg.phone, email: reg.email }));
       if (reg.mode === 'pw' && reg.pin) { lset('cd.pin', JSON.stringify(reg.pin)); lset('cd.auth', null); }

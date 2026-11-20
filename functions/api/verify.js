@@ -21,6 +21,8 @@ async function table(db) {
   await ensureTable(db);
   if (ready) return;
   await db.prepare('CREATE TABLE IF NOT EXISTS verify (email TEXT PRIMARY KEY, token_hash TEXT, sent_at TEXT, sent_day TEXT, sent_n INTEGER DEFAULT 0, confirmed_at TEXT)').run();
+  /* who registered, so the admin page can show people still waiting to confirm their email */
+  for (const c of ['name', 'mobile', 'trade', 'first_at']) { try { await db.prepare('ALTER TABLE verify ADD COLUMN ' + c + ' TEXT').run(); } catch (e) {} }
   ready = true;
 }
 const page = (title, body) => say('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + '</title><style>body{font:16px system-ui,sans-serif;background:#FBFAF7;color:#101C26;margin:0;display:grid;place-items:center;min-height:100vh;padding:20px}main{max-width:440px;background:#fff;border:1px solid #D4DBDF;border-radius:14px;padding:28px}h1{font-size:22px;margin:0 0 10px}a.b{display:inline-block;margin-top:14px;background:#0A6B50;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600}</style></head><body><main>' + body + '</main></body></html>', 200, { 'Content-Type': 'text/html;charset=utf-8' });
@@ -126,6 +128,6 @@ export async function onRequestPost({ request, env }) {
     ok = r.ok;
   } catch (e) { ok = false; }
   if (!ok) return json({ error: 'could not send' }, 502);
-  await env.DB.prepare('INSERT INTO verify (email, token_hash, sent_at, sent_day, sent_n) VALUES (?1, ?2, ?3, ?4, 1) ON CONFLICT(email) DO UPDATE SET token_hash = ?2, sent_at = ?3, sent_day = ?4, sent_n = ?5').bind(email, await sha(token), nowIso, day, n + 1).run();
+  await env.DB.prepare('INSERT INTO verify (email, token_hash, sent_at, sent_day, sent_n, name, mobile, trade, first_at) VALUES (?1, ?2, ?3, ?4, 1, ?6, ?7, ?8, ?3) ON CONFLICT(email) DO UPDATE SET token_hash = ?2, sent_at = ?3, sent_day = ?4, sent_n = ?5, name = ?6, mobile = ?7, trade = ?8, first_at = COALESCE(verify.first_at, ?3)').bind(email, await sha(token), nowIso, day, n + 1, clean(d.name, 80), clean(d.mobile, 30), clean(d.trade, 60)).run();
   return json({ status: 'pending' });
 }

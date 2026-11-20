@@ -137,8 +137,8 @@ export async function onRequestPost({ request, env }) {
   }
   /* only a completed registration (name, mobile and kind of work all filled in) creates an entry; activity from anyone else is ignored */
   if (!known) {
-    if (d.event !== 'signup') return say('ok');
-    if (clean(d.name, 100).length < 2 || clean(d.mobile, 30).replace(/\D/g, '').length < 7 || !clean(d.trade, 60)) return say('incomplete registration', 400);
+    /* an entry is made from any call that carries a complete registration (the usual one, or a returning person's first visit after the list started); calls with missing details are ignored */
+    if (clean(d.name, 100).length < 2 || clean(d.mobile, 30).replace(/\D/g, '').length < 7 || !clean(d.trade, 60)) return d.event === 'signup' ? say('incomplete registration', 400) : say('ok');
   }
   /* a deleted account stays quiet until the owner restores it; a fresh registration starts it again */
   if (cur && cur.deleted_at) {
