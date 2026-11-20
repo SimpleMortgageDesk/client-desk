@@ -270,12 +270,14 @@ function visible(){
 var navMore=false;
 function renderNav(){renderSwitch();updTrayBtn();if(view==='notebook')navMore=true;
   var items=toolItems(T.calTab?[['cases','Clients'],['reminders','Reminders'],['appointments','Appointments'],['clients',CL()],['tasks','Calendar'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  var tdIx=items.map(function(i){return i[0]}).indexOf('tasks'),tdAnch='tasks';if(tdIx<0){tdIx=items.map(function(i){return i[0]}).indexOf('appointments');tdAnch='appointments'}
+  items.splice(tdIx<0?0:tdIx+1,0,['todo','To do']);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
   if(!T.tenancyMode)items.unshift(['myhome','My residential house']);
-  var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;
+  var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;if(T.calTab&&tdAnch==='tasks')tools.todo=1;
   if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['tradesmen','My tradesmen'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
-    return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
+    return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='todo'&&tdDue()?'<span class="badge">'+tdDue()+' today</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
   var hideRem=sideVisible()&&!T.remTab,n1=$('#nav'),n2=$('#nav2'),one=T.tenancyMode&&NAV_MQ&&NAV_MQ.matches;
   /* landlords on a phone: every menu item in one row that swipes sideways, Settings last */
@@ -377,6 +379,7 @@ function render(){
   else if(view==='pipeline')v.innerHTML=pipelineHTML();
   else if(view==='cases')v.innerHTML=casesHTML();
   else if(view==='tradesmen')v.innerHTML=tmHTML();
+  else if(view==='todo'){if(!(document.activeElement&&document.activeElement.id==='td-text'&&v.contains(document.activeElement)))v.innerHTML=tdHTML()}
   else if(view==='myhome')v.innerHTML='<div class="pagehead"><h1>My residential house</h1></div>'+homeCard(true);
   else v.innerHTML=remindersHTML();
 }
@@ -3822,6 +3825,66 @@ function mcRender(){
 document.addEventListener('input',function(e){var t=e.target;if(t&&/^f-mort(Rate|Balance|Payment|Method)$/.test(t.id||''))mcRender()});
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.id==='f-mortMethod')mcRender()});
 /* ---------- My tradesmen (home owners and landlords): preferred tradespeople, name and phone only ---------- */
+/* ---------- To do: the person's own daily tasks. Open ones due today are the first thing seen when the app opens. ---------- */
+var tdItems=[],tdUserNav=false,tdLanded=false;
+function tdToday(){return iso(new Date())}
+function tdRep(x){return !!x.daily}
+/* due today or overdue and still to do */
+function tdIsDue(x,t){if(x.daily)return (x.date||'0000')<=t&&x.doneOn!==t;return !x.done&&(x.date||t)<=t}
+function tdDue(){var t=tdToday();return tdItems.filter(function(x){return tdIsDue(x,t)}).length}
+function tdSave(items){
+  var cut=iso(new Date(Date.now()-30*864e5));
+  tdItems=items.filter(function(x){return x.daily||!x.done||(x.doneOn||x.date||'9999')>=cut});
+  if(setCol)write('set-todo',function(){return setCol.doc('todo').set({items:tdItems,updatedAt:Date.now()})});
+  if(view==='todo')render();renderNav();
+}
+function tdRow(x,t){
+  var due=tdIsDue(x,t),done=x.daily?x.doneOn===t:!!x.done,over=!x.daily&&!x.done&&(x.date||t)<t;
+  var meta=x.daily?((x.date||t)>t?'Every day from '+fd(x.date):'Every day'):(x.done?'Done':over?'Overdue since '+fd(x.date):(x.date&&x.date>t?'Due '+fd(x.date):'Due today'));
+  return '<li class="tdrow'+(done?' done':'')+'"><button type="button" class="tdchk" data-tdtog="'+esc(x.id)+'" role="checkbox" aria-checked="'+done+'" aria-label="'+(done?'Mark not done: ':'Mark done: ')+esc(x.text)+'">'+(done?'&#10003;':'')+'</button>'+
+    '<div class="tdtxt"><span>'+esc(x.text)+'</span><small'+(over?' class="tdover"':'')+'>'+esc(meta)+'</small></div>'+
+    '<button type="button" class="btn ghost sm danger" data-tddel="'+esc(x.id)+'" aria-label="Delete '+esc(x.text)+'">Delete</button></li>';
+}
+function tdHTML(){
+  var t=tdToday(),open=tdItems.filter(function(x){return tdIsDue(x,t)}),later=tdItems.filter(function(x){return (x.daily||!x.done)&&(x.date||t)>t}),
+    dn=tdItems.filter(function(x){return x.daily?(x.doneOn===t&&(x.date||'0000')<=t):x.done}).sort(function(a,b){return String(b.doneOn||'').localeCompare(String(a.doneOn||''))});
+  open.sort(function(a,b){return (a.daily?1:0)-(b.daily?1:0)||String(a.date||'').localeCompare(String(b.date||''))});
+  later.sort(function(a,b){return String(a.date).localeCompare(String(b.date))});
+  var sec=function(h,l,id,empty){return '<h2 class="tdh" id="'+id+'">'+h+(l.length?' <span class="tdn">'+l.length+'</span>':'')+'</h2>'+(l.length?'<ul class="tdlist" aria-labelledby="'+id+'">'+l.map(function(x){return tdRow(x,t)}).join('')+'</ul>':(empty?'<p class="muted tdempty">'+empty+'</p>':''))};
+  return '<div class="pagehead"><h1>To do</h1><span class="muted">'+(open.length?open.length+' to do today':'Nothing left for today')+'</span></div>'+
+   '<div class="tdpage"><form id="tdForm" class="tdadd" novalidate><label class="f tdtext">What needs doing?<input id="td-text" maxlength="140" autocomplete="off" placeholder="For example: Call the tenant about the boiler"></label>'+
+   '<label class="f">Day<input id="td-date" type="date" value="'+t+'"></label>'+
+   '<label class="tdrep"><input id="td-daily" type="checkbox"> Repeat every day</label>'+
+   '<div class="add" style="margin:0;align-self:end"><button type="submit" class="btn">Add</button></div></form>'+
+   '<p id="tdMsg" role="alert" class="tmmsg"></p>'+
+   sec('Today',open,'tdH1','Nothing to do today. Add something above and it will be the first thing you see when you open the app.')+
+   (later.length?sec('Coming up',later,'tdH2'):'')+
+   (dn.length?sec('Done',dn,'tdH3'):'')+'</div>';
+}
+document.addEventListener('submit',function(e){
+  if(!e.target||e.target.id!=='tdForm')return;e.preventDefault();
+  var tx=($('#td-text').value||'').trim().replace(/\s+/g,' '),dt=$('#td-date').value||tdToday(),msg=$('#tdMsg');
+  if(!tx){msg.textContent='Write what needs doing.';$('#td-text').focus();return}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)){msg.textContent='Choose a day.';return}
+  var daily=!!$('#td-daily').checked;
+  tdSave(tdItems.concat([{id:'td'+uid()+Date.now().toString(36),text:tx.slice(0,140),date:dt,daily:daily,done:false,created:Date.now()}]));
+  var f=$('#td-text');if(f){f.value='';f.focus()}toast(daily?'Added. It repeats every day.':'Added');
+});
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;var b;
+  if(t.closest('[data-v],.brand,[data-mnuset],[data-mnulogout]'))tdUserNav=true;
+  if((b=t.closest('[data-tdtog]'))){var id=b.getAttribute('data-tdtog'),td=tdToday();
+    tdSave(tdItems.map(function(x){if(x.id!==id)return x;if(x.daily)return Object.assign({},x,{doneOn:x.doneOn===td?null:td});var nd=!x.done;return Object.assign({},x,{done:nd,doneOn:nd?td:null})}));return}
+  if((b=t.closest('[data-tddel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var di=b.getAttribute('data-tddel');tdSave(tdItems.filter(function(x){return x.id!==di}));toast('Deleted')}
+},true);
+window.CD_tdLand=function(){tdLanded=false;tdUserNav=false;tdLand()};
+/* opening the app: if something is due today, the To do page is what shows first (unless they have already clicked somewhere) */
+function tdLand(n){
+  if(tdLanded)return;
+  if(!loaded){if((n||0)<20)setTimeout(function(){tdLand((n||0)+1)},400);return}
+  tdLanded=true;if(tdUserNav||openId!==undefined)return;
+  if((view===(T.landing||'tasks')||view===undefined||view==='tasks')&&tdDue()>0){view='todo';render()}
+}
 var tmItems=[],tmEdit=null;
 function tmIntl(p){var w=String(p||'').replace(/[^\d+]/g,'');return w.charAt(0)==='+'?w.slice(1):w.charAt(0)==='0'?'44'+w.slice(1):w}
 function tmSave(items){tmItems=items;if(setCol)write('set-tradesmen',function(){return setCol.doc('tradesmen').set({items:items,updatedAt:Date.now()})});if(view==='tradesmen')render()}
@@ -4106,6 +4169,8 @@ claude.use('db').then(function(d){
   apCol=db.collection('appointments');
   mkCol=db.collection('marketing');
   setCol=db.collection('settings');var tradeSeen=false,tradeSig='';setCol.onSnapshot(bizSnap,function(){});
+  setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='todo'})[0];tdItems=(d&&d.data().items)||[];if(view==='todo')render();renderNav()},function(){});
+  (window.CD_firstPull||Promise.resolve()).then(function(){setTimeout(tdLand,500)});
   setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='tradesmen'})[0];tmItems=(d&&d.data().items)||[];if(view==='tradesmen'&&!(document.activeElement&&/^tm-/.test(document.activeElement.id||'')))render()},function(){});
   setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],dd=d0&&d0.data(),tid=dd&&dd.trade,A0=window.CD_TRADES.all;if(!tid||!A0[tid])return;tradeSeen=true;USEDTU=dd.usedTu||null;if(window.CD_TRADES.only)return;var list=(dd.trades||[tid]).filter(function(id){return A0[id]}).slice(0,2);if(!list.length)list=[tid];var main=(dd.main&&A0[dd.main])?dd.main:list[0],sig=list.join('|')+'>'+main,changed=sig!==tradeSig;tradeSig=sig;TRADES=list;MAIN_TRADE=main;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();var keep=window.CD_tradeChosen()&&list.length>1&&list.indexOf(T.id)>-1,target=keep?T.id:(list.indexOf(tid)>-1?tid:list[0]);if(target!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(target);if(openId!==undefined)closeDrawer();applyTrade();setCases();render();renderSide();renderNav()}else if(changed){setCases();render();renderSide();renderNav()}});
   (window.CD_firstPull||Promise.resolve()).then(function(){if(tradeSeen)return;if(window.CD_tradeChosen())write('set-trade',function(){return setCol.doc('trade').set({trade:T.id,trades:[T.id],main:T.id,updatedAt:Date.now()})});else openTradePicker(true)});
