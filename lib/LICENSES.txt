@@ -1,0 +1,5 @@
+These files are open-source libraries that run inside the browser, so that dates can be read from uploaded documents on the person's own device. Nothing is sent anywhere.
+
+pdf.min.js, pdf.worker.min.js: PDF.js 3.11.174, Mozilla, Apache License 2.0 (https://github.com/mozilla/pdf.js)
+tesseract/*: Tesseract.js 5.1.1 and Tesseract.js-core 5.1.0, Apache License 2.0 (https://github.com/naptha/tesseract.js)
+tesseract/lang/eng.traineddata.gz: Tesseract English language data (best, integer), Apache License 2.0 (https://github.com/tesseract-ocr/tessdata_best)

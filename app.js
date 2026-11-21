@@ -1360,9 +1360,9 @@ function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
   if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-v="tradesmen"'+(view==='tradesmen'?' aria-current="page"':'')+'>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
-  var items=toolItems(T.calTab?[['tasks','Calendar'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['invoices','Quotes & invoices'],['calculator',T.calcKind==='tax'?'Calculator':'Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  var items=toolItems(T.calTab?[['tasks','Calendar'],['todo','To do'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['invoices','Quotes & invoices'],['calculator',T.calcKind==='tax'?'Calculator':'Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var an2=bizName()||(profA().name)||'',lm2=(window.CD_loginMail&&window.CD_loginMail())||'';
-  s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an2?'<strong class="an">'+esc(an2)+'</strong>':'')+(lm2?'<span class="am">Logged in with<br><b>'+esc(lm2)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
+  s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an2?'<strong class="an">'+esc(an2)+'</strong>':'')+(lm2?'<span class="am">Logged in with<br><b>'+esc(lm2)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+(i[0]==='todo'&&tdDue()?'<span class="badge">'+tdDue()+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
 function renderRem(){
   var s=$('#homeRem');if(!s)return;
@@ -2897,7 +2897,7 @@ function dzTouch(){return !!(window.matchMedia&&matchMedia('(pointer:coarse)').m
 function dzCam(k,t){return dzTouch()?'<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'" data-dzcam="1">'+esc(t||'Take photo')+'</button>':''}
 function dzInner(c,k,label){
   var fl=dzFiles(c,k),up=function(t){return '<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">'+esc(t)+'</button>'},rm=function(f){return '<button type="button" style="'+DZ_BTN+';color:#8a98a3" data-dzrm="'+esc(f.id)+'">Remove</button>'};
-  if(k==='other')return fl.map(function(f){return '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>'+rm(f)+'</div>'}).join('')+'<div class="pl">'+dzCam('other','Take photo')+up('Upload a document')+'</div>';
+  if(k==='other')return fl.map(function(f){return '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a><button type="button" style="'+DZ_BTN+'" data-dzrem="'+esc(f.id)+'">Remind me</button>'+rm(f)+'</div>'}).join('')+'<div class="pl">'+dzCam('other','Take photo')+up('Upload a document')+'</div>';
   if(!fl.length)return dzCam(k,'Take photo')+up('Upload '+label);
   var f=fl[fl.length-1];
   return '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">Open '+esc(label)+'</a>'+up('Replace')+dzCam(k,'Replace with photo')+rm(f);
@@ -2941,10 +2941,12 @@ function dzSend(k,file,mode,cam){
   var el=document.querySelector('#caseForm [data-dz="'+k+'"]'),label=(el&&el.getAttribute('data-dzl'))||'document';
   var oext=(/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase(),dt=(($('#f-'+k)||{}).value)||iso(TODAY);
   var folder=(c.folder&&c.folder.name)||pfName(c);
+  var sentInfo=null;
   dzBusy=true;pfTried[id]=1;toast('Uploading '+(cam?'the PDF':file.name)+'…',true);
   /* phone photos are large: rcPrep shrinks images to a clear JPEG (PDFs and other files are sent as they are) */
   rcPrep(file).then(function(pp){
     var blob=pp.blob,ext=pp.ext||oext,d=new Date(),z=function(n){return String(n).padStart(2,'0')};
+    sentInfo={blob:blob,name:file.name,type:blob.type||file.type||''};
     var base=cam?'Scan '+iso(TODAY)+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()):(pfClean(file.name.slice(0,file.name.length-oext.length),100)||'Document');
     var fname=k==='other'?base+ext:label.charAt(0).toUpperCase()+label.slice(1)+' '+dt+ext;
     if(mode==='keep'&&k!=='other'&&dzFiles(c,k).some(function(f){return String(f.name).toLowerCase()===fname.toLowerCase()}))fname=fname.slice(0,fname.length-ext.length)+' (added '+iso(TODAY)+')'+ext;
@@ -2958,6 +2960,7 @@ function dzSend(k,file,mode,cam){
     files.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:o.size,at:Date.now()});
     var up={files:files};if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
     patch(id,up);toast('Uploaded to '+dzRootL()+' › '+folder);
+    try{dxAfter(id,k,sentInfo)}catch(e){}
     if(openId===id)dzRefresh(Object.assign({},cur,up));
     if(old.length&&window.CD_files.trash){var w=window.CD_files.where(),bin=w==='Google Drive'?'Google Drive bin':w+' recycle bin';
       Promise.all(old.map(function(f){return f.fid?window.CD_files.trash(f.fid).then(function(){return true},function(){return false}):Promise.resolve(false)})).then(function(rs){
@@ -2973,6 +2976,8 @@ function dzRemove(fid){
   patch(id,up);dzRefresh(Object.assign({},c,up));
 }
 document.addEventListener('click',function(e){
+  var rmd=e.target&&e.target.closest?e.target.closest('[data-dzrem]'):null;
+  if(rmd){e.preventDefault();var cf=currentCase(),ff=cf&&(cf.files||[]).filter(function(x){return x.id===rmd.getAttribute('data-dzrem')})[0];if(ff)dxAsk({id:openId,k:'other',todo:true,title:'Remind you about this document?',text:'Renew '+(pfClean(String(ff.name||'').replace(/\.[A-Za-z0-9]{1,5}$/,''),60)||'document'),kind:'end'});return}
   var t=e.target&&e.target.closest?e.target.closest('[data-dzup],[data-dzrm]'):null;if(!t)return;
   e.preventDefault();
   if(t.hasAttribute('data-dzup'))dzPick(t.getAttribute('data-dzup'),!!t.closest('[data-dzlg]'),t.hasAttribute('data-dzcam'));else dzRemove(t.getAttribute('data-dzrm'));
@@ -3889,6 +3894,144 @@ function tdLand(n){
   tdLanded=true;if(tdUserNav||openId!==undefined)return;
   if(view==='tasks'||view===undefined){view='todo';render()}
 }
+/* ---------- dates read from uploaded documents. Everything happens on this device: the document is never sent anywhere. ---------- */
+var DX_MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function dxMk(y,m,d){y=+y;m=+m;d=+d;if(y<100)y+=2000;if(!(m>=1&&m<=12&&d>=1&&d<=31&&y>=1990&&y<=2100))return null;var t=new Date(y,m-1,d);return t.getMonth()===m-1?iso(t):null}
+function dxMonN(s){return DX_MON[String(s).slice(0,3).toLowerCase()]}
+/* every date written in the text, with the words just before and after it */
+function dxDates(text){
+  var s=String(text||'').replace(/\s+/g,' '),out=[],taken=[];
+  var MON='(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+  var pats=[
+    [new RegExp('\\b(\\d{1,2})(?:st|nd|rd|th)?[ \\-\\/\\.]+'+MON+'\\.?,?[ \\-\\/\\.]+(\\d{4}|\\d{2})\\b','gi'),function(m){return dxMk(m[3],dxMonN(m[2]),m[1])}],
+    [new RegExp('\\b'+MON+'\\.? (\\d{1,2})(?:st|nd|rd|th)?,? (\\d{4})\\b','gi'),function(m){return dxMk(m[3],dxMonN(m[1]),m[2])}],
+    [/\b(\d{4})-(\d{2})-(\d{2})\b/g,function(m){return dxMk(m[1],m[2],m[3])}],
+    [/\b(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4}|\d{2})\b/g,function(m){var a=+m[1],b=+m[2];return (b>12&&a<=12)?dxMk(m[3],a,b):dxMk(m[3],b,a)}]
+  ];
+  pats.forEach(function(p){var re=p[0],m;while((m=re.exec(s))){var st=m.index,en=st+m[0].length;if(taken.some(function(t){return st<t[1]&&en>t[0]}))continue;var v=p[1](m);if(!v)continue;taken.push([st,en]);out.push({iso:v,at:st,txt:m[0],before:s.slice(Math.max(0,st-90),st).toLowerCase(),after:s.slice(en,en+30).toLowerCase()})}});
+  return out.sort(function(a,b){return a.at-b.at});
+}
+var DX_END=/(renewal|renews?|renew on|expiry|expires?|expiring|expiration|valid (?:until|till|to)|cover (?:ends?|until|to)|policy (?:ends?|expires)|end date|ends on|runs out|due (?:date|on|by)|next (?:due|inspection|review|test|service)|review date|until)/;
+var DX_STARTW=/(issued?|issue date|date of issue|inception|start date|starts?|commenc\w*|effective(?: from| date)?|from|born|birth|dob|printed|statement|payment|premium|invoice)/;
+var DX_ISS=/(date of (?:inspection|issue|test|assessment|check|service|certificate|report)|inspection date|issue date|issued(?: on)?|completed(?: on)?|tested(?: on)?|carried out(?: on)?|certificate date)/;
+/* kind: 'end' = a renewal or expiry date; 'issue' = the date the certificate was done or issued */
+function dxFind(text,kind){
+  var now=iso(TODAY),lo,hi;
+  if(kind==='issue'){lo=iso(new Date(TODAY.getFullYear()-11,TODAY.getMonth(),TODAY.getDate()));hi=iso(new Date(Date.now()+30*864e5))}
+  else{lo=iso(new Date(TODAY.getFullYear()-1,TODAY.getMonth(),TODAY.getDate()));hi=iso(new Date(TODAY.getFullYear()+11,TODAY.getMonth(),TODAY.getDate()))}
+  var list=dxDates(text).filter(function(d){return d.iso>=lo&&d.iso<=hi}).map(function(d){
+    var tail=d.before.slice(-45),near=d.before,sc=0;
+    if(kind==='issue'){
+      if(DX_ISS.test(tail))sc+=6;else if(DX_ISS.test(near))sc+=3;else if(/date\W{0,4}$/.test(tail))sc+=2;
+      if(DX_END.test(tail))sc-=5;
+    }else{
+      if(DX_END.test(tail))sc+=6;else if(DX_END.test(near))sc+=3;
+      if(/(?:\bto|\buntil|-|–|—)\s*$/.test(tail)&&/\d/.test(near.slice(0,-3)))sc+=4;
+      if(DX_STARTW.test(tail.slice(-22))&&!DX_END.test(tail.slice(-22)))sc-=5;
+      if(/^\s*(?:to|-|–|—|until)\s+\S/.test(d.after))sc-=3;
+    }
+    return {iso:d.iso,score:sc,snip:(d.before.slice(-32)+d.txt).replace(/^\W+/,'').trim()};
+  });
+  list.sort(function(a,b){return b.score-a.score||(kind==='issue'?(a.iso<b.iso?-1:1):(a.iso<b.iso?1:-1))});
+  var seen={},all=list.filter(function(d){if(seen[d.iso])return false;seen[d.iso]=1;return true});
+  return {best:all.length&&all[0].score>=3?all[0]:null,all:all.slice(0,4)};
+}
+var dxLib={};
+function dxLoad(src){return dxLib[src]||(dxLib[src]=new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=function(){delete dxLib[src];rej(new Error('Could not load the reader'))};document.head.appendChild(s)}))}
+function dxPdf(blob){
+  return dxLoad('/lib/pdf.min.js').then(function(){window.pdfjsLib.GlobalWorkerOptions.workerSrc='/lib/pdf.worker.min.js';return blob.arrayBuffer()}).then(function(buf){return window.pdfjsLib.getDocument({data:buf,isEvalSupported:false}).promise}).then(function(doc){
+    var n=Math.min(doc.numPages,4),out='',i=1;
+    return (function next(){if(i>n)return {text:out,doc:doc};return doc.getPage(i++).then(function(pg){return pg.getTextContent()}).then(function(tc){out+=tc.items.map(function(x){return x.str}).join(' ')+'\n';return next()})})();
+  });
+}
+/* a scanned PDF has no text: its first page is drawn to a picture so the photo reader can use it */
+function dxPdfPic(doc){return doc.getPage(1).then(function(pg){var vp=pg.getViewport({scale:2}),c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;return pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise.then(function(){return new Promise(function(r){c.toBlob(r,'image/png')})})})}
+function dxOcr(blob,onp){
+  return dxLoad('/lib/tesseract/tesseract.min.js').then(function(){
+    return window.Tesseract.createWorker('eng',1,{workerPath:'/lib/tesseract/worker.min.js',corePath:'/lib/tesseract/',langPath:'/lib/tesseract/lang/',workerBlobURL:false,logger:function(m){if(onp&&m&&typeof m.progress==='number')onp(m.status,m.progress)}});
+  }).then(function(w){return w.recognize(blob).then(function(r){return w.terminate().then(function(){return r.data.text||''},function(){return r.data.text||''})},function(e){try{w.terminate()}catch(x){}throw e})});
+}
+function dxField(k){var f=((T&&T.fields)||[]).filter(function(x){return x.k===k})[0];return f&&f.t==='date'?f:null}
+function dxKind(label){return /renew|expir|runs out|due/i.test(label||'')?'end':'issue'}
+function dxLead(days){return days===0?'On the day':days+' days before'}
+/* the question shown after an upload (or when someone asks to be reminded about a document) */
+function dxAsk(o){
+  var old=$('#dxOv');if(old)old.remove();
+  var ov=document.createElement('div');ov.id='dxOv';ov.className='dxov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','dxT');document.body.appendChild(ov);
+  var st={iso:o.pre&&o.pre.best?o.pre.best.iso:(o.cur||''),snip:o.pre&&o.pre.best?o.pre.best.snip:'',all:(o.pre&&o.pre.all)||[],busy:'',ocr:false,note:'',lead:30,txt:o.text||''};
+  var doc=null,done=false;
+  function close(){done=true;ov.remove();document.removeEventListener('keydown',esc2)}
+  function esc2(e){if(e.key==='Escape')close()}
+  document.addEventListener('keydown',esc2);
+  function chips(){var a=st.all.filter(function(x){return x.iso!==st.iso});return a.length?'<p class="dxo">Other dates in the document: '+a.map(function(x){return '<button type="button" class="dxchip" data-dxpick="'+x.iso+'">'+esc(fd(x.iso))+'</button>'}).join(' ')+'</p>':''}
+  function draw(keep){
+    var d0=keep&&$('#dxDate')?$('#dxDate').value:st.iso,t0=keep&&$('#dxTxt')?$('#dxTxt').value:st.txt;
+    var msg=st.busy?'<p class="dxsrc" role="status"><span class="dxspin" aria-hidden="true"></span> '+esc(st.busy)+'</p>':
+      st.snip?'<p class="dxsrc">We read this in your document: <i>&ldquo;'+esc(st.snip)+'&rdquo;</i>. Check it is right.</p>':
+      st.note?'<p class="dxsrc">'+esc(st.note)+'</p>':'<p class="dxsrc">'+(o.todo?'Choose the date it renews or runs out and we will remind you before.':'Choose the date, or leave it and add it later.')+'</p>';
+    var ocr=st.ocr&&!st.busy?'<div class="dxocr"><p>'+(o.isPdf?'This PDF is a scan, so it has no text to read.':'This is a photo.')+' We can try to read the date from the picture. The first time this downloads a small reader (about 4 MB) to this device.</p><button type="button" class="btn sm" data-dxocr="1">Read the date from it</button></div>':'';
+    var extra=o.todo?'<label class="dxf">What to remind you about<input id="dxTxt" maxlength="140" value="'+esc(t0)+'"></label><label class="dxf">Remind me<select id="dxLead">'+[30,14,7,0].map(function(n){return '<option value="'+n+'"'+(n===st.lead?' selected':'')+'>'+dxLead(n)+'</option>'}).join('')+'</select></label>':'';
+    ov.innerHTML='<div class="dxbox"><h2 id="dxT">'+esc(o.title)+'</h2>'+msg+ocr+'<label class="dxf">'+(o.todo?'Renewal date':esc(o.label||'Date'))+'<input id="dxDate" type="date" value="'+esc(d0)+'"></label>'+chips()+extra+
+      '<p class="dxnote">Read on your device. Nothing from your document is sent anywhere.</p><p id="dxErr" role="alert" class="dxerr"></p>'+
+      '<div class="dxbtns"><button type="button" class="btn" data-dxsave="1">'+(o.todo?'Add reminder':'Save date')+'</button><button type="button" class="btn ghost" data-dxskip="1">Skip</button></div></div>';
+    var di=$('#dxDate');if(di&&!keep)try{di.focus()}catch(e){}
+  }
+  function setBusy(m){st.busy=m;draw(true)}
+  function found(r,srcNote){st.pre=r;st.all=r.all;if(r.best){st.iso=r.best.iso;st.snip=r.best.snip;st.note=''}else{st.snip='';st.note=r.all.length?'We found dates but could not tell which one this is. Choose one below or type it.':(srcNote||'We could not find a date in this document. Type it below.')}st.busy='';draw(false)}
+  ov.addEventListener('click',function(e){
+    var t=e.target;if(!t.closest)return;var b;
+    if(t===ov){return}
+    if(t.closest('[data-dxskip]')){close();return}
+    if((b=t.closest('[data-dxpick]'))){st.iso=b.getAttribute('data-dxpick');st.snip='';draw(false);return}
+    if(t.closest('[data-dxocr]')){
+      setBusy('Getting the reader ready…');
+      var go=function(blob){return dxOcr(blob,function(s,p){if(!done&&st.busy)setBusy((s==='recognizing text'?'Reading the picture… ':'Getting the reader ready… ')+Math.round(p*100)+'%')}).then(function(txt){if(done)return;found(dxFind(txt,o.kind||'end'),'We could not read a date from the picture. Type it below.')},function(){if(done)return;st.busy='';st.note='The reader could not start on this device. Type the date below.';draw(false)})};
+      if(o.isPdf&&doc)dxPdfPic(doc).then(go,function(){st.busy='';st.note='Could not open the PDF. Type the date below.';draw(false)});else if(o.blob)go(o.blob);else{st.busy='';draw(false)}
+      return;
+    }
+    if(t.closest('[data-dxsave]')){
+      var iso0=($('#dxDate')||{}).value||'',er=$('#dxErr');
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(iso0)){er.textContent='Choose the date first.';return}
+      if(o.todo){
+        var tx=(($('#dxTxt')||{}).value||'').trim(),lead=+(($('#dxLead')||{}).value||0);if(!tx){er.textContent='Write what to remind you about.';return}
+        var due=iso(new Date(pd(iso0).getTime()-lead*864e5));if(due<iso(TODAY))due=iso(TODAY);
+        tdSave(tdItems.concat([{id:'td'+uid()+Date.now().toString(36),text:(tx+' (renews '+fd(iso0)+')').slice(0,140),date:due,daily:false,done:false,created:Date.now(),from:'doc'}]));
+        close();toast('Reminder added to your To do list for '+fd(due)+'.');return;
+      }
+      dxApply(o,iso0);close();toast('Saved. '+(dxKind(o.label)==='end'?'We will remind you before it runs out.':'Saved to the record.'));return;
+    }
+  });
+  draw(false);
+  /* start reading */
+  if(o.blob&&o.isPdf){
+    setBusy('Reading your document…');
+    dxPdf(o.blob).then(function(r){if(done)return;doc=r.doc;if(r.text.replace(/\s/g,'').length<40){st.busy='';st.ocr=true;st.note='';draw(false);return}found(dxFind(r.text,o.kind||'end'))},function(){if(done)return;st.busy='';st.note='Could not read this PDF. Type the date below.';draw(false)});
+  }else if(o.blob){st.ocr=true;draw(false)}
+}
+/* puts the date into the record's field (the open form if it is open, so that it is not overwritten) */
+function dxApply(o,v){
+  var el=$('#f-'+o.k);
+  if(openId===o.id&&el){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));setTimeout(function(){try{autoSave()}catch(e){}},400)}
+  var up={};up[o.k]=v;patch(o.id,up);
+}
+/* called after a document has been uploaded */
+function dxAfter(id,k,sent){
+  if(!sent)return;
+  var f=k==='other'?null:dxField(k),isPdf=/pdf/i.test(sent.type||'')||/\.pdf$/i.test(sent.name||''),isImg=/^image\//.test(sent.type||'');
+  if(f){
+    var cur=(cases.filter(function(x){return x.id===id})[0]||{})[k]||'';
+    dxAsk({id:id,k:k,label:f.l,title:'When is the date on this document?',kind:dxKind(f.l),blob:(isPdf||isImg)?sent.blob:null,isPdf:isPdf,cur:cur});
+    return;
+  }
+  /* a general document: only a PDF with text, and only if it clearly names a renewal or expiry date, is offered a reminder */
+  if(!isPdf)return;
+  dxPdf(sent.blob).then(function(r){
+    var res=dxFind(r.text,'end');if(!res.best||res.best.score<6)return;
+    var nm=pfClean(String(sent.name||'').replace(/\.[A-Za-z0-9]{1,5}$/,''),60)||'document';
+    dxAsk({id:id,k:'other',todo:true,title:'Remind you about this document?',text:'Renew '+nm,kind:'end',pre:res,isPdf:true,blob:null});
+  }).catch(function(){});
+}
+window.CD_dxFind=dxFind;window.CD_dxAfter=dxAfter;window.CD_dxAsk=dxAsk;
 var tmItems=[],tmEdit=null;
 function tmIntl(p){var w=String(p||'').replace(/[^\d+]/g,'');return w.charAt(0)==='+'?w.slice(1):w.charAt(0)==='0'?'44'+w.slice(1):w}
 function tmSave(items){tmItems=items;if(setCol)write('set-tradesmen',function(){return setCol.doc('tradesmen').set({items:items,updatedAt:Date.now()})});if(view==='tradesmen')render()}
