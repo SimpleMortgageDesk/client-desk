@@ -48,9 +48,9 @@ export async function onRequest({ request, env }) {
     const dl = await env.DB.prepare('SELECT user_no, name, email, account_email, mobile, business, trade, pay, signed_up, first_seen, deleted_at FROM users WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC').all();
     /* false means anyone Cloudflare Access lets in could use this page: ADMIN_EMAILS (your own address) should be set */
     const hardened = String(env.ADMIN_EMAILS || '').split(',').some(x => x.trim());
-    /* people who filled in the Register form but have not finished: still to confirm the email, or confirmed but not yet signed in (older rows without a name are skipped) */
+    /* people who filled in the Register form but have not finished: still to confirm the email, or confirmed but not yet signed in (includes people who registered before names were kept) */
     let pending = [];
-    try { pending = ((await env.DB.prepare("SELECT v.email, v.name, v.mobile, v.trade, v.first_at, v.sent_at, v.sent_n, v.confirmed_at FROM verify v WHERE v.name IS NOT NULL AND NOT EXISTS (SELECT 1 FROM users u WHERE u.deleted_at IS NULL AND (u.email = v.email OR lower(u.account_email) = v.email)) ORDER BY COALESCE(v.first_at, v.sent_at) DESC LIMIT 200").all()).results) || []; } catch (e) { pending = []; }
+    try { pending = ((await env.DB.prepare("SELECT v.email, v.name, v.mobile, v.trade, v.first_at, v.sent_at, v.sent_n, v.confirmed_at FROM verify v WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.deleted_at IS NULL AND (u.email = v.email OR lower(u.account_email) = v.email)) ORDER BY COALESCE(v.first_at, v.sent_at) DESC LIMIT 200").all()).results) || []; } catch (e) { pending = []; }
     return json({ admin: who, hardened, users: r.results || [], deleted: dl.results || [], pending });
   }
   if (request.method === 'DELETE') {

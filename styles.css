@@ -1115,3 +1115,16 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .tdempty{margin:6px 0 0}
 @media (max-width:700px){.tdadd{grid-template-columns:1fr 1fr}.tdadd .tdtext{grid-column:1/-1}.tdadd .add{grid-column:1/-1}.tdadd .add .btn{width:100%}}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tdchk{background:#1A2124}:root:not([data-theme="light"]) .tdchk[aria-checked="true"]{background:var(--acc,#0A6B50)}.tdn{color:#E8EEEC}}
+
+/* landing page: To do, with Reminders beside it and the Calendar underneath */
+.tdhome{display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"todo" "rem" "cal";gap:14px;align-items:start}
+.tdhome .tdmain{grid-area:todo}.tdhome .hrem{grid-area:rem}.tdhome .tdcal{grid-area:cal}
+.tdhome .hp{height:auto;min-height:0;max-height:none;overflow:visible}
+.tdhome .tdpage{height:100%}
+.tdhome #homeRem{display:block}
+@media (min-width:1100px){
+  .tdhome{grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"todo rem" "cal cal"}
+  .tdhome .tdmain{grid-area:todo}
+  .tdhome .hrem{grid-area:rem;height:auto;max-height:560px;overflow:auto;position:static;align-self:stretch}
+  .tdhome .tdcal{grid-area:cal}
+}
