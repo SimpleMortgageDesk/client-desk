@@ -15,7 +15,7 @@ function tagTr(d){if(TRADES.length>1)d.tr=T.id;return d}
 function applyTrade(){
   T=window.CD_T();homeMonth=true;/* the calendar opens as a month view with the coming up appointments on top, for every trade *//* each trade has its own colour theme */document.body.setAttribute('data-theme-trade',T.id||'');try{var tmc=document.querySelector('meta[name="theme-color"]');if(tmc){var ac=getComputedStyle(document.body).getPropertyValue('--accent').trim();if(ac)tmc.setAttribute('content',ac)}}catch(e){}
   STAGES=T.stages;STAGE_LABEL={lost:'Closed lost'};STAGES.forEach(function(s){STAGE_LABEL[s.id]=s.label});TYPES=T.types;AP_TYPES=T.apptTypes;
-  var nb=document.getElementById('newBtn');if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
+  var nb=document.getElementById('newBtn');if(nb)nb.style.display=T.tenancyMode?'none':'';if(nb)nb.textContent=(T.noun[0]==='Client'||T.tenancyMode)?'Add '+T.noun[0].toLowerCase():'New '+T.noun[0].toLowerCase();
   var q=document.getElementById('q');if(q)q.placeholder='Search '+T.noun[1].toLowerCase();
   var bn=document.getElementById('brandName'),an=(window.MD_CONFIG||{}).appName||'MySimpleDesk';if(bn)bn.innerHTML=brandHtml(an)
   document.title=an;
@@ -227,7 +227,7 @@ function caseEvents(c){
   return ev;
 }
 function allEvents(){
-  var out=[];cases.forEach(function(c){if(c.stage!=='lost')out=out.concat(caseEvents(c))});out=out.concat(homeEvents());
+  var out=[];cases.forEach(function(c){if(c.stage!=='lost')out=out.concat(caseEvents(c))});out=out.concat(homeEvents(),carEvents());
   return out.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0});
 }
 function apEvents(){var t=iso(TODAY);return appts.filter(function(a){return a.date&&a.status!=='cancelled'&&a.status!=='done'&&a.status!=='noshow'&&a.date>=addDays(t,-30)}).map(function(a){return {date:a.date,label:(a.time?a.time+' · ':'')+(a.title||a.type||a.what||'Appointment'),kind:'appt',id:a.id,who:apWho(a),key:'ap:'+a.id}})}
@@ -240,6 +240,7 @@ window.CD_keyDates=function(){
     (c.tasks||[]).forEach(function(t,i){if(!t.done&&t.due)out.push({key:c.id+'|task:'+(t.id||i),date:t.due,title:t.text,who:n})});
   });
   homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:kdNext(e),title:e.label,who:'My residential house'})});
+  carEvents().forEach(function(e){out.push({key:'car|'+e.id.slice(6)+'|'+e.key,date:kdNext(e),title:e.label,who:e.who})});
   return out;
 };
 function kdNext(r){if(!r.rep)return r.date;var n=diff(r.date);return n>=0?r.date:addDays(r.date,Math.ceil(-n/30)*30)}
@@ -270,12 +271,13 @@ function visible(){
 var navMore=false;
 function renderNav(){renderSwitch();updTrayBtn();if(view==='notebook')navMore=true;
   var items=toolItems(T.calTab?[['cases','Clients'],['reminders','Reminders'],['appointments','Appointments'],['clients',CL()],['tasks','Calendar'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['clients',CL()],['cases',T.tenancyMode?'Buy to let properties':'All '+NS()],['pipeline','Pipeline'],['appointments','Appointments'],['tasks',T.tenancyMode?'Calendar':'Tasks'],['reminders','Reminders'],['invoices','Quotes & invoices'],['calculator','Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  if(T.tenancyMode)items=items.map(function(i){return i[0]==='cases'?['assets','My Properties and Cars']:i});
   var tdIx=items.map(function(i){return i[0]}).indexOf('tasks'),tdAnch='tasks';if(tdIx<0){tdIx=items.map(function(i){return i[0]}).indexOf('appointments');tdAnch='appointments'}
   items.splice(tdIx<0?0:tdIx+1,0,['todo','To do']);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
-  if(!T.tenancyMode)items.unshift(['myhome','My residential house']);
-  var tools={logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;if(T.calTab&&tdAnch==='tasks')tools.todo=1;
-  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['myhome','My residential house'],['tradesmen','My tradesmen'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
+  if(!T.tenancyMode)items.unshift(['assets','My Properties and Cars']);
+  var tools={assets:T.tenancyMode?0:1,logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;if(T.calTab&&tdAnch==='tasks')tools.todo=1;
+  if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['tradesmen','My tradesmen'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='todo'&&tdDue()?'<span class="badge">'+tdDue()+' today</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
@@ -368,6 +370,7 @@ function render(){
   if(T.hideTabs&&T.hideTabs.indexOf(view)>-1)view=T.landing||'tasks';
   if(T.tenancyMode&&(view==='invoices'||view==='marketing'))view='cases';
   if(!T.tenancyMode&&view==='tradesmen')view=T.landing||'tasks';
+  if(T.tenancyMode&&view==='cases')view='assets';
   if(view==='tasks'){var CALV=T.tenancyMode||T.calTab;if((!CALV&&(!$('#trList')||!v.contains($('#trList'))))||(CALV&&!$('#homeCal'))){v.innerHTML='<div class="homesplit'+(CALV?' nocal':' calfull')+'"><section class="hp" id="homeCal" aria-label="Appointments calendar"></section>'+(CALV?'':'<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">'+taskShell()+'</div></section>')+'<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>'}var hc=$('#homeCal');if(hc&&!$('#apOv'))hc.innerHTML=apHome();if(!CALV)renderTray();renderRem()}
   else if(view==='notebook'){if(!$('#nbMain')||!v.contains($('#nbMain'))){v.innerHTML=nbShell();nbShown=null}renderNotebook()}
   else if(view==='calculator'){if(!$('#calcMain')||!v.contains($('#calcMain'))){v.innerHTML=calcShell();calcUpdate()}}
@@ -378,9 +381,10 @@ function render(){
   else if(view==='invoices')v.innerHTML=invoicesHTML();
   else if(view==='pipeline')v.innerHTML=pipelineHTML();
   else if(view==='cases')v.innerHTML=casesHTML();
+  else if(view==='assets')v.innerHTML=assetsHTML();
   else if(view==='tradesmen')v.innerHTML=tmHTML();
   else if(view==='todo'){if(!(document.activeElement&&document.activeElement.id==='td-text'&&v.contains(document.activeElement))||!$('#homeCal')){v.innerHTML=tdHTML();tdFill()}}
-  else if(view==='myhome')v.innerHTML='<div class="pagehead"><h1>My residential house</h1></div>'+homeCard(true);
+  else if(view==='myhome')v.innerHTML='<div class="pagehead"><h1>Residential property</h1><button type="button" class="btn ghost" data-asback="1">&larr; My Properties and Cars</button></div>'+homeCard(true);
   else v.innerHTML=remindersHTML();
 }
 function emptyHTML(){
@@ -421,11 +425,11 @@ var colsHide=(function(){try{return JSON.parse(localStorage.getItem('cd.ui.colsH
 function colOn(k){return colsHide.indexOf(k)<0}
 function lenderSelHTML(){if(!T.filter)return '';var fk=T.filter.k,ls={};cases.forEach(function(c){if(c[fk])ls[c[fk]]=1});return '<select id="lenderSel" aria-label="Filter by '+esc(T.filter.l)+'"><option value="">All '+esc(T.filter.l)+'</option>'+Object.keys(ls).sort().map(function(l){return '<option value="'+esc(l)+'"'+(lenderFilter===l?' selected':'')+'>'+esc(l)+'</option>'}).join('')+'</select>'}
 function revSelHTML(){var ms={};cases.forEach(function(c){var r=reviewOf(c);if(r)ms[r.slice(0,7)]=1});return '<select id="revSel" aria-label="Filter by key date month"><option value="">Any '+esc(T.reviewWord.toLowerCase())+' month</option>'+Object.keys(ms).sort().map(function(m){return '<option value="'+m+'"'+(revFilter===m?' selected':'')+'>'+new Date(m+'-01T00:00:00').toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</option>'}).join('')+'<option value="none"'+(revFilter==='none'?' selected':'')+'>No '+esc(T.reviewWord.toLowerCase())+' date</option></select>'}
-function casesHTML(){
+function casesHTML(embed){
   var CASE_COLS=T.cols,list=sortList(visible());
   var opts='<option value="">All stages</option>'+STAGES.concat([{id:'lost',label:'Closed lost'}]).map(function(s){return '<option value="'+s.id+'"'+(stageFilter===s.id?' selected':'')+'>'+s.label+'</option>'}).join('');
   var llSum=T.tenancyMode?(function(){var let_=cases.filter(function(c){return c.stage!=='lost'&&tnCurrent(c).length}).length,roll=cases.reduce(function(a,c){return a+rentSum(c)},0);return '<div class="stats"><div class="stat"><b>'+cases.length+'</b><span>Properties</span></div><div class="stat"><b>'+let_+'</b><span>Let</span></div><div class="stat"><b>'+(cases.length-let_)+'</b><span>Vacant</span></div><div class="stat"><b>'+money(Math.round(roll*100)/100)+'</b><span>Rent a month</span></div></div>'})():'';
-  var h='<div class="pagehead"><h1>'+(T.tenancyMode?'Buy to let properties':'All '+NS())+'</h1>'+llSum+(imKind()?'<button class="btn ghost" data-act="import">Import</button>':'')+'<button class="btn ghost" data-act="export">Export CSV</button></div>'+
+  var h='<div class="pagehead"><h1>'+(embed?'Investment properties':T.tenancyMode?'Buy to let properties':'All '+NS())+'</h1>'+llSum+(imKind()?'<button class="btn ghost" data-act="import">Import</button>':'')+'<button class="btn ghost" data-act="export">Export CSV</button></div>'+
     '<div class="filters">'+(imKind()?'<button type="button" class="btn ghost xpm" data-act="import">Import</button>':'')+'<button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>'+(T.tenancyMode?'':'<select id="stageSel" aria-label="Filter by stage">'+opts+'</select> ')+'<select id="sortSel" aria-label="Sort clients">'+[['updated','Sort: recently updated'],['first','Sort: first name A–Z'],['review','Sort: next '+T.reviewWord.toLowerCase()+' date'],['task',(T.tenancyMode||T.noTasks)?'Sort: next reminder or to-do date':'Sort: next task due date'],['clientno','Sort: client number']].map(function(o){return '<option value="'+o[0]+'"'+(sortBy===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'+lenderSelHTML()+revSelHTML()+'<details class="colpick"><summary class="btn ghost">Columns</summary><div class="colbox">'+CASE_COLS.map(function(c){return '<label><input type="checkbox" data-colk="'+c[0]+'"'+(colOn(c[0])?' checked':'')+'> '+c[1]+'</label>'}).join('')+'</div></details>'+((stageFilter||lenderFilter||revFilter)?' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>':'')+'</div>';
   h='<div class="caseswrap">'+h;
   if(!cases.length)return h+emptyHTML()+mtdCard()+'</div>';
@@ -1359,10 +1363,10 @@ var sideLater=false;
 function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
-  if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><button type="button" class="sbtn" data-v="tradesmen"'+(view==='tradesmen'?' aria-current="page"':'')+'>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
+  if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="tradesmen"'+(view==='tradesmen'?' aria-current="page"':'')+'>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
   var items=toolItems(T.calTab?[['tasks','Calendar'],['todo','To do'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['invoices','Quotes & invoices'],['calculator',T.calcKind==='tax'?'Calculator':'Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var an2=bizName()||(profA().name)||'',lm2=(window.CD_loginMail&&window.CD_loginMail())||'';
-  s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an2?'<strong class="an">'+esc(an2)+'</strong>':'')+(lm2?'<span class="am">Logged in with<br><b>'+esc(lm2)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="myhome"'+(view==='myhome'?' aria-current="page"':'')+'><span style="display:flex;flex-direction:column;min-width:0"><span>My residential house</span>'+homeSmall()+'</span></button><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+(i[0]==='todo'&&tdDue()?'<span class="badge">'+tdDue()+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
+  s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an2?'<strong class="an">'+esc(an2)+'</strong>':'')+(lm2?'<span class="am">Logged in with<br><b>'+esc(lm2)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="assets"'+(view==='assets'||view==='myhome'?' aria-current="page"':'')+'>My Properties and Cars</button><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+(i[0]==='todo'&&tdDue()?'<span class="badge">'+tdDue()+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
 function renderRem(){
   var s=$('#homeRem');if(!s)return;
@@ -1567,6 +1571,7 @@ document.addEventListener('click',function(e){
     try{localStorage.setItem('cd.ui.secHidden',JSON.stringify(secHidden))}catch(x){}return}
   var t=e.target;
   var rdn=t.closest('[data-remdone]');
+  if(rdn&&rdn.getAttribute('data-remdone').indexOf('__car:')===0){e.stopPropagation();var cp=rdn.getAttribute('data-remdone').split('|'),cid=cp[0].slice(6);carSave(carItems.map(function(x){if(x.id!==cid)return x;var nr=Object.assign({},x.remDone||{});nr[cp[1]]=cp[2];return Object.assign({},x,{remDone:nr})}));toast(rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.');return}
   if(rdn&&rdn.getAttribute('data-remdone').indexOf('__home|')===0){e.stopPropagation();var hp=rdn.getAttribute('data-remdone').split('|'),nh=Object.assign({},HOME||{});nh.remDone=Object.assign({},nh.remDone||{});nh.remDone[hp[1]]=hp[2];homeWrite(nh);toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'));return}
   if(rdn){e.stopPropagation();var rp=rdn.getAttribute('data-remdone').split('|'),rc=cases.filter(function(x){return x.id===rp[0]})[0];if(rc&&rp[1].indexOf('task:')===0){var tid=rp[1].slice(5);patch(rc.id,{tasks:(rc.tasks||[]).map(function(x){return x.id===tid?Object.assign({},x,{done:true,doneAt:Date.now()}):x})});toast('Reminder done');return}
   if(rc){var rm={};Object.assign(rm,rc.remDone||{});rm[rp[1]]=rp[2];patch(rc.id,{remDone:rm});toast((rdn.hasAttribute('data-rep')?'OK, we will remind you again in 30 days. Update the date when it is renewed and the reminders start again from the new date.':'Reminder hidden. It comes back if you change that date.'))}return}
@@ -1578,6 +1583,7 @@ document.addEventListener('click',function(e){
   if(adv){e.stopPropagation();patch(adv.dataset.adv,{stage:adv.dataset.to});return}
   var o=t.closest('[data-open]');
   if(o&&o.dataset.open==='__home'){e.preventDefault();homeOpen();return}
+  if(o&&String(o.dataset.open||'').indexOf('__car:')===0){e.preventDefault();carOpen(o.dataset.open.slice(6));return}
   if(o){e.preventDefault();openDrawer(o.dataset.open);return}
   if(t.closest('.brand')){nbFlush();view='todo';render();window.scrollTo(0,0);return}
   if(t.closest&&t.closest('[data-sideacct]')){var sb=document.getElementById('settingsBtn');if(sb)sb.click();return}
@@ -1979,7 +1985,7 @@ document.addEventListener('keydown',function(e){
 
 /* ---------- business details, quotes, invoices and tenancy agreements ---------- */
 var BIZ={},HOME=null;
-function bizSnap(s){var d=s.docs.filter(function(x){return x.id==='business'})[0];BIZ=d?d.data():{};var hd=s.docs.filter(function(x){return x.id==='home'})[0],nh=hd?hd.data():null;if(JSON.stringify(nh)!==JSON.stringify(HOME)){HOME=nh;if(view==='cases'||view==='myhome')render();renderRem();renderNav()}if(view==='invoices')render();if(T.tenancyMode)renderSide()}
+function bizSnap(s){var d=s.docs.filter(function(x){return x.id==='business'})[0];BIZ=d?d.data():{};var hd=s.docs.filter(function(x){return x.id==='home'})[0],nh=hd?hd.data():null;if(JSON.stringify(nh)!==JSON.stringify(HOME)){HOME=nh;if(view==='cases'||view==='assets'||view==='myhome')render();renderRem();renderNav()}if(view==='invoices')render();if(T.tenancyMode)renderSide()}
 function bizName(){var p=profA();return BIZ.name||p.biz||p.name||''}
 function okLogo(u){return /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(String(u||''))}
 function vatOn(){return BIZ.vatReg==='yes'}
@@ -2226,7 +2232,7 @@ function hfSweep(){
   hfRun=true;hfTried=true;var nm=(h.folder&&h.folder.name)||pfClean(String(h.addr1).split(/[\n,]/)[0])||'My home';
   window.CD_files.folder(nm,'Home').then(function(f){hfRun=false;if(f&&f.name&&HOME&&HOME.addr1)homeWrite(Object.assign({},HOME,{folder:Object.assign({},HOME.folder||{},f)}))},function(){hfRun=false});
 }
-function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases'||view==='myhome')render();renderRem();renderNav();renderSide()}
+function homeWrite(d){d.savedAt=Date.now();HOME=d;if(setCol)write('set-home',function(){return setCol.doc('home').set(d)});if(view==='cases'||view==='assets'||view==='myhome')render();renderRem();renderNav();renderSide()}
 var HOME_DUE={dealEnd:1,ercEnd:1,termEnd:1,insRenewal:1,energyEnd:1,boilerDue:1,eicrDue:1};
 function homeRows(h,g){
   var out=g[1].map(function(x){
@@ -3830,6 +3836,88 @@ function mcRender(){
 document.addEventListener('input',function(e){var t=e.target;if(t&&/^f-mort(Rate|Balance|Payment|Method)$/.test(t.id||''))mcRender()});
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.id==='f-mortMethod')mcRender()});
 /* ---------- My tradesmen (home owners and landlords): preferred tradespeople, name and phone only ---------- */
+/* ---------- My Properties and Cars: one list for the home, rental properties and cars ---------- */
+var carItems=[],CAR_F=[['mot','MOT due'],['ins','Insurance renewal'],['tax','Road tax due'],['service','Service due']];
+function carReg(c){return String(c.reg||'').toUpperCase().trim()}
+function carWho(c){return carReg(c)||[c.make,c.model].filter(Boolean).join(' ')||'Car'}
+function carEvents(){
+  var out=[];
+  carItems.forEach(function(c){CAR_F.forEach(function(f){var exp=c[f[0]];if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp))return;out.push({date:remDue(c.remDone&&c.remDone[f[0]],exp,1),label:f[1]+' '+fd(exp),kind:'review',id:'__car:'+c.id,who:'Car · '+carWho(c),key:f[0],rep:1,exp:exp})})});
+  return out;
+}
+function carSave(items){carItems=items;if(setCol)write('set-cars',function(){return setCol.doc('cars').set({items:items,updatedAt:Date.now()})});if(view==='assets'&&!$('#carOv'))render();renderSide();renderRem();renderNav()}
+function carOpen(id){
+  var c=id?carItems.filter(function(x){return x.id===id})[0]:null;if(id&&!c)return;c=c||{};
+  var old=$('#carOv');if(old)old.remove();
+  var ov=document.createElement('div');ov.id='carOv';ov.className='dxov';document.body.appendChild(ov);
+  var dt=function(k,l,extra){return '<label class="dxf">'+l+'<input id="car-'+k+'" type="date" value="'+esc(c[k]||'')+'"></label>'+(extra||'')};
+  ov.innerHTML='<form class="dxbox" id="carForm" role="dialog" aria-modal="true" aria-labelledby="carT" novalidate><h2 id="carT">'+(id?'Edit car':'Add a car')+'</h2>'+
+    '<label class="dxf">Registration<input id="car-reg" maxlength="12" autocomplete="off" style="text-transform:uppercase" placeholder="For example: AB12 CDE" value="'+esc(c.reg||'')+'"></label>'+
+    '<div class="carrow"><label class="dxf">Make<input id="car-make" maxlength="40" autocomplete="off" placeholder="Ford" value="'+esc(c.make||'')+'"></label><label class="dxf">Model<input id="car-model" maxlength="40" autocomplete="off" placeholder="Focus" value="'+esc(c.model||'')+'"></label></div>'+
+    '<p class="dxnote" style="margin:0 0 10px">We remind you a month before each date. Leave any you do not need empty.</p>'+
+    dt('mot','MOT due')+
+    dt('ins','Insurance renewal','<p class="dxo" style="margin:-6px 0 12px"><button type="button" class="btn ghost sm" id="carRead">Read the date from an insurance document</button> <input type="file" id="carFile" accept=".pdf,image/*" hidden> <span class="muted" style="font-size:12px">Read on this device. Nothing is sent anywhere.</span></p>')+
+    dt('tax','Road tax due')+dt('service','Service due')+
+    '<p id="carErr" role="alert" class="dxerr"></p><div class="dxbtns"><button type="submit" class="btn">'+(id?'Save changes':'Add car')+'</button><button type="button" class="btn ghost" id="carX">Cancel</button></div></form>';
+  var close=function(){ov.remove();document.removeEventListener('keydown',kd)},kd=function(e){if(e.key==='Escape'&&!$('#dxOv'))close()};document.addEventListener('keydown',kd);
+  setTimeout(function(){try{$('#car-reg').focus()}catch(e){}},30);
+  $('#carX').onclick=close;
+  $('#carRead').onclick=function(){$('#carFile').click()};
+  $('#carFile').onchange=function(){
+    var f=this.files&&this.files[0];this.value='';if(!f)return;
+    var pdf=/pdf/i.test(f.type)||/\.pdf$/i.test(f.name),go=function(b){dxAsk({title:'Insurance renewal date',label:'Insurance renewal',kind:'end',blob:b,isPdf:pdf,cur:($('#car-ins')||{}).value||'',apply:function(v){var i=$('#car-ins');if(i)i.value=v}})};
+    if(pdf)go(f);else rcPrep(f).then(function(pp){go(pp.blob)},function(){go(f)});
+  };
+  $('#carForm').addEventListener('submit',function(e){
+    e.preventDefault();var g=function(k){return (($('#car-'+k)||{}).value||'').trim()},er=$('#carErr');
+    var reg=g('reg').toUpperCase(),make=g('make'),model=g('model');
+    if(!reg&&!make&&!model){er.textContent='Add the registration, or the make and model.';$('#car-reg').focus();return}
+    var nc={id:c.id||('car'+uid()+Date.now().toString(36)),reg:reg,make:make,model:model,remDone:Object.assign({},c.remDone||{})};
+    CAR_F.forEach(function(f){var v=g(f[0]);nc[f[0]]=v;if(c[f[0]]!==v)delete nc.remDone[f[0]]});
+    close();carSave(id?carItems.map(function(x){return x.id===id?nc:x}):carItems.concat([nc]));toast(id?'Saved':'Car added');
+  });
+}
+function assetsHTML(){
+  var t=iso(TODAY),hasHome=!!(HOME&&HOME.addr1),landlordOther=!T.tenancyMode&&(TRADES||[]).indexOf('landlord')>-1;
+  var h='<div class="pagehead"><h1>My Properties and Cars</h1><div class="asadd"><button type="button" class="btn" id="asAdd" aria-haspopup="true" aria-expanded="false" aria-controls="asMenu">Add</button>'+
+    '<div id="asMenu" class="asmenu" role="menu" hidden><button type="button" role="menuitem" data-asnew="res">Residential Property</button><button type="button" role="menuitem" data-asnew="inv">Investment Property</button><button type="button" role="menuitem" data-asnew="car">Car</button></div></div></div><div class="aswrap">';
+  var due=function(c,ks){return ks.map(function(f){var d=c[f[0]];return d&&/^\d{4}-\d{2}-\d{2}$/.test(d)?'<span class="aschip'+(d<t?' bad':diff(d)<=30?' warn':'')+'">'+esc(f[1].replace(/ (due|renewal)$/,''))+' '+esc(fd(d))+'</span>':''}).join('')};
+  /* residential property */
+  h+='<section class="ass" aria-labelledby="asH1"><h2 id="asH1">Residential property</h2>';
+  if(hasHome){var hev=homeEvents().sort(function(a,b){return a.date<b.date?-1:1})[0];h+='<button type="button" class="asrow" data-asopen="res"><span class="asic" aria-hidden="true">&#127968;</span><span class="astx"><b>'+esc(short(HOME.addr1))+'</b><small>'+(hev?esc(hev.label)+(hev.date<t?' · overdue':''):'Open to add insurance, mortgage and service dates')+'</small></span><span class="asgo" aria-hidden="true">&rsaquo;</span></button>'}
+  else h+='<p class="muted astip">None yet. Press <b>Add</b>, then <b>Residential Property</b>, to keep your own home’s insurance, mortgage, boiler and energy dates.</p>';
+  h+='</section>';
+  /* cars */
+  h+='<section class="ass" aria-labelledby="asH2"><h2 id="asH2">Cars</h2>';
+  if(carItems.length)h+=carItems.slice().sort(function(a,b){return carWho(a).localeCompare(carWho(b))}).map(function(c){return '<div class="asrow asc"><span class="asic" aria-hidden="true">&#128663;</span><span class="astx"><b>'+esc(carWho(c))+'</b>'+(carReg(c)&&(c.make||c.model)?'<small>'+esc([c.make,c.model].filter(Boolean).join(' '))+'</small>':'')+'<span class="aschips">'+(due(c,CAR_F)||'<small>No dates added yet</small>')+'</span></span><span class="asact"><button type="button" class="btn ghost sm" data-ascar="'+esc(c.id)+'">Edit</button><button type="button" class="btn ghost sm danger" data-ascardel="'+esc(c.id)+'">Delete</button></span></div>'}).join('');
+  else h+='<p class="muted astip">None yet. Press <b>Add</b>, then <b>Car</b>, to be reminded about the MOT, insurance, road tax and service.</p>';
+  h+='</section>';
+  /* investment properties */
+  if(T.tenancyMode)h+='<section class="ass asinv" aria-label="Investment properties">'+casesHTML(true)+'</section>';
+  else if(landlordOther)h+='<section class="ass" aria-labelledby="asH3"><h2 id="asH3">Investment properties</h2><button type="button" class="asrow" data-asinv="open"><span class="asic" aria-hidden="true">&#127969;</span><span class="astx"><b>Your rental properties are in your Landlord view</b><small>Open it to see them or add one</small></span><span class="asgo" aria-hidden="true">&rsaquo;</span></button></section>';
+  return h+'</div>';
+}
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;var b,m=$('#asMenu'),ab=$('#asAdd');
+  if(m&&!m.hidden&&!t.closest('.asadd')){m.hidden=true;if(ab)ab.setAttribute('aria-expanded','false')}
+  if((b=t.closest('#asAdd'))){var open=m.hidden;m.hidden=!open;b.setAttribute('aria-expanded',String(open));if(open){var f=m.querySelector('button');if(f)f.focus()}return}
+  if((b=t.closest('[data-asnew]'))){
+    var k=b.getAttribute('data-asnew');if(m)m.hidden=true;if(ab)ab.setAttribute('aria-expanded','false');
+    if(k==='car'){carOpen(null);return}
+    if(k==='res'){if(HOME&&HOME.addr1){toast('This is your residential property. Opening it.');view='myhome';render();window.scrollTo(0,0)}else homeOpen();return}
+    if(k==='inv'){
+      if(T.tenancyMode){qaOpen();return}
+      if((TRADES||[]).indexOf('landlord')>-1){switchTrade('landlord');view='assets';render();setTimeout(qaOpen,250);return}
+      toast('Investment properties are for landlords. Add Landlord to your trades first.');if(window.CD_openTrade)window.CD_openTrade();return;
+    }
+  }
+  if(t.closest('[data-asopen="res"]')){view='myhome';render();window.scrollTo(0,0);return}
+  if(t.closest('[data-asinv="open"]')){switchTrade('landlord');view='assets';render();window.scrollTo(0,0);return}
+  if((b=t.closest('[data-ascar]'))){carOpen(b.getAttribute('data-ascar'));return}
+  if((b=t.closest('[data-ascardel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var id=b.getAttribute('data-ascardel');carSave(carItems.filter(function(x){return x.id!==id}));toast('Deleted');return}
+  if(t.closest('[data-asback]')){view='assets';render();window.scrollTo(0,0)}
+},true);
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=$('#asMenu');if(m&&!m.hidden){m.hidden=true;var ab=$('#asAdd');if(ab){ab.setAttribute('aria-expanded','false');ab.focus()}}}});
 /* ---------- To do: the person's own daily tasks. Open ones due today are the first thing seen when the app opens. ---------- */
 var tdItems=[],tdUserNav=false,tdLanded=false;
 function tdToday(){return iso(new Date())}
@@ -3992,6 +4080,7 @@ function dxAsk(o){
     if(t.closest('[data-dxsave]')){
       var iso0=($('#dxDate')||{}).value||'',er=$('#dxErr');
       if(!/^\d{4}-\d{2}-\d{2}$/.test(iso0)){er.textContent='Choose the date first.';return}
+      if(o.apply){o.apply(iso0);close();toast('Date filled in. Press Save to keep it.');return}
       if(o.todo){
         var tx=(($('#dxTxt')||{}).value||'').trim(),lead=+(($('#dxLead')||{}).value||0);if(!tx){er.textContent='Write what to remind you about.';return}
         var due=iso(new Date(pd(iso0).getTime()-lead*864e5));if(due<iso(TODAY))due=iso(TODAY);
@@ -4317,6 +4406,7 @@ claude.use('db').then(function(d){
   mkCol=db.collection('marketing');
   setCol=db.collection('settings');var tradeSeen=false,tradeSig='';setCol.onSnapshot(bizSnap,function(){});
   setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='todo'})[0];tdItems=(d&&d.data().items)||[];if(view==='todo')render();renderNav()},function(){});
+  setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='cars'})[0];carItems=(d&&d.data().items)||[];if(view==='assets'&&!$('#carOv'))render();renderRem();renderSide();renderNav()},function(){});
   (window.CD_firstPull||Promise.resolve()).then(function(){setTimeout(tdLand,500)});
   setCol.onSnapshot(function(s){var d=s.docs.filter(function(x){return x.id==='tradesmen'})[0];tmItems=(d&&d.data().items)||[];if(view==='tradesmen'&&!(document.activeElement&&/^tm-/.test(document.activeElement.id||'')))render()},function(){});
   setCol.onSnapshot(function(s){var d0=s.docs.filter(function(x){return x.id==='trade'})[0],dd=d0&&d0.data(),tid=dd&&dd.trade,A0=window.CD_TRADES.all;if(!tid||!A0[tid])return;tradeSeen=true;USEDTU=dd.usedTu||null;if(window.CD_TRADES.only)return;var list=(dd.trades||[tid]).filter(function(id){return A0[id]}).slice(0,2);if(!list.length)list=[tid];var main=(dd.main&&A0[dd.main])?dd.main:list[0],sig=list.join('|')+'>'+main,changed=sig!==tradeSig;tradeSig=sig;TRADES=list;MAIN_TRADE=main;var ov=$('#tpOv');if(ov&&!window.CD_tradeChosen())ov.remove();var keep=window.CD_tradeChosen()&&list.length>1&&list.indexOf(T.id)>-1,target=keep?T.id:(list.indexOf(tid)>-1?tid:list[0]);if(target!==T.id||!window.CD_tradeChosen()){window.CD_tradeSet(target);if(openId!==undefined)closeDrawer();applyTrade();setCases();render();renderSide();renderNav()}else if(changed){setCases();render();renderSide();renderNav()}});
