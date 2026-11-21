@@ -1341,19 +1341,14 @@
       '<p style="margin:16px 0 0;font-size:13.5px;color:#58697A">Still stuck? Email <a href="mailto:support@mysimpledesk.co.uk" style="color:#0A6B50;font-weight:600">support@mysimpledesk.co.uk</a>.</p>' + err + legal + '</div>';
     }
     else if (page === 'register') {
-      var r = sget('cd.reg') || {}, inp = 'width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 12px;font-weight:400';
-      var mode = r.mode || 'pw', gm = /@(gmail|googlemail)\./i.test(r.email || '');
-      html = '<form id="rgForm" novalidate class="mdl">' + hdr('login') + '<h1>Free to start. No card needed.</h1>' +
+      html = '<div class="mdl">' + hdr('login') + '<h1>Free to start. No card needed.</h1>' +
         '<p class="lead"><b>Free forever for home owners.</b> Landlords and professionals: free for the first year, then from £0.99 a month.</p>' +
-        '<p id="rgTop" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
-        '<label style="font-size:14px">Full name <span style="color:#b3261e">*</span><input id="rgName" autocomplete="name" maxlength="80" value="' + esc(r.name || '') + '" style="' + inp + '"></label>' +
-        '<label style="font-size:14px">Email address <span style="color:#b3261e">*</span><input id="rgMail" type="email" autocomplete="email" maxlength="120" value="' + esc(r.email || '') + '" style="' + inp + '"></label>' +
-        '<label style="font-size:14px">Mobile number <span style="color:#b3261e">*</span><input id="rgPhone" type="tel" autocomplete="tel" placeholder="e.g. 07700 900123" value="' + esc(r.phoneRaw || '') + '" style="' + inp + '"></label>' +
-        (function () { var TT = window.CD_TRADES || { order: [], all: {} }; if (TT.only || !TT.order.length) return ''; return '<label style="font-size:14px">I am (choose at least one) <span style="color:#b3261e">*</span><select id="rgTrade" aria-required="true" required style="' + inp + ';background:#fff">' + '<option value="">Choose…</option>' + TT.order.map(function (id) { var op = !window.CD_tradeOpen || window.CD_tradeOpen(id), one = TT.open && TT.open.length === 1 && TT.open[0] === id; return '<option value="' + id + '"' + (op ? ((r.trade === id || (one && !r.trade)) ? ' selected' : '') : ' disabled') + '>' + esc(TT.all[id].label) + (op ? '' : ' (coming soon)') + '</option>'; }).join('') + '</select></label><label id="rgLLw" style="display:none;margin:-4px 0 12px;font-size:14px;cursor:pointer"><input type="checkbox" id="rgLL" style="width:auto;margin:0 8px 0 0;vertical-align:-2px"' + (r.trade2 === 'landlord' ? ' checked' : '') + '>I am also a landlord or home owner</label><p id="rgT2l" style="margin:-4px 0 12px;font-size:13.5px;' + (r.trade2 ? 'display:none' : '') + '"><a href="#" id="rgT2a" style="color:#0A6B50;font-weight:600">+ I do a second kind of work too</a></p><label id="rgT2w" style="font-size:14px;' + (r.trade2 ? '' : 'display:none') + '">&hellip;and also <span style="color:#58697A;font-weight:400">(optional)</span><select id="rgTrade2" style="' + inp + ';background:#fff">' + '<option value="">No, just one</option>' + TT.order.filter(function (id) { return !window.CD_tradeOpen || window.CD_tradeOpen(id); }).map(function (id) { return '<option value="' + id + '"' + (r.trade2 === id ? ' selected' : '') + '>' + esc(TT.all[id].label) + '</option>'; }).join('') + '</select></label>'; })() +
-        '<div id="rgMain"><button type="submit" data-rg="next" style="' + pri + '">Register' + sub((ok.ms && ok.g ? 'Next: choose Outlook or Gmail' : 'Next: sign in with ' + msLbl + ', no new password'), 1) + '</button></div>' +
-        '<div id="rgPick" hidden></div>' +
+        '<p style="margin:0 0 14px;color:#2b3b47;font-size:15px">Sign in with the email account you use. It takes a few seconds, and there is no new password to make.</p>' +
+        '<button type="button" id="rgMs" style="' + pri + '">Continue with Microsoft' + sub((CFG.tenant || 'consumers') === 'consumers' ? 'Outlook, Hotmail or any Microsoft account' : 'Outlook, Hotmail or Microsoft 365', 1) + '</button>' +
+        (ok.g ? '<button type="button" id="rgGo" style="' + sec + '">Continue with Google' + sub('Gmail or any Google account') + '</button>' : '') +
+        '<p style="margin:12px 0 0;color:#58697A;font-size:13.5px">After that we only ask for your mobile number and what you do. Your records are kept in your own ' + (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') + '.</p>' +
         (suOn() ? '<p style="margin:10px 0 0;color:#58697A;font-size:12.5px">We keep your name, email and mobile to run your account. We never see your tenants\', clients\' or properties\' details. <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy</a></p>' : '') +
-        '<p style="margin:14px 0 0;font-size:14px">Already registered? <a href="#" data-sp="login" style="color:#0A6B50;font-weight:600">Log in</a></p>' + err + legal + '</form>';
+        '<p style="margin:14px 0 0;font-size:14px">Already registered? <a href="#" data-sp="login" style="color:#0A6B50;font-weight:600">Log in</a></p>' + err + legal + '</div>';
     } else html = '<div style="' + card + '">' + head +
       '<p style="color:#58697A;margin:0 0 6px;font-size:14px;line-height:1.45">Properties, tenants, rent, expenses and certificates in one place. Everything is saved in your own Outlook or Gmail account.</p>' +
       '<button data-sp="login" style="' + pri + '">Log in' + sub('I already have an account', 1) + '</button>' +
@@ -1409,6 +1404,8 @@
         if (useG) gStart(em); else { lset('cd.prov', 'ms'); startLogin(false, em); }
       });
     }
+    var rgm = o.querySelector('#rgMs'); if (rgm) rgm.onclick = function () { rgm.disabled = true; sset('cd.reg', null); sset('cd.intent', 'register'); lset('cd.prov', 'ms'); startLogin(); };
+    var rgg = o.querySelector('#rgGo'); if (rgg) rgg.onclick = function () { rgg.disabled = true; sset('cd.reg', null); sset('cd.intent', 'register'); gStart(); };
     var f = o.querySelector('#rgForm'); if (!f) return;
     var val = function (id) { return ((o.querySelector('#' + id) || {}).value || '').trim(); };
     var modeNow = function () { return 'acct'; };
@@ -2028,11 +2025,14 @@
       if (r.code === 200) { tuAt = r.body.tu || null; }
       if (r.code === 200 && r.body.since) { planInfo = { no: r.body.no, since: r.body.since, pay: r.body.pay || 'trial' }; setTimeout(trialNote, 8000); }
       var gate = r.code === 200 ? (r.body.gate || (r.body.status === 'pending' ? 'confirm' : 'allow')) : '';
-      if (gate === 'confirm') { vState = 'blocked'; vBlock(em); return; }
+      /* signed in with Microsoft or Google: their signed proof of the address is enough to confirm it, so no email link is needed */
+      if (gate === 'confirm') { if (await vProve(em, {})) gate = 'allow'; else { vState = 'blocked'; vBlock(em); return; } }
       if (gate === 'register') {
         vState = 'blocked';
-        if (sget('cd.reg')) { try { await vCall('start', em); } catch (x) {} vBlock(em); return; }
-        vNoReg(em); return;
+        var rg0 = sget('cd.reg');
+        if (rg0 ? await vProve(em, { name: rg0.name, mobile: rg0.phone, trade: rg0.trade }) : await vReturning(em)) gate = 'allow';
+        else if (rg0) { try { await vCall('start', em); } catch (x) {} vBlock(em); return; }
+        else { vDetails(em); return; }
       }
       if (gate === 'allow') lset('cd.vok', em.toLowerCase());
       else if (!okLocal) { vState = 'blocked'; vRetry(em); return; }
@@ -2056,6 +2056,67 @@
     var L = storageLinks();
     vScreen('&#128230;', 'Your ' + SNAME() + ' is full', (sget('cd.reg') ? 'Your registration went through. ' : '') + esc(APPN) + ' keeps your records in your own ' + SNAME() + ', and there is no space left in it, so nothing can be saved yet. Free up some space (empty the recycle bin too) or add storage, then press <b>Try again</b>. You stay signed in.',
       [['Try again', function () { location.reload(); }], [L[0][0] + ' to free up space', function () { window.open(L[0][1], '_blank', 'noopener'); }], [L[1][0], function () { window.open(L[1][1], '_blank', 'noopener'); }], ['Log out', function () { wipeAndReload(false); }]]);
+  }
+  /* ask the server to confirm the address from the signed proof of sign-in the app holds */
+  async function vProve(em, d) {
+    try {
+      d = d || {};
+      var r = await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'proof', email: em, idt: (tok() || {}).idt || '', name: d.name || '', mobile: d.mobile || '', trade: d.trade || '' }) });
+      if (!r.ok) return false;
+      var j = await r.json().catch(function () { return {}; });
+      return j.status === 'confirmed';
+    } catch (e) { return false; }
+  }
+  /* someone whose account already exists in their own storage (an earlier registration or test): no questions, the details they gave before are used */
+  async function vReturning(em) {
+    try { await Promise.race([window.CD_firstPull || Promise.resolve(), new Promise(function (r) { setTimeout(r, 8000); })]); } catch (e) {}
+    var sp = (mem.settings.profile && mem.settings.profile.data) || null; if (!sp || !sp.name) return false;
+    var tr = (mem.settings.trade && mem.settings.trade.data) || {};
+    return await vProve(em, { name: sp.name, mobile: sp.phone || '', trade: tr.trade || '' });
+  }
+  /* new person, signed in: the two questions we still need (mobile number and what they do) */
+  function vDetails(em) {
+    var acc = (tok() || {}).account || {}, TT = window.CD_TRADES || { order: [], all: {} }, showTrade = !(TT.only || !TT.order.length);
+    var ov = $('mdVerify'); if (ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'mdVerify';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:410;background:#0f1f1a;color:#fff;overflow:auto;padding:16px;font:15px system-ui,sans-serif';
+    var inp = 'width:100%;box-sizing:border-box;padding:12px;border:1px solid #3d5a4e;border-radius:9px;background:#fff;color:#101C26;font:16px system-ui;margin:5px 0 12px', lab = 'display:block;text-align:left;font-size:14px;color:#d6e2dc';
+    ov.innerHTML = '<form id="vdForm" novalidate style="width:min(420px,100%);margin:6vh auto"><div style="text-align:center;font-size:38px">&#128075;</div><h2 style="margin:6px 0 4px;font-size:22px;text-align:center">Welcome to ' + esc(APPN) + '</h2>' +
+      '<p style="margin:0 0 16px;color:#d6e2dc;font-size:14px;line-height:1.5;text-align:center">You are signed in as <b>' + esc(em) + '</b>. Two quick things and you are in.</p>' +
+      '<p id="vdErr" role="alert" style="display:none;margin:0 0 10px;padding:8px 10px;background:#fdecea;color:#b3261e;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
+      '<label style="' + lab + '">Your name<input id="vdName" autocomplete="name" maxlength="80" value="' + esc(acc.name || '') + '" style="' + inp + '"></label>' +
+      '<label style="' + lab + '">Mobile number <span style="color:#ffb4a8">*</span><input id="vdPhone" type="tel" autocomplete="tel" placeholder="e.g. 07700 900123" style="' + inp + '"></label>' +
+      (showTrade ? '<label style="' + lab + '">I am (choose at least one) <span style="color:#ffb4a8">*</span><select id="vdTrade" style="' + inp + '"><option value="">Choose…</option>' + TT.order.map(function (id) { var op = !window.CD_tradeOpen || window.CD_tradeOpen(id), one = TT.open && TT.open.length === 1 && TT.open[0] === id; return '<option value="' + id + '"' + (op ? (one ? ' selected' : '') : ' disabled') + '>' + esc(TT.all[id].label) + (op ? '' : ' (coming soon)') + '</option>'; }).join('') + '</select></label>' +
+        '<label id="vdLLw" style="display:none;text-align:left;margin:-4px 0 12px;font-size:14px;color:#d6e2dc;cursor:pointer"><input type="checkbox" id="vdLL" style="width:auto;margin:0 8px 0 0;vertical-align:-2px">I am also a landlord or home owner</label>' : '') +
+      '<button type="submit" id="vdGo" style="width:100%;padding:13px;font-size:16px;border:0;border-radius:9px;background:#2f8f6b;color:#fff;cursor:pointer;font-weight:600">Finish and open ' + esc(APPN) + '</button>' +
+      '<p style="margin:10px 0 0;color:#b9c8c0;font-size:12.5px;text-align:center">We keep your name, email and mobile to run your account. We never see your clients\' or properties\' details.</p>' +
+      '<p style="margin:22px 0 0;padding-top:14px;border-top:1px solid #3d5a4e;text-align:center"><button type="button" id="vdOut" style="background:none;border:1px solid #6f8a7e;border-radius:8px;color:#d6e2dc;cursor:pointer;font-size:14px;padding:9px 18px">Log out</button></p></form>';
+    document.body.appendChild(ov);
+    var ap0 = $('app'); if (ap0) { try { ap0.inert = true; } catch (x) {} }
+    var err = $('vdErr'), say = function (m, id) { err.textContent = m; err.style.display = m ? 'block' : 'none'; ov.querySelectorAll('input,select').forEach(function (i) { i.style.borderColor = '#3d5a4e'; }); var f = id && $(id); if (f && m) { f.style.borderColor = '#ff8a7a'; try { f.focus(); } catch (x) {} } };
+    var tsel = $('vdTrade'), llw = $('vdLLw');
+    if (tsel) tsel.addEventListener('change', function () { llw.style.display = tsel.value && tsel.value !== 'landlord' ? 'block' : 'none'; if (llw.style.display === 'none') $('vdLL').checked = false; });
+    setTimeout(function () { try { $('vdPhone').focus(); } catch (x) {} }, 40);
+    $('vdOut').onclick = function () { wipeAndReload(false); };
+    $('vdForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var nm = ($('vdName').value || '').trim(), raw = ($('vdPhone').value || '').trim(), ph = waNorm(raw), trade = tsel ? tsel.value : '';
+      if (nm.length < 2) return say('Add your full name.', 'vdName');
+      if (!raw) return say('Add your mobile number.', 'vdPhone');
+      if (!ph) return say('That does not look like a phone number. Use the full number, for example 07700 900123.', 'vdPhone');
+      if (tsel && !trade) return say('Please choose at least one trade or profession to register.', 'vdTrade');
+      if (tsel && window.CD_tradeOpen && !window.CD_tradeOpen(trade)) return say('That choice is coming soon. Please choose another.', 'vdTrade');
+      say(''); var go = $('vdGo'); go.disabled = true; go.textContent = 'One moment…';
+      var reg = { name: nm, email: em, phone: ph, phoneRaw: raw, mode: 'acct', prov: PROV === 'google' ? 'google' : 'ms', trade: trade, trade2: ($('vdLL') && $('vdLL').checked && trade !== 'landlord') ? 'landlord' : '', t: Date.now() };
+      sset('cd.reg', reg);
+      if (await vProve(em, { name: nm, mobile: ph, trade: trade })) {
+        lset('cd.vok', em.toLowerCase()); vState = 'ok'; ov.remove(); var ap = $('app'); if (ap) { try { ap.inert = false; } catch (x) {} }
+        setTimeout(pinWarnMaybe, 50); return;
+      }
+      /* the proof could not be matched (for example the account uses a different alias): fall back to the email link */
+      try { await fetch('/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'start', email: em, name: nm, mobile: ph, trade: trade }) }); } catch (x) {}
+      vBlock(em);
+    });
   }
   function vNoReg(em) {
     vScreen('&#128274;', 'Please register first', 'We could not find a registration for <b>' + esc(em) + '</b>. ' + esc(APPN) + ' is only for people who have registered and confirmed their email address. If you registered with a different email address, log out and log in with that one.',

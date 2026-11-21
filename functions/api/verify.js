@@ -28,11 +28,11 @@ async function table(db) {
 const page = (title, body) => say('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + title + '</title><style>body{font:16px system-ui,sans-serif;background:#FBFAF7;color:#101C26;margin:0;display:grid;place-items:center;min-height:100vh;padding:20px}main{max-width:440px;background:#fff;border:1px solid #D4DBDF;border-radius:14px;padding:28px}h1{font-size:22px;margin:0 0 10px}a.b{display:inline-block;margin-top:14px;background:#0A6B50;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600}</style></head><body><main>' + body + '</main></body></html>', 200, { 'Content-Type': 'text/html;charset=utf-8' });
 
 /* Welcome email, sent once when the address is first confirmed. Best effort: a failure never blocks confirming. */
-async function welcome(env, email, origin) {
+async function welcome(env, email, origin, given) {
   if (!env.RESEND_API_KEY || env.WELCOME_EMAIL === 'off') return;
   try {
     const u = await env.DB.prepare('SELECT name FROM users WHERE email = ?1 OR lower(account_email) = ?1 LIMIT 1').bind(email).first();
-    const name = clean(u && u.name, 80).split(' ')[0] || 'there', from = env.MAIL_FROM || 'MySimpleDesk <support@mysimpledesk.co.uk>';
+    const name = (clean(u && u.name, 80) || clean(given, 80)).split(' ')[0] || 'there', from = env.MAIL_FROM || 'MySimpleDesk <support@mysimpledesk.co.uk>';
     const app = origin + '/?p=login', btn = 'display:inline-block;background:#0A6B50;color:#fff;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600';
     const html = '<div style="font:16px system-ui,sans-serif;color:#101C26;max-width:480px;line-height:1.5"><p>Hello ' + name + ',</p><p>Welcome to MySimpleDesk. Your email is confirmed and your account is ready.</p><p><b>Getting started</b></p><ol style="padding-left:20px"><li>Log in with the same Microsoft or Google account you registered with.</li><li>Add your first client, property or job.</li><li>Set a reminder so nothing gets missed.</li></ol><p><a href="' + app + '" style="' + btn + '">Open MySimpleDesk</a></p><p>Your records are saved in your own OneDrive or Google Drive, so they stay yours.</p><p style="font-size:14px;color:#58697A">Need a hand? Just reply to this email or use Contact support in the Help section.</p><p>Thank you for joining,<br>The MySimpleDesk team</p></div>';
     const text = 'Hello ' + name + ',\n\nWelcome to MySimpleDesk. Your email is confirmed and your account is ready.\n\nGetting started:\n1. Log in with the same Microsoft or Google account you registered with.\n2. Add your first client, property or job.\n3. Set a reminder so nothing gets missed.\n\nOpen the app: ' + app + '\n\nYour records are saved in your own OneDrive or Google Drive, so they stay yours.\n\nNeed a hand? Reply to this email or use Contact support in the Help section.\n\nThe MySimpleDesk team';
@@ -67,6 +67,18 @@ export async function onRequestPost({ request, env }) {
   if (!EMAIL.test(email)) return json({ error: 'bad email' }, 400);
   await table(env.DB);
   const row = await env.DB.prepare('SELECT sent_at, sent_day, sent_n, confirmed_at FROM verify WHERE email = ?1').bind(email).first();
+  if (d.action === 'proof') {
+    /* Microsoft or Google has just signed this person in with this address, and the app holds their signed proof of it. That is stronger evidence than a link in an email, so the address is confirmed straight away. */
+    const nowP = new Date().toISOString();
+    if (await rateLimit(env.DB, request, nowP, 'proof', 40)) return json({ error: 'too many requests' }, 429);
+    const id = d.idt ? await verifyMs(String(d.idt), env) : null;
+    if (!id || !id.email || id.email !== email) return json({ error: 'not proven' }, 403);
+    const first = !(row && row.confirmed_at);
+    await env.DB.prepare("INSERT INTO verify (email, token_hash, sent_at, sent_day, sent_n, confirmed_at, name, mobile, trade, first_at) VALUES (?1, NULL, ?2, ?3, 0, ?2, ?4, ?5, ?6, ?2) ON CONFLICT(email) DO UPDATE SET token_hash = NULL, confirmed_at = COALESCE(verify.confirmed_at, ?2), name = COALESCE(NULLIF(?4, ''), verify.name), mobile = COALESCE(NULLIF(?5, ''), verify.mobile), trade = COALESCE(NULLIF(?6, ''), verify.trade), first_at = COALESCE(verify.first_at, ?2)")
+      .bind(email, nowP, nowP.slice(0, 10), clean(d.name, 80), clean(d.mobile, 30), clean(d.trade, 60)).run();
+    if (first) await welcome(env, email, new URL(request.url).origin, d.name);
+    return json({ status: 'confirmed' });
+  }
   if (d.action === 'taken') {
     /* asked from the Register form before anything is sent: is there already an account for this address? Limited per sender like the status check. */
     if (await rateLimit(env.DB, request, new Date().toISOString(), 'status', 120)) return json({ error: 'too many requests' }, 429);
