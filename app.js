@@ -79,11 +79,12 @@ function reviewItems(c,useStage){
     if(r.unless&&r.unless.some(function(k){return fv(c,k)!==''}))return;
     var d=fv(c,r.k);if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d))return;
     var ref=r.ref?fv(c,r.ref):'',rl=ref?(r.refL?'. '+r.refL+' '+(T.byKey[r.ref]&&T.byKey[r.ref].t==='date'?fd(ref):ref):': '+ref):'';
+    if(expHas(c,r.k,d))return;
     if(r.lead){out.push({date:remDue(c.remDone&&c.remDone[r.k],d,r.lead),label:r.l+' '+fd(d)+rl,key:r.k,sec:false,rep:1,exp:d});return}
     if(remDone(c,r,d))return;
     out.push({date:d,label:r.l+rl,key:r.k,sec:false});
   });
-  return out.concat(tnReminders(c)).concat(T.tenancyMode?rlReminders(c).concat(rpReminders(c)):[]).concat(docReminders(c)).concat(acMtdItems(c));
+  return out.concat(tnReminders(c)).concat(T.tenancyMode?rlReminders(c).concat(rpReminders(c)):[]).concat(docReminders(c)).concat(expItems(c,'case')).concat(acMtdItems(c));
 }
 /* accountants: a sole trader in Making Tax Digital for Income Tax gets the next quarterly update worked out (5 Aug, 5 Nov, 5 Feb, 5 May) unless a date is typed in */
 function acMtdItems(c){
@@ -222,7 +223,7 @@ function patch(id,data){
 function caseEvents(c){
   var ev=[],st=c.stage,n=names(c);
   function add(date,label,kind){if(date)ev.push({date:date,label:label,kind:kind,id:c.id,who:n})}
-  reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:n,key:r.key,rep:r.rep,exp:r.exp})});
+  reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:r.head||n,key:r.key,rep:r.rep,exp:r.exp})});
   (c.tasks||[]).forEach(function(t){if(!t.done&&t.due)ev.push({date:t.due,label:t.text,kind:'task',id:c.id,who:n,key:'task:'+(t.id||'')})});
   return ev;
 }
@@ -236,7 +237,7 @@ function reviewEvents(){var out=allEvents().filter(function(e){return e.kind==='
 window.CD_keyDates=function(){
   if(!loaded||!db)return null;var out=[];
   cases.forEach(function(c){if(c.stage==='lost')return;var n=names(c);
-    reviewItems(c,true).forEach(function(r){out.push({key:c.id+'|'+r.key,date:kdNext(r),title:r.label,who:n})});
+    reviewItems(c,true).forEach(function(r){out.push({key:c.id+'|'+r.key,date:kdNext(r),title:r.head||r.label,who:n})});
     (c.tasks||[]).forEach(function(t,i){if(!t.done&&t.due)out.push({key:c.id+'|task:'+(t.id||i),date:t.due,title:t.text,who:n})});
   });
   homeEvents().forEach(function(e){out.push({key:'home|'+e.key,date:kdNext(e),title:e.label,who:'My residential house'})});
@@ -274,14 +275,15 @@ function renderNav(){renderSwitch();updTrayBtn();if(view==='notebook')navMore=tr
   if(T.tenancyMode)items=items.map(function(i){return i[0]==='cases'?['assets','My Properties and Cars']:i});
   var tdIx=items.map(function(i){return i[0]}).indexOf('tasks'),tdAnch='tasks';if(tdIx<0){tdIx=items.map(function(i){return i[0]}).indexOf('appointments');tdAnch='appointments'}
   items.splice(tdIx<0?0:tdIx+1,0,['todo','To do']);
+  items=items.filter(function(i){return i[0]!=='reminders'});items.splice(items.map(function(i){return i[0]}).indexOf('todo')+1,0,['reminders','Reminders']);
   var dc=dueCount(),tdc=allTasks().filter(function(x){return trBucket(x)==='over'}).length;
   if(!T.tenancyMode)items.unshift(['assets','My Properties and Cars']);
-  var tools={assets:T.tenancyMode?0:1,logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;if(T.calTab&&tdAnch==='tasks')tools.todo=1;
+  var tools={assets:T.tenancyMode?0:1,logout:1,tradesmen:1,invoices:1,calculator:1,notebook:1,birthdays:1,marketing:1,bookappt:1,gendocs:1,acctset:1,myhome:1,more:1};if(T.calTab)tools.tasks=1;if(T.calTab&&tdAnch==='tasks'){tools.todo=1;tools.reminders=1}
   if(T.tenancyMode)items=items.filter(function(i){return i[0]!=='invoices'&&i[0]!=='marketing'&&i[0]!=='notebook'}).concat([['tradesmen','My tradesmen'],['gendocs','Reports and agreements'],['more',navMore?'Less':'More']].concat(navMore?[['notebook','Notebook'],['bookappt','Book appointment']]:[]).concat([['acctset','Settings']]).concat(NAV_MQ&&NAV_MQ.matches?[['logout','Log out']]:[]));
   var mk=function(list){return list.map(function(i){
     return '<button data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='myhome'?homeSmall(true):'')+(i[0]==='reminders'&&dc?'<span class="badge">'+dc+' overdue</span>':'')+(i[0]==='tasks'&&tdc?'<span class="badge">'+tdc+' overdue</span>':'')+(i[0]==='todo'&&tdDue()?'<span class="badge">'+tdDue()+' today</span>':'')+(i[0]==='birthdays'&&bdCounts(bdPeople().list).today?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bdCounts(bdPeople().list).today+' today</span>':'')+(i[0]==='appointments'&&apTodayN()?'<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">'+apTodayN()+' today</span>':'')+'</button>';
   }).join('')};
-  var hideRem=sideVisible()&&!T.remTab,n1=$('#nav'),n2=$('#nav2'),one=T.tenancyMode&&NAV_MQ&&NAV_MQ.matches;
+  var hideRem=false,n1=$('#nav'),n2=$('#nav2'),one=T.tenancyMode&&NAV_MQ&&NAV_MQ.matches;
   /* landlords on a phone: every menu item in one row that swipes sideways, Settings last */
   n1.classList.toggle('onerow',!!one);n1.classList.toggle('dk',!!T.tenancyMode);
   if(one){var keep=n1.scrollLeft,ord=items.slice(),mi=ord.map(function(i){return i[0]}).indexOf('myhome');if(mi>0)ord.unshift(ord.splice(mi,1)[0]);n1.innerHTML=mk(ord.filter(function(i){return !(hideRem&&i[0]==='reminders')}));if(n2)n2.innerHTML='';n1.scrollLeft=keep;var cur=n1.querySelector('[aria-current="page"]');if(cur&&(cur.offsetLeft<n1.scrollLeft||cur.offsetLeft+cur.offsetWidth>n1.scrollLeft+n1.clientWidth))n1.scrollLeft=Math.max(0,cur.offsetLeft-12);phoneMenu();return}
@@ -1352,9 +1354,9 @@ var sideOn=true;
 var mqSide=window.matchMedia('(min-width:760px)');
 function placeAcct(){}
 function sideVisible(){var sd=document.getElementById('side');return !!sd&&document.body.classList.contains('side-on')&&getComputedStyle(sd).display!=='none'}
-function applySide(){document.body.classList.toggle('side-on',sideOn);if(sideVisible()&&view==='reminders'&&!T.remTab){view='tasks';render()}renderNav();placeAcct();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px');renderSide();renderRem()}
+function applySide(){document.body.classList.toggle('side-on',sideOn);renderNav();placeAcct();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px');renderSide();renderRem()}
 if(mqSide.addEventListener)mqSide.addEventListener('change',function(){applySide()});
-window.addEventListener('resize',function(){if(sideVisible()&&view==='reminders'&&!T.remTab){view='tasks';render()}renderNav();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')});
+window.addEventListener('resize',function(){renderNav();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')});
 function sideItem(e,g){
   if(e.kind==='appt')return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-apedit="'+esc(e.id)+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+' · in your calendar</div></div></div>';
   return '<div class="si'+(g==='over'?' over':'')+'"><div style="min-width:0;flex:1"><button type="button" class="lnk st" data-open="'+e.id+'">'+esc(e.who)+'</button><div class="sc">'+esc(e.label)+'</div><div class="sd">'+fd(e.date)+' · '+esc(rel(e.date))+'</div></div><button type="button" class="btn ghost sm" data-remdone="'+e.id+'|'+esc(e.key)+'|'+e.date+'"'+(e.rep?' data-rep="1" title="Remind me again in 30 days. Update the date when it is renewed.">In 30 days':' title="Hide this reminder">Done')+'</button></div>';
@@ -1364,7 +1366,7 @@ function renderSide(){
   var s=$('#sideTasks');if(!s||!document.body.classList.contains('side-on')){if(s)s.innerHTML='';return}
   var bt=bdCounts(bdPeople().list).today;
   if(T.tenancyMode){var an=bizName()||(profA().name)||'',lm=(window.CD_loginMail&&window.CD_loginMail())||'';s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an?'<strong class="an">'+esc(an)+'</strong>':'')+(lm?'<span class="am">Logged in with<br><b>'+esc(lm)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="tradesmen"'+(view==='tradesmen'?' aria-current="page"':'')+'>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="'+(navMore||view==='notebook')+'">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">'+(navMore||view==='notebook'?'&#9650;':'&#9660;')+'</span></button>'+(navMore||view==='notebook'?'<button type="button" class="sbtn" data-v="notebook"'+(view==='notebook'?' aria-current="page"':'')+'>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>':'')+'<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';return}
-  var items=toolItems(T.calTab?[['tasks','Calendar'],['todo','To do'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['invoices','Quotes & invoices'],['calculator',T.calcKind==='tax'?'Calculator':'Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
+  var items=toolItems(T.calTab?[['tasks','Calendar'],['todo','To do'],['reminders','Reminders'],['calculator','Calculator'],['invoices','Quotes & invoices'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]:[['invoices','Quotes & invoices'],['calculator',T.calcKind==='tax'?'Calculator':'Mortgage Calculator'],['notebook','Notebook'],['birthdays','Birthdays'],['marketing','Marketing']]);
   var an2=bizName()||(profA().name)||'',lm2=(window.CD_loginMail&&window.CD_loginMail())||'';
   s.innerHTML='<div id="sideTools"><div class="sh acctname"><b>Account</b>'+(an2?'<strong class="an">'+esc(an2)+'</strong>':'')+(lm2?'<span class="am">Logged in with<br><b>'+esc(lm2)+'</b></span>':'')+'</div><button type="button" class="sbtn" data-v="assets"'+(view==='assets'||view==='myhome'?' aria-current="page"':'')+'>My Properties and Cars</button><div class="sh"><b>Tools</b></div>'+items.map(function(i){return '<button type="button" class="sbtn" data-v="'+i[0]+'"'+(view===i[0]?' aria-current="page"':'')+'>'+i[1]+(i[0]==='birthdays'&&bt?'<span class="badge" style="background:#fde4ee;color:#c2185b">'+bt+' today</span>':'')+(i[0]==='todo'&&tdDue()?'<span class="badge">'+tdDue()+' today</span>':'')+'</button>'}).join('')+'<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
@@ -2218,10 +2220,11 @@ function homeF(k){var f=null;HOME_F.forEach(function(g){g[1].forEach(function(x)
 function homeV(h,k){h=h||{};if(h[k])return h[k];var f=homeF(k);if(f&&f[4]&&h[f[4].from])return addMonths(h[f[4].from],f[4].m);return ''}
 function homeEvents(){
   var h=HOME;if(!h||!h.addr1)return [];var out=[],who='My residential house · '+h.addr1;
-  function add(k,exp,label,lead){if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp))return;out.push({date:remDue(h.remDone&&h.remDone[k],exp,lead),label:label+' '+fd(exp),kind:'review',id:'__home',who:who,key:k,rep:1,exp:exp})}
+  function add(k,exp,label,lead){if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp)||expHas(h,k,exp))return;out.push({date:remDue(h.remDone&&h.remDone[k],exp,lead),label:label+' '+fd(exp),kind:'review',id:'__home',who:who,key:k,rep:1,exp:exp})}
   add('dealEnd',homeV(h,'dealEnd'),'Mortgage deal ends',4);
   add('insRenewal',homeV(h,'insRenewal'),'Home insurance renewal',2);add('energyEnd',homeV(h,'energyEnd'),'Energy deal ends',2);
   add('boilerDue',homeV(h,'boilerDue'),'Boiler service due',2);add('eicrDue',homeV(h,'eicrDue'),'Electrical check due',2);
+  expItems(h,'home').forEach(function(i){out.push({date:i.date,label:i.label,kind:'review',id:'__home',who:i.head,key:i.key,rep:1,exp:i.exp})});
   return out;
 }
 /* the home address, in small type, under the My home tab */
@@ -2968,7 +2971,7 @@ function dzSend(k,file,mode,cam){
     files.push({id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:o.size,at:Date.now()});
     var up={files:files};if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
     patch(id,up);toast('Uploaded to '+dzRootL()+' › '+folder);
-    try{dxAfter(id,k,sentInfo)}catch(e){}
+    try{dxAfter(id,k,sentInfo,res)}catch(e){}
     if(openId===id)dzRefresh(Object.assign({},cur,up));
     if(old.length&&window.CD_files.trash){var w=window.CD_files.where(),bin=w==='Google Drive'?'Google Drive bin':w+' recycle bin';
       Promise.all(old.map(function(f){return f.fid?window.CD_files.trash(f.fid).then(function(){return true},function(){return false}):Promise.resolve(false)})).then(function(rs){
@@ -2985,12 +2988,13 @@ function dzRemove(fid){
   fileDelete(f.fid).then(function(r){
     if(r==='offline'||r==='fail'){toast(delFailMsg(r));return}
     var cur=cases.filter(function(x){return x.id===id})[0]||c,up={files:(cur.files||[]).filter(function(x){return x.id!==fid})};
+    if(f.fid&&(cur.expRems||[]).some(function(r){return r.fid===f.fid}))up.expRems=cur.expRems.filter(function(r){return r.fid!==f.fid});
     patch(id,up);if(openId===id)dzRefresh(Object.assign({},cur,up));toast(delTell(r));
   });
 }
 document.addEventListener('click',function(e){
   var rmd=e.target&&e.target.closest?e.target.closest('[data-dzrem]'):null;
-  if(rmd){e.preventDefault();var cf=currentCase(),ff=cf&&(cf.files||[]).filter(function(x){return x.id===rmd.getAttribute('data-dzrem')})[0];if(ff)dxAsk({id:openId,k:'other',todo:true,title:'Remind you about this document?',text:'Renew '+(pfClean(String(ff.name||'').replace(/\.[A-Za-z0-9]{1,5}$/,''),60)||'document'),kind:'end'});return}
+  if(rmd){e.preventDefault();var cf=currentCase(),ff=cf&&(cf.files||[]).filter(function(x){return x.id===rmd.getAttribute('data-dzrem')})[0];if(ff)expManual({t:'case',id:openId},ff);return}
   var t=e.target&&e.target.closest?e.target.closest('[data-dzup],[data-dzrm]'):null;if(!t)return;
   e.preventDefault();
   if(t.hasAttribute('data-dzup'))dzPick(t.getAttribute('data-dzup'),!!t.closest('[data-dzlg]'),t.hasAttribute('data-dzcam'));else dzRemove(t.getAttribute('data-dzrm'));
@@ -3868,8 +3872,8 @@ function delFailMsg(r){return r==='offline'?'Could not reach your file storage. 
 function delTell(r){return r==='ok'?'Deleted. The file is in your '+binName()+' if you need it back.':'Removed from the list. This file was added in an older version, so delete the file itself from your folder.'}
 /* ---------- documents for cars and the residential property: a folder in the person's own storage, like a rental property ---------- */
 var DS_SLOTS={
-  car:[['insurance','Insurance certificate','ins','Insurance renewal'],['mot','MOT certificate','mot','MOT due'],['service','Service record','service','Service due'],['v5','V5C logbook','',''],['other','Other document','','']],
-  home:[['insurance','Home insurance certificate','insRenewal','Home insurance renewal'],['boiler','Boiler service record','boilerDue','Boiler service due'],['eicr','Electrical (EICR) report','eicrDue','Electrical check due'],['mortgage','Mortgage offer or statement','dealEnd','Mortgage deal ends'],['energy','Energy contract','energyEnd','Energy deal ends'],['other','Other document','','']]
+  car:[['insurance','Insurance certificate','ins','Insurance renewal','insurance',''],['mot','MOT certificate','mot','MOT due','MOT',''],['service','Service record','service','Service due','service','is due'],['v5','V5C logbook','','','',''],['other','Other document','','','','']],
+  home:[['insurance','Home insurance certificate','insRenewal','Home insurance renewal','insurance',''],['boiler','Boiler service record','boilerDue','Boiler service due','boiler service','is due'],['eicr','Electrical (EICR) report','eicrDue','Electrical check due','electrical safety report (EICR)',''],['mortgage','Mortgage offer or statement','dealEnd','Mortgage deal ends','mortgage deal',''],['energy','Energy contract','energyEnd','Energy deal ends','energy contract',''],['other','Other document','','','','']]
 };
 function dsKind(id){return id==='__home'?'home':'car'}
 function dsSubj(id){if(id==='__home')return HOME&&HOME.addr1?HOME:null;if(String(id).indexOf('__car:')===0)return carItems.filter(function(x){return x.id===String(id).slice(6)})[0]||null;return null}
@@ -3924,14 +3928,14 @@ function dsSend(id,k,file,cam){
     var files=(cur.files||[]).concat([{id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:sent.blob.size,at:Date.now()}]),up={files:files};
     if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
     dsPatch(id,up);toast('Uploaded to '+root+' › '+folder);dsDraw(id);
-    if(slot[2])dsAfter(id,slot,sent);
+    if(slot[0]!=='v5')dsAfter(id,slot,sent,res);
   },function(e){Promise.resolve(e&&e.bodyP).catch(function(){}).then(function(){dzBusy=false;toast(e&&e.big?'That file is over 50 MB. Choose a smaller file.':dzErr(e))})});
 }
-/* a document next to a date: read the date from it (on this device) and ask the person to confirm it */
-function dsAfter(id,slot,sent){
-  var isPdf=/pdf/i.test(sent.type||'')||/\.pdf$/i.test(sent.name||''),isImg=/^image\//.test(sent.type||''),fld=slot[2];
-  dxAsk({title:'When is the date on this document?',label:slot[3],kind:'end',blob:(isPdf||isImg)?sent.blob:null,isPdf:isPdf,cur:(dsSubj(id)||{})[fld]||'',applyMsg:'Saved. We will remind you before it runs out.',
-    apply:function(v){var cur=dsSubj(id);if(!cur)return;var up={};up[fld]=v;if(cur.remDone&&cur.remDone[fld]){var nr=Object.assign({},cur.remDone);delete nr[fld];up.remDone=nr}dsPatch(id,up)}});
+/* a car or home document: read it, and set the date and the reminder */
+function dsAfter(id,slot,sent,res){
+  var ref=id==='__home'?{t:'home'}:{t:'car',id:String(id).slice(6)},fld=slot[2];
+  expAfter({ref:ref,sent:sent,fid:res&&res.id,fname:res&&res.name,kind:'end',word:slot[4]||null,verb:slot[5]||'',field:fld,fieldLabel:slot[3],cur:(dsSubj(id)||{})[fld]||'',
+    applyField:function(v){var cur=dsSubj(id);if(!cur)return;var up={};up[fld]=v;if(cur.remDone&&cur.remDone[fld]){var nr=Object.assign({},cur.remDone);delete nr[fld];up.remDone=nr}dsPatch(id,up)}});
 }
 document.addEventListener('click',function(e){
   var t=e.target;if(!t||!t.closest)return;var b;
@@ -3945,7 +3949,7 @@ document.addEventListener('click',function(e){
     toast('Deleting…',true);
     fileDelete(f.fid).then(function(r){
       if(r==='offline'||r==='fail'){toast(delFailMsg(r));b.classList.remove('armed');b.textContent='Delete';return}
-      var cur=dsSubj(id)||s;dsPatch(id,{files:(cur.files||[]).filter(function(x){return x.id!==fid})});dsDraw(id);toast(delTell(r));
+      var cur=dsSubj(id)||s,up={files:(cur.files||[]).filter(function(x){return x.id!==fid})};if(f.fid&&(cur.expRems||[]).some(function(r){return r.fid===f.fid}))up.expRems=cur.expRems.filter(function(r){return r.fid!==f.fid});dsPatch(id,up);dsDraw(id);toast(delTell(r)+(up.expRems?' Its reminder was removed too.':''));
     });
   }
 },true);
@@ -3955,7 +3959,7 @@ function carReg(c){return String(c.reg||'').toUpperCase().trim()}
 function carWho(c){return carReg(c)||[c.make,c.model].filter(Boolean).join(' ')||'Car'}
 function carEvents(){
   var out=[];
-  carItems.forEach(function(c){CAR_F.forEach(function(f){var exp=c[f[0]];if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp))return;out.push({date:remDue(c.remDone&&c.remDone[f[0]],exp,1),label:f[1]+' '+fd(exp),kind:'review',id:'__car:'+c.id,who:'Car · '+carWho(c),key:f[0],rep:1,exp:exp})})});
+  carItems.forEach(function(c){CAR_F.forEach(function(f){var exp=c[f[0]];if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp)||expHas(c,f[0],exp))return;out.push({date:remDue(c.remDone&&c.remDone[f[0]],exp,1),label:f[1]+' '+fd(exp),kind:'review',id:'__car:'+c.id,who:'Car · '+carWho(c),key:f[0],rep:1,exp:exp})});expItems(c,'car').forEach(function(i){out.push({date:i.date,label:i.label,kind:'review',id:'__car:'+c.id,who:i.head,key:i.key,rep:1,exp:i.exp})})});
   return out;
 }
 function carSave(items){carItems=items;if(setCol)write('set-cars',function(){return setCol.doc('cars').set({items:items,updatedAt:Date.now()})});if(view==='assets'&&!$('#carOv'))render();renderSide();renderRem();renderNav()}
@@ -4162,7 +4166,7 @@ function dxLead(days){return days===0?'On the day':days+' days before'}
 function dxAsk(o){
   var old=$('#dxOv');if(old)old.remove();
   var ov=document.createElement('div');ov.id='dxOv';ov.className='dxov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','dxT');document.body.appendChild(ov);
-  var st={iso:o.pre&&o.pre.best?o.pre.best.iso:(o.cur||''),snip:o.pre&&o.pre.best?o.pre.best.snip:'',all:(o.pre&&o.pre.all)||[],busy:'',ocr:false,note:'',lead:30,txt:o.text||''};
+  var st={iso:o.pre&&o.pre.best?o.pre.best.iso:(o.cur||''),snip:o.pre&&o.pre.best?o.pre.best.snip:'',all:(o.pre&&o.pre.all)||[],busy:'',ocr:false,note:'',lead:o.lead!=null?o.lead:60,txt:o.text||''};
   var doc=null,done=false;
   function close(){done=true;ov.remove();document.removeEventListener('keydown',esc2)}
   function esc2(e){if(e.key==='Escape')close()}
@@ -4174,10 +4178,10 @@ function dxAsk(o){
       st.snip?'<p class="dxsrc">We read this in your document: <i>&ldquo;'+esc(st.snip)+'&rdquo;</i>. Check it is right.</p>':
       st.note?'<p class="dxsrc">'+esc(st.note)+'</p>':'<p class="dxsrc">'+(o.todo?'Choose the date it renews or runs out and we will remind you before.':'Choose the date, or leave it and add it later.')+'</p>';
     var ocr=st.ocr&&!st.busy?'<div class="dxocr"><p>'+(o.isPdf?'This PDF is a scan, so it has no text to read.':'This is a photo.')+' We can try to read the date from the picture. The first time this downloads a small reader (about 4 MB) to this device.</p><button type="button" class="btn sm" data-dxocr="1">Read the date from it</button></div>':'';
-    var extra=o.todo?'<label class="dxf">What to remind you about<input id="dxTxt" maxlength="140" value="'+esc(t0)+'"></label><label class="dxf">Remind me<select id="dxLead">'+[30,14,7,0].map(function(n){return '<option value="'+n+'"'+(n===st.lead?' selected':'')+'>'+dxLead(n)+'</option>'}).join('')+'</select></label>':'';
-    ov.innerHTML='<div class="dxbox"><h2 id="dxT">'+esc(o.title)+'</h2>'+msg+ocr+'<label class="dxf">'+(o.todo?'Renewal date':esc(o.label||'Date'))+'<input id="dxDate" type="date" value="'+esc(d0)+'"></label>'+chips()+extra+
+    var extra=o.done?'<label class="dxf">Remind me<select id="dxLead">'+[90,60,30,14,0].map(function(n){return '<option value="'+n+'"'+(n===st.lead?' selected':'')+'>'+dxLead(n)+'</option>'}).join('')+'</select></label>':'';
+    ov.innerHTML='<div class="dxbox"><h2 id="dxT">'+esc(o.title)+'</h2>'+msg+ocr+(o.head?'<p class="dxhead"><b>Reminder:</b> '+esc(o.head)+'</p>':'')+'<label class="dxf">'+esc(o.label||'Date')+'<input id="dxDate" type="date" value="'+esc(d0)+'"></label>'+chips()+extra+
       '<p class="dxnote">Read on your device. Nothing from your document is sent anywhere.</p><p id="dxErr" role="alert" class="dxerr"></p>'+
-      '<div class="dxbtns"><button type="button" class="btn" data-dxsave="1">'+(o.todo?'Add reminder':'Save date')+'</button><button type="button" class="btn ghost" data-dxskip="1">Skip</button></div></div>';
+      '<div class="dxbtns"><button type="button" class="btn" data-dxsave="1">'+(o.done?'Save and set reminder':'Save date')+'</button><button type="button" class="btn ghost" data-dxskip="1">Skip</button></div></div>';
     var di=$('#dxDate');if(di&&!keep)try{di.focus()}catch(e){}
   }
   function setBusy(m){st.busy=m;draw(true)}
@@ -4197,13 +4201,7 @@ function dxAsk(o){
       var iso0=($('#dxDate')||{}).value||'',er=$('#dxErr');
       if(!/^\d{4}-\d{2}-\d{2}$/.test(iso0)){er.textContent='Choose the date first.';return}
       if(o.apply){o.apply(iso0);close();toast(o.applyMsg||'Date filled in. Press Save to keep it.');return}
-      if(o.todo){
-        var tx=(($('#dxTxt')||{}).value||'').trim(),lead=+(($('#dxLead')||{}).value||0);if(!tx){er.textContent='Write what to remind you about.';return}
-        var due=iso(new Date(pd(iso0).getTime()-lead*864e5));if(due<iso(TODAY))due=iso(TODAY);
-        tdSave(tdItems.concat([{id:'td'+uid()+Date.now().toString(36),text:(tx+' (renews '+fd(iso0)+')').slice(0,140),date:due,daily:false,done:false,created:Date.now(),from:'doc'}]));
-        close();toast('Reminder added to your To do list for '+fd(due)+'.');return;
-      }
-      dxApply(o,iso0);close();toast('Saved. '+(dxKind(o.label)==='end'?'We will remind you before it runs out.':'Saved to the record.'));return;
+      if(o.done){var lead=+(($('#dxLead')||{}).value||60);close();o.done(iso0,lead);return}
     }
   });
   draw(false);
@@ -4219,22 +4217,84 @@ function dxApply(o,v){
   if(openId===o.id&&el){el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));setTimeout(function(){try{autoSave()}catch(e){}},400)}
   var up={};up[o.k]=v;patch(o.id,up);
 }
-/* called after a document has been uploaded */
-function dxAfter(id,k,sent){
+/* ---------- expiry reminders made from uploaded documents ---------- */
+var EXP_LEAD=60;
+var EXP_WORDS=[[/insur/,'insurance'],[/\bmot\b/,'MOT'],[/gas safe|gas safety|cp12/,'gas safety certificate'],[/eicr|electrical installation condition|electrical safety/,'electrical safety report (EICR)'],[/energy performance|\bepc\b/,'EPC'],[/licen[cs]e/,'licence'],[/warrant|guarantee/,'warranty'],[/\bdbs\b|disclosure and barring/,'DBS certificate'],[/passport/,'passport'],[/road tax|vehicle tax|\bved\b/,'road tax'],[/breakdown|recovery cover/,'breakdown cover'],[/boiler service|annual service/,'boiler service'],[/mortgage/,'mortgage deal'],[/tenancy agreement|assured shorthold/,'tenancy agreement'],[/certificate/,'certificate'],[/contract|agreement/,'contract']];
+var EXP_FIELD_WORD={insuranceRenewal:'insurance',gsrDate:'gas safety certificate',eicrDate:'electrical safety report (EICR)',epcDate:'EPC',licenceExpiry:'licence'};
+function expWordFrom(text,name){
+  var t=(String(name||'')+' '+String(text||'').slice(0,6000)).toLowerCase();
+  for(var i=0;i<EXP_WORDS.length;i++)if(EXP_WORDS[i][0].test(t))return EXP_WORDS[i][1];
+  return pfClean(String(name||'').replace(/\.[A-Za-z0-9]{1,5}$/,''),40).toLowerCase()||'document';
+}
+function expSubjLabel(type,s){
+  if(type==='car')return 'this car ('+carWho(s)+')';
+  if(type==='home')return 'your home ('+short(s.addr1)+')';
+  return 'this '+(T.tenancyMode?'property':N1().toLowerCase())+' ('+names(s)+')';
+}
+function expHead(type,s,r){return 'Your '+(r.word||'document')+' for '+expSubjLabel(type,s)+' '+(r.verb||'is due for renewal')}
+/* the reminders for a record (a rental property or job, the home, or a car): 60 days before the expiry date, then every 30 days until dealt with */
+function expItems(s,type){
+  return ((s&&s.expRems)||[]).map(function(r){
+    var lead=r.lead==null?EXP_LEAD:r.lead,base=addDays(r.exp,-lead),key='ex:'+r.id,sn=s.remDone&&s.remDone[key],date=(/^\d{4}-\d{2}-\d{2}$/.test(sn||'')&&sn>=base)?addDays(sn,30):base;
+    return {date:date,label:'Expires '+fd(r.exp),head:expHead(type,s,r),key:key,sec:false,rep:1,exp:r.exp};
+  });
+}
+/* the older date-field reminder for the same date is not shown as well */
+function expHas(s,fk,exp){return !!fk&&((s&&s.expRems)||[]).some(function(r){return r.fk===fk&&r.exp===exp})}
+function expSubjOf(ref){return ref.t==='home'?(HOME&&HOME.addr1?HOME:null):ref.t==='car'?dsSubj('__car:'+ref.id):(cases.filter(function(x){return x.id===ref.id})[0]||null)}
+function expWrite(ref,list){if(ref.t==='home')homeWrite(Object.assign({},HOME,{expRems:list}));else if(ref.t==='car')dsPatch('__car:'+ref.id,{expRems:list});else patch(ref.id,{expRems:list})}
+function expCreate(ref,o){
+  var s=expSubjOf(ref);if(!s)return null;
+  var rem={id:'er'+uid()+Date.now().toString(36),fk:o.fk||'',exp:o.exp,word:o.word||'document',verb:o.verb||'is due for renewal',lead:o.lead==null?EXP_LEAD:o.lead,fid:o.fid||'',fname:o.fname||'',at:Date.now()};
+  /* a renewed document replaces the earlier reminder for the same thing */
+  var list=(s.expRems||[]).filter(function(r){return !((rem.fk&&r.fk===rem.fk)||(r.word===rem.word&&r.exp<=rem.exp))}).concat([rem]);
+  expWrite(ref,list);return rem;
+}
+function expTell(ref,rem){
+  var s=expSubjOf(ref),due=addDays(rem.exp,-rem.lead);
+  return 'Your '+rem.word+' expires on '+fd(rem.exp)+'. '+(due<=iso(TODAY)?'The reminder is in your Reminders now.':'We will remind you on '+fd(due)+' ('+rem.lead+' days before).');
+}
+/* sets the date (when the document sits next to a date field) and the reminder */
+function expDone(o,found,lead){
+  var exp=found,fk='';
+  if(o.field){if(o.applyField)o.applyField(found);fk=o.field}
+  if(o.kind==='issue'){if(!o.months)return null;exp=addMonths(found,o.months);fk=o.dueKey||'';if(o.applyDue)o.applyDue(exp)}
+  return expCreate(o.ref,{fk:fk,exp:exp,word:o.word,verb:o.verb,fid:o.fid,fname:o.fname,lead:lead});
+}
+/* after an upload: read the document, and when it clearly names an expiry date set the reminder automatically; otherwise ask */
+function expAfter(o){
+  var sent=o.sent;if(!sent)return;
+  var isPdf=/pdf/i.test(sent.type||'')||/\.pdf$/i.test(sent.name||''),isImg=/^image\//.test(sent.type||''),linked=!!o.field;
+  var ask=function(oo){
+    var s=expSubjOf(oo.ref),head=s?expHead(oo.ref.t==='home'?'home':oo.ref.t==='car'?'car':'case',s,{word:oo.word,verb:oo.verb}):'';
+    dxAsk({title:linked?'When is the date on this document?':'Remind you about this document?',label:oo.fieldLabel||'Expiry or renewal date',kind:oo.kind,head:head,blob:(isPdf||isImg)?sent.blob:null,isPdf:isPdf,cur:oo.cur||'',lead:EXP_LEAD,
+      done:function(v,lead){var rem=expDone(oo,v,lead);if(rem)toast(expTell(oo.ref,rem))}});
+  };
+  if(isPdf){
+    toast('Reading your document for an expiry date…');
+    dxPdf(sent.blob).then(function(r){
+      var oo=Object.assign({},o,{word:o.word||expWordFrom(r.text,sent.name)}),b=dxFind(r.text,oo.kind).best;
+      if(b&&b.score>=6){var rem=expDone(oo,b.iso,EXP_LEAD);if(rem)toast(expTell(oo.ref,rem));return}
+      if(linked)ask(oo);
+    },function(){if(linked)ask(Object.assign({},o,{word:o.word||expWordFrom('',sent.name)}))});
+  }else if(linked)ask(Object.assign({},o,{word:o.word||expWordFrom('',sent.name)}));
+}
+/* a reminder asked for by hand on a document (the Remind me link) */
+function expManual(ref,f){
+  var s=expSubjOf(ref),word=expWordFrom('',f.name);
+  dxAsk({title:'Remind you about this document?',label:'Expiry or renewal date',kind:'end',head:s?expHead(ref.t||'case',s,{word:word}):'',lead:EXP_LEAD,
+    done:function(v,lead){var rem=expCreate(ref,{fk:'',exp:v,word:word,lead:lead,fid:f.fid,fname:f.name});if(rem)toast(expTell(ref,rem))}});
+}
+/* called after a document has been uploaded to a rental property or a job */
+function dxAfter(id,k,sent,res){
   if(!sent)return;
-  var f=k==='other'?null:dxField(k),isPdf=/pdf/i.test(sent.type||'')||/\.pdf$/i.test(sent.name||''),isImg=/^image\//.test(sent.type||'');
+  var f=k==='other'?null:dxField(k),o={ref:{t:'case',id:id},sent:sent,fid:res&&res.id,fname:res&&res.name,kind:'end'};
   if(f){
-    var cur=(cases.filter(function(x){return x.id===id})[0]||{})[k]||'';
-    dxAsk({id:id,k:k,label:f.l,title:'When is the date on this document?',kind:dxKind(f.l),blob:(isPdf||isImg)?sent.blob:null,isPdf:isPdf,cur:cur});
-    return;
+    o.field=k;o.fieldLabel=f.l;o.kind=dxKind(f.l);o.word=EXP_FIELD_WORD[k]||null;o.cur=(cases.filter(function(x){return x.id===id})[0]||{})[k]||'';
+    o.applyField=function(v){dxApply({id:id,k:k},v)};
+    if(o.kind==='issue'){var due=(T.fields||[]).filter(function(x){return x.auto&&x.auto.from===k})[0];if(due){o.months=due.auto.m;o.dueKey=due.k;o.applyDue=function(v){dxApply({id:id,k:due.k},v)}}}
   }
-  /* a general document: only a PDF with text, and only if it clearly names a renewal or expiry date, is offered a reminder */
-  if(!isPdf)return;
-  dxPdf(sent.blob).then(function(r){
-    var res=dxFind(r.text,'end');if(!res.best||res.best.score<6)return;
-    var nm=pfClean(String(sent.name||'').replace(/\.[A-Za-z0-9]{1,5}$/,''),60)||'document';
-    dxAsk({id:id,k:'other',todo:true,title:'Remind you about this document?',text:'Renew '+nm,kind:'end',pre:res,isPdf:true,blob:null});
-  }).catch(function(){});
+  expAfter(o);
 }
 window.CD_dxFind=dxFind;window.CD_dxAfter=dxAfter;window.CD_dxAsk=dxAsk;
 var tmItems=[],tmEdit=null;
