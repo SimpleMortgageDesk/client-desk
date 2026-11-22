@@ -1,10 +1,12 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
 }
 
 // The app is a Trusted Web Activity: it opens https://mysimpledesk.co.uk full screen, with no browser bar.
 // Raise versionCode by 1 for every new upload to Google Play (set it in android/version.properties).
-val versionProps = java.util.Properties().apply {
+val versionProps = Properties().apply {
     val f = rootProject.file("version.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
