@@ -223,7 +223,7 @@ function patch(id,data){
 function caseEvents(c){
   var ev=[],st=c.stage,n=names(c);
   function add(date,label,kind){if(date)ev.push({date:date,label:label,kind:kind,id:c.id,who:n})}
-  reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:r.head||n,key:r.key,rep:r.rep,exp:r.exp})});
+  reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:n+(r.sx?' · '+r.sx:''),key:r.key,rep:r.rep,exp:r.exp})});
   (c.tasks||[]).forEach(function(t){if(!t.done&&t.due)ev.push({date:t.due,label:t.text,kind:'task',id:c.id,who:n,key:'task:'+(t.id||'')})});
   return ev;
 }
@@ -2224,7 +2224,7 @@ function homeEvents(){
   add('dealEnd',homeV(h,'dealEnd'),'Mortgage deal ends',4);
   add('insRenewal',homeV(h,'insRenewal'),'Home insurance renewal',2);add('energyEnd',homeV(h,'energyEnd'),'Energy deal ends',2);
   add('boilerDue',homeV(h,'boilerDue'),'Boiler service due',2);add('eicrDue',homeV(h,'eicrDue'),'Electrical check due',2);
-  expItems(h,'home').forEach(function(i){out.push({date:i.date,label:i.label,kind:'review',id:'__home',who:i.head,key:i.key,rep:1,exp:i.exp})});
+  expItems(h,'home').forEach(function(i){out.push({date:i.date,label:i.label,kind:'review',id:'__home',who:who+' · '+i.sx,key:i.key,rep:1,exp:i.exp})});
   return out;
 }
 /* the home address, in small type, under the My home tab */
@@ -3959,7 +3959,7 @@ function carReg(c){return String(c.reg||'').toUpperCase().trim()}
 function carWho(c){return carReg(c)||[c.make,c.model].filter(Boolean).join(' ')||'Car'}
 function carEvents(){
   var out=[];
-  carItems.forEach(function(c){CAR_F.forEach(function(f){var exp=c[f[0]];if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp)||expHas(c,f[0],exp))return;out.push({date:remDue(c.remDone&&c.remDone[f[0]],exp,1),label:f[1]+' '+fd(exp),kind:'review',id:'__car:'+c.id,who:'Car · '+carWho(c),key:f[0],rep:1,exp:exp})});expItems(c,'car').forEach(function(i){out.push({date:i.date,label:i.label,kind:'review',id:'__car:'+c.id,who:i.head,key:i.key,rep:1,exp:i.exp})})});
+  carItems.forEach(function(c){CAR_F.forEach(function(f){var exp=c[f[0]];if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(exp)||expHas(c,f[0],exp))return;out.push({date:remDue(c.remDone&&c.remDone[f[0]],exp,1),label:f[1]+' '+fd(exp),kind:'review',id:'__car:'+c.id,who:'Car · '+carWho(c),key:f[0],rep:1,exp:exp})});expItems(c,'car').forEach(function(i){out.push({date:i.date,label:i.label,kind:'review',id:'__car:'+c.id,who:'Car · '+carWho(c)+' · '+i.sx,key:i.key,rep:1,exp:i.exp})})});
   return out;
 }
 function carSave(items){carItems=items;if(setCol)write('set-cars',function(){return setCol.doc('cars').set({items:items,updatedAt:Date.now()})});if(view==='assets'&&!$('#carOv'))render();renderSide();renderRem();renderNav()}
@@ -4236,7 +4236,7 @@ function expHead(type,s,r){return 'Your '+(r.word||'document')+' for '+expSubjLa
 function expItems(s,type){
   return ((s&&s.expRems)||[]).map(function(r){
     var lead=r.lead==null?EXP_LEAD:r.lead,base=addDays(r.exp,-lead),key='ex:'+r.id,sn=s.remDone&&s.remDone[key],date=(/^\d{4}-\d{2}-\d{2}$/.test(sn||'')&&sn>=base)?addDays(sn,30):base;
-    return {date:date,label:'Expires '+fd(r.exp),head:expHead(type,s,r),key:key,sec:false,rep:1,exp:r.exp};
+    var hd=expHead(type,s,r);return {date:date,label:hd,head:hd,sx:'expires '+fd(r.exp),key:key,sec:false,rep:1,exp:r.exp};
   });
 }
 /* the older date-field reminder for the same date is not shown as well */
