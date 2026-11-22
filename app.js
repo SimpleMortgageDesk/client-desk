@@ -206,7 +206,6 @@ function sortList(l){
 function short(addr){return (addr||'').split('\n')[0]||''}
 function ltv(c){return c.loanAmount&&(c.propertyValue||c.purchasePrice)?c.loanAmount/(c.purchasePrice||c.propertyValue)*100:null}
 function toast(m,sticky){var t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.h);if(!sticky)toast.h=setTimeout(function(){t.hidden=true},3200)}
-function stageIdx(id){return STAGES.findIndex(function(s){return s.id===id})}
 
 /* ---------- writes (one at a time per document) ---------- */
 function write(id,fn){
@@ -221,8 +220,7 @@ function patch(id,data){
 
 /* ---------- events / reminders ---------- */
 function caseEvents(c){
-  var ev=[],st=c.stage,n=names(c);
-  function add(date,label,kind){if(date)ev.push({date:date,label:label,kind:kind,id:c.id,who:n})}
+  var ev=[],n=names(c);
   reviewItems(c,true).forEach(function(r){ev.push({date:r.date,label:r.label,kind:'review',id:c.id,who:n+(r.sx?' · '+r.sx:''),key:r.key,rep:r.rep,exp:r.exp})});
   (c.tasks||[]).forEach(function(t){if(!t.done&&t.due)ev.push({date:t.due,label:t.text,kind:'task',id:c.id,who:n,key:'task:'+(t.id||'')})});
   return ev;
@@ -710,7 +708,7 @@ function apHTML(home){
 var homeMonth;
 function apHome(){
   if(homeMonth)return '<div class="aphead" style="margin-bottom:6px"><h2 style="font-size:'+((T.tenancyMode||T.calTab)?'20':'15')+'px">Calendar</h2><button type="button" class="btn ghost sm" data-hmtog="0">List view</button></div>'+apHTML(true);
-  var nowMin=new Date().getHours()*60+new Date().getMinutes(),tI=iso(TODAY),h='<div class="aphead"><h2>Today and next 7 days</h2><button type="button" class="btn ghost sm" data-hmtog="1">Calendar view</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>',any=0;
+  var tI=iso(TODAY),h='<div class="aphead"><h2>Today and next 7 days</h2><button type="button" class="btn ghost sm" data-hmtog="1">Calendar view</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>',any=0;
   for(var i=0;i<8;i++){
     var di=addDays(tI,i),l=apSorted(appts.filter(function(a){return a.date===di&&(a.status||'booked')!=='cancelled'}));
     if(!l.length&&i>0)continue;
@@ -1353,7 +1351,6 @@ function trItem(x){
 var sideOn=true;
 var mqSide=window.matchMedia('(min-width:760px)');
 function placeAcct(){}
-function sideVisible(){var sd=document.getElementById('side');return !!sd&&document.body.classList.contains('side-on')&&getComputedStyle(sd).display!=='none'}
 function applySide(){document.body.classList.toggle('side-on',sideOn);renderNav();placeAcct();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px');renderSide();renderRem()}
 if(mqSide.addEventListener)mqSide.addEventListener('change',function(){applySide()});
 window.addEventListener('resize',function(){renderNav();var h=document.querySelector('header.top');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')});
@@ -1841,7 +1838,6 @@ function saveTrades(list){
   if(setCol)write('set-trade',function(){return setCol.doc('trade').set({trade:act,trades:list,main:MAIN_TRADE,usedTu:USEDTU,updatedAt:Date.now()})});
   render();renderSide();renderNav();
 }
-function saveTrade(id){saveTrades([id])}
 /* a person with two trades switches between them here; the choice is kept on this device */
 function switchTrade(id){
   if(id===T.id||TRADES.indexOf(id)<0)return;
@@ -2358,7 +2354,7 @@ Pdf.prototype.line=function(x1,top,x2,rgb,lw){this.c.push(this.col(rgb||[0.8,0.8
 Pdf.prototype.image=function(src,iw,ih,x,top,w,h){this.img={bin:atob(src.split(',')[1]),w:iw,h:ih};this.c.push('q '+w.toFixed(2)+' 0 0 '+h.toFixed(2)+' '+x+' '+(842-top-h).toFixed(2)+' cm /Im1 Do Q')};
 Pdf.prototype.need=function(h,foot){if(this.y+h>842-50){this.page();if(foot)foot(this)}};
 Pdf.prototype.bytes=function(footer){
-  var self=this,objs=[],add=function(s){objs.push(s);return objs.length};
+  var objs=[],add=function(s){objs.push(s);return objs.length};
   var n=this.pages.length;
   this.pages.forEach(function(c,i){if(footer){wrapT(footer,430,7.5).slice(0,2).forEach(function(fl,k,arr){c.push('BT /F1 7.5 Tf 0.4 0.45 0.5 rg 1 0 0 1 40 '+(24+(arr.length-1-k)*9)+' Tm ('+pStr(fl)+') Tj ET')});var pg='Page '+(i+1)+' of '+n;c.push('BT /F1 7.5 Tf 0.4 0.45 0.5 rg 1 0 0 1 '+(555-tw(pg,7.5)).toFixed(2)+' 24 Tm ('+pStr(pg)+') Tj ET')}});
   add('<< /Type /Catalog /Pages 2 0 R >>');add('PAGES');
@@ -2507,10 +2503,6 @@ function invoicesHTML(){
 /* --- tenancy agreement (landlords, England) --- */
 var taCase=null,taTn=null;
 var TA_BILLS=[['councilTax','Council tax'],['gas','Gas'],['electricity','Electricity'],['water','Water and sewerage'],['broadband','Broadband and phone'],['tv','TV licence']];
-function tenancyFs(c){
-  var td=c.tenancyDoc;
-  return '<fieldset style="margin-top:14px"><legend>Tenancy agreement</legend><p class="muted" style="font-size:12px;margin:0 0 8px">Creates an assured periodic tenancy agreement that includes the written statement of terms landlords in England must give new tenants from 1 May 2026.</p><div class="add" style="margin:0"><button type="button" class="btn ghost sm" data-taopen="'+esc(c.id)+'">'+(td?'Open tenancy agreement':'Create tenancy agreement')+'</button>'+(td&&td.savedAt?'<span class="muted" style="align-self:center;font-size:12px">Last saved '+shortStamp(td.savedAt)+'</span>':'')+'</div></fieldset>';
-}
 /* ---------- company let agreement (corporate tenant): a common-law tenancy, outside the Housing Act 1988 ---------- */
 var CL_TERMS=[
  ['Break clause (either side)','Either the landlord or the tenant may end this tenancy early by giving the other at least 2 months’ notice in writing. The notice must not end before the last day of the first 6 months of the term. A notice from the tenant only takes effect if the rent has been paid up to the day the notice ends. Ending the tenancy in this way does not affect any claim either side has for an earlier breach of this agreement.'],
@@ -3615,7 +3607,6 @@ function expOpen(caseId,editId){
    (l.length?'<div class="tw"><table class="extab"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Paid to</th><th>Amount</th><th>Receipt</th><th></th></tr></thead><tbody>'+l.map(function(e){return '<tr><td>'+fd(e.date)+'</td><td>'+esc(e.cat||'')+'</td><td>'+esc(e.desc||'')+'</td><td>'+esc(e.to||'')+'</td><td class="num">'+gbp(e.amount)+'</td><td>'+(e.receipt&&rcUrl(e.receipt.url)?'<a href="'+esc(e.receipt.url)+'" target="_blank" rel="noopener">Show</a>':'<span class="muted">—</span>')+'</td><td class="exact"><button type="button" class="exed" data-exedit="'+esc(e.id)+'">Edit</button><button type="button" class="x" data-exdel="'+esc(e.id)+'" aria-label="Delete expense">×</button></td></tr>'}).join('')+'</tbody></table></div>':'<p class="muted">No receipts or expenses recorded for this property yet.</p>'),true);
 }
 /* report */
-var gnSel=null;
 function gnRange(k){var t=iso(TODAY),ty=taxYear(t);if(k==='lasttax'){var ly=taxYear(addDays(ty.from,-1));return [ly.from,ly.to]}if(k==='thistax')return [ty.from,t];if(k==='lastcal'){var y=TODAY.getFullYear()-1;return [y+'-01-01',y+'-12-31']}if(k==='thiscal')return [TODAY.getFullYear()+'-01-01',t];return null}
 function ACC(){var a=BIZ.accountant||{};return {name:a.name||'',phone:a.phone||'',email:a.email||BIZ.accountantEmail||'',address:a.address||''}}
 function accOpen(back){
@@ -4041,7 +4032,6 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=$('#a
 function landView(){return T&&T.tenancyMode?'assets':'todo'}
 var tdItems=[],tdUserNav=false,tdLanded=false;
 function tdToday(){return iso(new Date())}
-function tdRep(x){return !!x.daily}
 /* due today or overdue and still to do */
 function tdIsDue(x,t){if(x.daily)return (x.date||'0000')<=t&&x.doneOn!==t;return !x.done&&(x.date||t)<=t}
 function tdDue(){var t=tdToday();return tdItems.filter(function(x){return tdIsDue(x,t)}).length}
@@ -4052,7 +4042,7 @@ function tdSave(items){
   if(view==='todo')render();renderNav();
 }
 function tdRow(x,t){
-  var due=tdIsDue(x,t),done=x.daily?x.doneOn===t:!!x.done,over=!x.daily&&!x.done&&(x.date||t)<t;
+  var done=x.daily?x.doneOn===t:!!x.done,over=!x.daily&&!x.done&&(x.date||t)<t;
   var meta=x.daily?((x.date||t)>t?'Every day from '+fd(x.date):'Every day'):(x.done?'Done':over?'Overdue since '+fd(x.date):(x.date&&x.date>t?'Due '+fd(x.date):'Due today'));
   return '<li class="tdrow'+(done?' done':'')+'"><button type="button" class="tdchk" data-tdtog="'+esc(x.id)+'" role="checkbox" aria-checked="'+done+'" aria-label="'+(done?'Mark not done: ':'Mark done: ')+esc(x.text)+'">'+(done?'&#10003;':'')+'</button>'+
     '<div class="tdtxt"><span>'+esc(x.text)+'</span><small'+(over?' class="tdover"':'')+'>'+esc(meta)+'</small></div>'+
@@ -4124,7 +4114,7 @@ var DX_STARTW=/(issued?|issue date|date of issue|inception|start date|starts?|co
 var DX_ISS=/(date of (?:inspection|issue|test|assessment|check|service|certificate|report)|inspection date|issue date|issued(?: on)?|completed(?: on)?|tested(?: on)?|carried out(?: on)?|certificate date)/;
 /* kind: 'end' = a renewal or expiry date; 'issue' = the date the certificate was done or issued */
 function dxFind(text,kind){
-  var now=iso(TODAY),lo,hi;
+  var lo,hi;
   if(kind==='issue'){lo=iso(new Date(TODAY.getFullYear()-11,TODAY.getMonth(),TODAY.getDate()));hi=iso(new Date(Date.now()+30*864e5))}
   else{lo=iso(new Date(TODAY.getFullYear()-1,TODAY.getMonth(),TODAY.getDate()));hi=iso(new Date(TODAY.getFullYear()+11,TODAY.getMonth(),TODAY.getDate()))}
   var list=dxDates(text).filter(function(d){return d.iso>=lo&&d.iso<=hi}).map(function(d){
@@ -4166,14 +4156,14 @@ function dxLead(days){return days===0?'On the day':days+' days before'}
 function dxAsk(o){
   var old=$('#dxOv');if(old)old.remove();
   var ov=document.createElement('div');ov.id='dxOv';ov.className='dxov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','dxT');document.body.appendChild(ov);
-  var st={iso:o.pre&&o.pre.best?o.pre.best.iso:(o.cur||''),snip:o.pre&&o.pre.best?o.pre.best.snip:'',all:(o.pre&&o.pre.all)||[],busy:'',ocr:false,note:'',lead:o.lead!=null?o.lead:60,txt:o.text||''};
+  var st={iso:o.pre&&o.pre.best?o.pre.best.iso:(o.cur||''),snip:o.pre&&o.pre.best?o.pre.best.snip:'',all:(o.pre&&o.pre.all)||[],busy:'',ocr:false,note:'',lead:o.lead!=null?o.lead:60};
   var doc=null,done=false;
   function close(){done=true;ov.remove();document.removeEventListener('keydown',esc2)}
   function esc2(e){if(e.key==='Escape')close()}
   document.addEventListener('keydown',esc2);
   function chips(){var a=st.all.filter(function(x){return x.iso!==st.iso});return a.length?'<p class="dxo">Other dates in the document: '+a.map(function(x){return '<button type="button" class="dxchip" data-dxpick="'+x.iso+'">'+esc(fd(x.iso))+'</button>'}).join(' ')+'</p>':''}
   function draw(keep){
-    var d0=keep&&$('#dxDate')?$('#dxDate').value:st.iso,t0=keep&&$('#dxTxt')?$('#dxTxt').value:st.txt;
+    var d0=keep&&$('#dxDate')?$('#dxDate').value:st.iso;
     var msg=st.busy?'<p class="dxsrc" role="status"><span class="dxspin" aria-hidden="true"></span> '+esc(st.busy)+'</p>':
       st.snip?'<p class="dxsrc">We read this in your document: <i>&ldquo;'+esc(st.snip)+'&rdquo;</i>. Check it is right.</p>':
       st.note?'<p class="dxsrc">'+esc(st.note)+'</p>':'<p class="dxsrc">'+(o.todo?'Choose the date it renews or runs out and we will remind you before.':'Choose the date, or leave it and add it later.')+'</p>';
@@ -4251,7 +4241,7 @@ function expCreate(ref,o){
   expWrite(ref,list);return rem;
 }
 function expTell(ref,rem){
-  var s=expSubjOf(ref),due=addDays(rem.exp,-rem.lead);
+  var due=addDays(rem.exp,-rem.lead);
   return 'Your '+rem.word+' expires on '+fd(rem.exp)+'. '+(due<=iso(TODAY)?'The reminder is in your Reminders now.':'We will remind you on '+fd(due)+' ('+rem.lead+' days before).');
 }
 /* sets the date (when the document sits next to a date field) and the reminder */

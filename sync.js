@@ -113,16 +113,14 @@
     try { var b = idt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'), pl = JSON.parse(decodeURIComponent(escape(atob(b + '==='.slice((b.length + 3) % 4))))); if (want && pl.nonce === want) return { idt: idt, sub: pl.sub || '' }; } catch (e) {}
     return {};
   }
-  var gWaiting = null;
   function gRenew() {
     var acc = (tok() || {}).account || {};
     var w = null; try { w = window.open(gUrl('renew', acc.mail || ''), 'cdg', 'width=520,height=640'); } catch (e) {}
     if (!w) { lset('cd.prov', 'google'); location.href = gUrl('renew', acc.mail || ''); return; }
-    gWaiting = w;
   }
   window.addEventListener('message', function (e) {
     if (e.origin !== location.origin || !e.data || typeof e.data.cdg !== 'string') return;
-    var r = gParse(e.data.cdg); gWaiting = null;
+    var r = gParse(e.data.cdg);
     if (r.err || !r.at) { gBanner('Google did not reconnect (' + (r.err || 'no access') + '). Try again.'); return; }
     if (r.st !== ls('cd.gstate')) { gBanner('That reconnection could not be verified. Try again.'); return; }
     if (!/drive\.file/.test(r.scope)) { gBanner('Google did not give access to Drive. Tick the Drive box when you reconnect.'); return; }
@@ -877,7 +875,7 @@
   function hexB(u) { var h = ''; for (var i = 0; i < u.length; i++) h += ('0' + u[i].toString(16)).slice(-2); return h; }
   function strB(s) { var u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; }
   function pdfEncInit(pw) {
-    var pb = strB(String(pw)).slice(0, 32), pad = new Uint8Array(32), i, r;
+    var pb = strB(String(pw)).slice(0, 32), pad = new Uint8Array(32), i;
     pad.set(pb); pad.set(PDF_PAD.slice(0, 32 - pb.length), pb.length);
     var h = md5(pad); for (i = 0; i < 50; i++) h = md5(h);
     var ok = h.slice(0, 16), O = rc4(ok, pad);
@@ -892,12 +890,6 @@
   function pdfObjEnc(enc, num, bytes) {
     var k = md5(catB(enc.key, new Uint8Array([num & 255, (num >> 8) & 255, (num >> 16) & 255, 0, 0]), strB('sAlT')));
     return aesCbcPad(k.slice(0, 16), bytes);
-  }
-  var CRC_T = null;
-  function crc32(b) {
-    if (!CRC_T) { CRC_T = []; for (var n = 0, c; n < 256; n++) { c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC_T[n] = c >>> 0; } }
-    var c2 = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c2 = CRC_T[(c2 ^ b[i]) & 255] ^ (c2 >>> 8);
-    return (c2 ^ 0xFFFFFFFF) >>> 0;
   }
   async function zipAesEntry(pw, data) {
     var salt = crypto.getRandomValues(new Uint8Array(16)), pk = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveBits']);
@@ -1248,7 +1240,6 @@
   /* Gmail sign-in shows when the client ID is set and either googleLive is true or this device was switched on for testing with ?gtest=1 */
   try { if (/[?&]gtest=1\b/.test(location.search)) localStorage.setItem('cd.gtest', '1'); else if (/[?&]gtest=0\b/.test(location.search)) localStorage.removeItem('cd.gtest'); } catch (e) {}
   function provOk() { return { ms: !!CFG.clientId && !/PASTE/i.test(CFG.clientId), g: !!CFG.googleClientId && !/PASTE/i.test(CFG.googleClientId) && (CFG.googleLive === true || ls('cd.gtest') === '1') }; }
-  var signPage = null;
   /* split sign-up screen: form on the left, what the app does on the right (right side hidden on small screens) */
   function signCss() {
     if ($('mdSignCss')) return;
@@ -1310,7 +1301,6 @@
     page = page || qp || (sget('cd.reg') ? 'register' : msg ? 'login' : 'home');
     /* the full welcome page explains the app; this screen is only for logging in or registering */
     if (page === 'home' && !window.CD_DEMO && location.protocol !== 'file:' && CFG.welcomePage !== false) { location.replace('home.html'); return; }
-    signPage = page;
     var split = page === 'login' || page === 'register' || page === 'forgot'; if (split) signCss();
     var ok = provOk(), card = split ? '' : 'width:min(460px,100%);max-height:96vh;overflow:auto;box-sizing:border-box;background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:28px;box-shadow:0 8px 30px rgba(16,28,38,.12)';
     var big = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;padding:13px 16px;border-radius:10px;font:600 16px system-ui;cursor:pointer;text-align:left;margin-top:12px;box-sizing:border-box;';
@@ -1319,7 +1309,6 @@
     var head = '<div style="font-weight:700;font-size:20px;margin-bottom:6px">&#9670; ' + APPN + '</div>';
     var foot = '<p style="color:#58697A;font-size:12px;margin:14px 0 0"><a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy policy</a></p>';
     var err = '<div id="mdErr" role="alert" style="color:#A3261F;font-size:13px;margin-top:12px;min-height:16px">' + esc(msg || '') + '</div>';
-    var back = '<a href="#" data-sp="home" style="color:#0A6B50;font-size:13px">&larr; Back</a>';
     var hdr = function (other) { return '<div class="mdhd"><a href="#" class="br" data-sp="home" title="Back to the home page"><span class="lg" aria-hidden="true"></span><span><b>' + brandHtml(APPN) + '</b><small>For home owners, landlords and professionals</small></span></a>' +
       '<a href="#" class="sw" data-sp="' + other + '">' + (other === 'login' ? 'Log in' : 'Register') + '</a></div>'; };
     var legal = '<p class="mdlegal"><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></p>';
@@ -2133,10 +2122,6 @@
       vBlock(em);
     });
   }
-  function vNoReg(em) {
-    vScreen('&#128274;', 'Please register first', 'We could not find a registration for <b>' + esc(em) + '</b>. ' + esc(APPN) + ' is only for people who have registered and confirmed their email address. If you registered with a different email address, log out and log in with that one.',
-      [['Register now', function () { wipeAndReload(false, 'register'); }], ['Log out', function () { wipeAndReload(false); }]]);
-  }
   function vRetry(em) {
     vScreen('&#9888;&#65039;', 'We could not check your account', 'Check you are online, then try again. We need to check that <b>' + esc(em) + '</b> is registered and confirmed.',
       [['Try again', function () { vState = 'wait'; vRun(); }], ['Log out', function () { wipeAndReload(false); }]]);
@@ -2552,18 +2537,6 @@
     ov.querySelector('form').addEventListener('submit', async function (e) {
       e.preventDefault(); if (await pinCheck($('cdPg').value)) { ov.remove(); lset('cd.reauthOk', String(Date.now())); reopenTarget(next); } else $('cdPgMsg').textContent = 'That password is not right.';
     });
-  }
-  /* One-time move: cases kept on this device are uploaded to the app's own OneDrive folder. */
-  function migrateToAppFolder() {
-    var done = null; try { done = localStorage.getItem('cd.loc2'); } catch (e) {}
-    if (done) return;
-    COLS.forEach(function (col) {
-      Object.keys(mem[col]).forEach(function (id) {
-        var d = mem[col][id]; d.etag = null; d.itemId = null; persistDoc(col, id);
-        var k = col + '/' + id; if (!dirty[k]) { var nd = { k: k, col: col, id: id, kind: 'set', patch: {}, v: ++vctr }; dirty[k] = nd; idbPut('dirty', nd); }
-      });
-    });
-    try { localStorage.setItem('cd.loc2', '1'); } catch (e) {}
   }
   /* ---------- test link (?test=landlord or ?test=gas): sample data in memory only ---------- */
   function testBoot() {
