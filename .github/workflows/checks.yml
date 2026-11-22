@@ -1,10 +1,11 @@
 name: Code checks
 
-# Looks for coding mistakes (undefined names, duplicate keys, unreachable code) on every change to the site's code.
+# Looks for coding mistakes (undefined names, duplicate keys, unreachable code) on every change to the site's code,
+# and checks that the js/app-*.js files only use things that already exist when the page starts.
 on:
   push:
     branches: [main]
-    paths: ['*.js', 'functions/**', 'eslint.config.mjs', '.github/workflows/checks.yml']
+    paths: ['js/**', '*.js', 'index.html', 'functions/**', 'tools/**', 'eslint.config.mjs', '.github/workflows/checks.yml']
   workflow_dispatch:
 
 jobs:
@@ -16,6 +17,8 @@ jobs:
         with:
           node-version: '22'
       - name: Install the checker
-        run: npm install --no-save --no-package-lock eslint@9 globals
+        run: npm install --no-save --no-package-lock eslint@9 globals acorn
       - name: Check the code
         run: npx eslint .
+      - name: Check the order the app files load in
+        run: node tools/check-code.mjs

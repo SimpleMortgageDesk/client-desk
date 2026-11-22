@@ -2,8 +2,8 @@
    Online: always fetches the newest files. Offline: uses the saved copy.
    Hosts such as Cloudflare Pages shorten addresses (home.html -> /home), so saved copies are stored without the
    "moved" step and can be found under either address. */
-var CACHE = 'client-desk-v4';
-var FILES = ['./', 'index.html', 'home.html', 'privacy.html', 'styles.css', 'app.js', 'sync.js', 'config.js', 'trades.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+var CACHE = 'client-desk-v5';
+var FILES = ['./', 'index.html', 'home.html', 'privacy.html', 'styles.css', 'sync.js', 'config.js', 'trades.js', 'js/app-core.js', 'js/app-shell.js', 'js/app-clients.js', 'js/app-marketing.js', 'js/app-tools.js', 'js/app-events.js', 'js/app-trade.js', 'js/app-legal.js', 'js/app-home.js', 'js/app-agreements.js', 'js/app-property.js', 'js/app-rent.js', 'js/app-receipts.js', 'js/app-leases.js', 'js/app-assets.js', 'js/app-todo.js', 'js/app-dates.js', 'js/app-import.js', 'js/app-start.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 /* a page that arrived after a redirect cannot be shown offline as it is: copy it into a plain response */
 function plain(res) {
   if (!res || !res.redirected) return Promise.resolve(res);
