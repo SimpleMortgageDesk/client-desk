@@ -1166,3 +1166,10 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .carrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:560px){.asact{width:100%}.asact .btn{flex:1}.carrow{grid-template-columns:1fr}}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .aschip.warn{background:#3A2A05;color:#FFE9B8}:root:not([data-theme="light"]) .aschip.bad{background:#3A1512;color:#FFB4A8}}
+
+/* documents dialog for cars and the home */
+.dsbox{width:min(560px,100%)}
+.dshead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 8px}.dshead h2{margin:0}
+.dsslot{border-top:1px solid var(--line,#D4DBDF);padding:10px 0}
+.dshd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 4px}.dshd span{display:flex;gap:14px;align-items:center}
+.dsf{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}.dsn{display:flex;flex-direction:column;min-width:0}.dsn a{overflow-wrap:anywhere}.dsn small{color:var(--muted,#58697A);font-size:12px}

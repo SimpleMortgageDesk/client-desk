@@ -19,7 +19,7 @@ function applyTrade(){
   var q=document.getElementById('q');if(q)q.placeholder='Search '+T.noun[1].toLowerCase();
   var bn=document.getElementById('brandName'),an=(window.MD_CONFIG||{}).appName||'MySimpleDesk';if(bn)bn.innerHTML=brandHtml(an)
   document.title=an;
-  if(!landingDone&&window.CD_tradeChosen&&window.CD_tradeChosen()){landingDone=true;if(view==='tasks'||view===undefined)view='todo'}
+  if(!landingDone&&window.CD_tradeChosen&&window.CD_tradeChosen()){landingDone=true;if(view==='tasks'||view===undefined)view=landView()}
 }
 function N1(){return T.noun[0].toLowerCase()}
 function NS(){return T.noun[1].toLowerCase()}
@@ -1585,7 +1585,7 @@ document.addEventListener('click',function(e){
   if(o&&o.dataset.open==='__home'){e.preventDefault();homeOpen();return}
   if(o&&String(o.dataset.open||'').indexOf('__car:')===0){e.preventDefault();carOpen(o.dataset.open.slice(6));return}
   if(o){e.preventDefault();openDrawer(o.dataset.open);return}
-  if(t.closest('.brand')){nbFlush();view='todo';render();window.scrollTo(0,0);return}
+  if(t.closest('.brand')){nbFlush();view=landView();render();window.scrollTo(0,0);return}
   if(t.closest&&t.closest('[data-sideacct]')){var sb=document.getElementById('settingsBtn');if(sb)sb.click();return}
   var nv=t.closest('#nav button,#nav2 button,#sideTools button[data-v],#mnuPanel button[data-v]');
   if(nv&&nv.dataset.v==='bookappt'){apOpen(null,iso(TODAY));return}
@@ -1835,7 +1835,7 @@ var setCol=null;
 function saveTrades(list){
   list=list.slice(0,2);var tu0=window.CD_tuAt&&window.CD_tuAt();if(tu0)USEDTU=tu0;var act=list.indexOf(T.id)>-1?T.id:list[0];
   if(!MAIN_TRADE||list.indexOf(MAIN_TRADE)<0)MAIN_TRADE=list[0];
-  TRADES=list;window.CD_tradeSet(act);var was=openId;if(was!==undefined)closeDrawer();applyTrade();setCases();view='todo';
+  TRADES=list;window.CD_tradeSet(act);var was=openId;if(was!==undefined)closeDrawer();applyTrade();setCases();view=landView();
   if(setCol)write('set-trade',function(){return setCol.doc('trade').set({trade:act,trades:list,main:MAIN_TRADE,usedTu:USEDTU,updatedAt:Date.now()})});
   render();renderSide();renderNav();
 }
@@ -1843,7 +1843,7 @@ function saveTrade(id){saveTrades([id])}
 /* a person with two trades switches between them here; the choice is kept on this device */
 function switchTrade(id){
   if(id===T.id||TRADES.indexOf(id)<0)return;
-  window.CD_tradeSet(id);if(openId!==undefined)closeDrawer();applyTrade();setCases();view='todo';
+  window.CD_tradeSet(id);if(openId!==undefined)closeDrawer();applyTrade();setCases();view=landView();
   render();renderSide();renderNav();window.scrollTo(0,0);
 }
 function renderSwitch(){
@@ -1862,7 +1862,7 @@ window.CD_resumeGet=function(){
   if(!loaded||!T)return null;
   var d=document.getElementById('drawer'),sc=0;
   if(openId&&d&&!d.hidden){var all=d.querySelectorAll('*');for(var i=0;i<all.length;i++){var e=all[i];if(e.scrollHeight>e.clientHeight+20&&/(auto|scroll)/.test(getComputedStyle(e).overflowY)){sc=e.scrollTop;break}}}
-  var home=!openId&&(view==='todo'||view===undefined);
+  var home=!openId&&(view===landView()||view===undefined);
   return {trade:T.id,view:view,id:openId||null,sc:Math.round(sc),home:home};
 };
 window.CD_resumeLabel=function(s){
@@ -2039,8 +2039,9 @@ function lgDocInner(c,k){
   var fl=dzFiles(c,k).slice().reverse(),up=dzCam(k,'Take photo')+'<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">Upload</button>';
   if(!fl.length)return up;
   var lk=function(f,t){return '<a href="'+esc(f.url)+'" target="_blank" rel="noopener" title="'+esc(f.name)+'">'+esc(t)+'</a>'};
-  if(fl.length===1)return up+lk(fl[0],'Show');
-  return up+'<details style="flex:1 1 100%;order:2"><summary style="cursor:pointer;font-weight:600;color:var(--accent)">Show ('+fl.length+' documents)</summary><div style="display:flex;flex-direction:column;gap:4px;margin:6px 0 2px">'+fl.map(function(f){return lk(f,f.name)}).join('')+'</div></details>';
+  var dl=function(f){return '<button type="button" style="'+DZ_BTN+';color:#8a98a3" data-dzrm="'+esc(f.id)+'">Delete</button>'};
+  if(fl.length===1)return up+lk(fl[0],'Show')+dl(fl[0]);
+  return up+'<details style="flex:1 1 100%;order:2"><summary style="cursor:pointer;font-weight:600;color:var(--accent)">Show ('+fl.length+' documents)</summary><div style="display:flex;flex-direction:column;gap:4px;margin:6px 0 2px">'+fl.map(function(f){return '<span style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">'+lk(f,f.name)+dl(f)+'</span>'}).join('')+'</div></details>';
 }
 /* a second upload for the same item asks first: keep the old documents as well, or replace them */
 var lgPend=null;
@@ -2254,6 +2255,7 @@ function homeCard(pg){
     '<div class="hfacts">'+fact('Estimated value',val?money(val):'')+fact('Mortgage balance',bal?money(bal):'')+fact('Equity',eq!=null&&bal?money(eq):'')+fact('Loan to value',ltv!=null?ltv+'%':'')+fact('Lender',esc(h.lender||''))+fact('Rate',h.rate?esc(h.rate)+'%'+(h.dealType?' '+esc(String(h.dealType).toLowerCase()):''):'')+fact('Monthly payment',h.payment?money(h.payment):'')+'</div>'+
     '<div class="hchips">'+chip(homeV(h,'dealEnd'),'Deal ends')+chip(homeV(h,'insRenewal'),'Insurance renewal')+chip(homeV(h,'boilerDue'),'Boiler service')+chip(homeV(h,'energyEnd'),'Energy deal ends')+'</div>'+advBox(homeV(h,'dealEnd'),'Mortgage deal on your home')+'</section>'+
     '<div class="homegrid">'+HOME_F.map(function(g){return card(g[0]==='Your home'?'About your home':g[0],homeRows(h,g))}).join('')+
+    card('Documents',(h.files||[]).length?'<p class="muted" style="margin:0 0 6px;font-size:13px">'+(h.files||[]).length+' document'+((h.files||[]).length===1?'':'s')+' saved in your '+esc((window.CD_files&&window.CD_files.where&&window.CD_files.where())||'file storage')+'</p>'+(h.files||[]).slice(-3).reverse().map(function(f){return '<div class="hrow"><span><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a></span></div>'}).join(''):'<p class="muted" style="margin:0">Insurance, boiler and electrical certificates and your mortgage papers. Upload them here and we read the date and remind you.</p>','<button type="button" class="btn ghost sm" data-dsopen="__home">'+((h.files||[]).length?'Open':'Add')+'</button>')+
     card('Receipts and expenses',expBody,'<button type="button" class="btn ghost sm" data-homeexp="1">Open</button>')+
     (h.notes?card('Notes','<p style="margin:0;white-space:pre-wrap">'+esc(h.notes)+'</p>'):'')+'</div></div>';
 }
@@ -2902,7 +2904,7 @@ function dzFiles(c,k){return ((c&&c.files)||[]).filter(function(f){return f.k===
 function dzTouch(){return !!(window.matchMedia&&matchMedia('(pointer:coarse)').matches)}
 function dzCam(k,t){return dzTouch()?'<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'" data-dzcam="1">'+esc(t||'Take photo')+'</button>':''}
 function dzInner(c,k,label){
-  var fl=dzFiles(c,k),up=function(t){return '<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">'+esc(t)+'</button>'},rm=function(f){return '<button type="button" style="'+DZ_BTN+';color:#8a98a3" data-dzrm="'+esc(f.id)+'">Remove</button>'};
+  var fl=dzFiles(c,k),up=function(t){return '<button type="button" style="'+DZ_BTN+'" data-dzup="'+esc(k)+'">'+esc(t)+'</button>'},rm=function(f){return '<button type="button" style="'+DZ_BTN+';color:#8a98a3" data-dzrm="'+esc(f.id)+'">Delete</button>'};
   if(k==='other')return fl.map(function(f){return '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a><button type="button" style="'+DZ_BTN+'" data-dzrem="'+esc(f.id)+'">Remind me</button>'+rm(f)+'</div>'}).join('')+'<div class="pl">'+dzCam('other','Take photo')+up('Upload a document')+'</div>';
   if(!fl.length)return dzCam(k,'Take photo')+up('Upload '+label);
   var f=fl[fl.length-1];
@@ -2977,9 +2979,14 @@ function dzSend(k,file,mode,cam){
 }
 function dzRemove(fid){
   var id=openId,c=currentCase();if(!id||!c)return;
-  if(!confirm('Remove this link? The file itself stays in the property folder.'))return;
-  var up={files:(c.files||[]).filter(function(f){return f.id!==fid})};
-  patch(id,up);dzRefresh(Object.assign({},c,up));
+  var f=(c.files||[]).filter(function(x){return x.id===fid})[0];if(!f)return;
+  if(!confirm('Delete "'+f.name+'"? It moves to your '+binName()+' and is taken off this record.'))return;
+  toast('Deleting…',true);
+  fileDelete(f.fid).then(function(r){
+    if(r==='offline'||r==='fail'){toast(delFailMsg(r));return}
+    var cur=cases.filter(function(x){return x.id===id})[0]||c,up={files:(cur.files||[]).filter(function(x){return x.id!==fid})};
+    patch(id,up);if(openId===id)dzRefresh(Object.assign({},cur,up));toast(delTell(r));
+  });
 }
 document.addEventListener('click',function(e){
   var rmd=e.target&&e.target.closest?e.target.closest('[data-dzrem]'):null;
@@ -3495,7 +3502,7 @@ function rcBox(c){
 }
 function rcStateHtml(){
   if(rcBusy)return '<p class="rcmsg"><span class="rcspin" aria-hidden="true"></span>'+esc(rcMsg||'Saving…')+'</p>';
-  if(rcPend){var u=rcUrl(rcPend.url);return '<div class="rcatt">'+(rcThumb?'<img src="'+rcThumb+'" alt="Photo of the receipt">':'')+'<div><b>Receipt saved</b><span class="muted">'+esc(rcPend.name)+'</span><span>'+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">Show receipt</a>':'')+'<button type="button" class="rclink" data-rcrm="1" title="Removes the link from this expense. The file stays in your Receipts folder.">Remove</button></span></div></div>'}
+  if(rcPend){var u=rcUrl(rcPend.url);return '<div class="rcatt">'+(rcThumb?'<img src="'+rcThumb+'" alt="Photo of the receipt">':'')+'<div><b>Receipt saved</b><span class="muted">'+esc(rcPend.name)+'</span><span>'+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">Show receipt</a>':'')+'<button type="button" class="rclink" '+(rcPend.id?'data-rcdel="'+esc(rcPend.id)+'" title="Deletes the receipt file and takes it off your list."':'data-rcrm="1" title="Removes the link from this expense."')+'>Delete</button></span></div></div>'}
   return rcMsg?'<p class="rcmsg err">'+esc(rcMsg)+'</p>':'';
 }
 function rcListHtml(c){
@@ -3505,7 +3512,7 @@ function rcListHtml(c){
   return '<ul class="rclist">'+rs.map(function(r){
     var e=ex.filter(function(x){return x.receipt&&(x.receipt.fid?x.receipt.fid===r.fid:x.receipt.url===r.url)})[0],u=rcUrl(r.url);
     var info=e?esc([e.desc||e.cat,gbp(e.amount)].filter(Boolean).join(' · ')):'Not linked to an expense yet';
-    return '<li><div class="rcrow"><b>'+esc(r.name)+'</b><span class="muted">'+(r.at?'Added '+esc(fd(iso(new Date(r.at))))+' · ':'')+info+'</span></div><div class="rcact">'+(u?'<a class="btn ghost sm" href="'+esc(u)+'" target="_blank" rel="noopener">Open</a>':'')+(!e&&!(rcPend&&rcPend.id===r.id)?'<button type="button" class="btn ghost sm" data-rcuse="'+esc(r.id)+'">Use for this expense</button>':'')+'</div></li>'}).join('')+'</ul>';
+    return '<li><div class="rcrow"><b>'+esc(r.name)+'</b><span class="muted">'+(r.at?'Added '+esc(fd(iso(new Date(r.at))))+' · ':'')+info+'</span></div><div class="rcact">'+(u?'<a class="btn ghost sm" href="'+esc(u)+'" target="_blank" rel="noopener">Open</a>':'')+(!e&&!(rcPend&&rcPend.id===r.id)?'<button type="button" class="btn ghost sm" data-rcuse="'+esc(r.id)+'">Use for this expense</button>':'')+'<button type="button" class="btn ghost sm danger" data-rcdel="'+esc(r.id)+'">Delete</button></div></li>'}).join('')+'</ul>';
 }
 function rcDraw(cc){
   var s=$('#rcState');if(s)s.innerHTML=rcStateHtml();
@@ -3568,10 +3575,23 @@ function rcSend(caseId,file,thumb,named){
   }).catch(function(e){Promise.resolve(e&&e.bodyP).catch(function(){}).then(function(){rcBusy=false;rcMsg=e&&e.big?'That file is over 50 MB. Choose a smaller one.':dzErr(e);rcDraw()})});
 }
 document.addEventListener('click',function(e){
-  var b=e.target&&e.target.closest?e.target.closest('[data-rcpick],[data-rcrm],[data-rcopen],[data-rcuse]'):null;if(!b||!b.closest('#exOv'))return;
+  var b=e.target&&e.target.closest?e.target.closest('[data-rcpick],[data-rcrm],[data-rcdel],[data-rcopen],[data-rcuse]'):null;if(!b||!b.closest('#exOv'))return;
   e.preventDefault();
   if(b.hasAttribute('data-rcpick')){rcPick(b.getAttribute('data-rcpick'));return}
   if(b.hasAttribute('data-rcrm')){rcPend=null;rcMsg='';rcDraw();return}
+  if(b.hasAttribute('data-rcdel')){
+    var rid=b.getAttribute('data-rcdel'),c0=rcCase(),r0=c0&&(c0.receipts||[]).filter(function(x){return x.id===rid})[0];
+    if(!r0){rcPend=null;rcMsg='';rcDraw();return}
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}
+    toast('Deleting…',true);
+    fileDelete(r0.fid).then(function(res){
+      if(res==='offline'||res==='fail'){toast(delFailMsg(res));b.classList.remove('armed');b.textContent='Delete';return}
+      var c1=rcCase()||c0,nr=(c1.receipts||[]).filter(function(x){return x.id!==rid}),ne=(c1.expenses||[]).map(function(x){var q=x.receipt;return q&&(q.id===rid||(q.fid&&q.fid===r0.fid)||(q.url&&q.url===r0.url))?Object.assign({},x,{receipt:null}):x});
+      if(rcPend&&rcPend.id===rid)rcPend=null;
+      exPatch(exCase,{receipts:nr,expenses:ne});toast(delTell(res));setTimeout(function(){expOpen(exCase,exEdit)},60);
+    });
+    return;
+  }
   if(b.hasAttribute('data-rcopen')){rcListOpen=!rcListOpen;rcDraw();return}
   var c=rcCase(),r=c&&(c.receipts||[]).filter(function(x){return x.id===b.getAttribute('data-rcuse')})[0];
   if(r){if(rcThumb){try{URL.revokeObjectURL(rcThumb)}catch(x){}rcThumb=''}rcPend=Object.assign({},r);rcListOpen=false;rcMsg='';rcDraw();var a=$('#ex-amt');if(a)a.focus()}
@@ -3836,6 +3856,99 @@ function mcRender(){
 document.addEventListener('input',function(e){var t=e.target;if(t&&/^f-mort(Rate|Balance|Payment|Method)$/.test(t.id||''))mcRender()});
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.id==='f-mortMethod')mcRender()});
 /* ---------- My tradesmen (home owners and landlords): preferred tradespeople, name and phone only ---------- */
+/* ---------- deleting uploads: the file moves to the storage's recycle bin and is taken off the record ---------- */
+function binName(){var w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your storage';return w==='Google Drive'?'Google Drive bin':w+' recycle bin'}
+/* resolves 'ok' (moved to the bin), 'none' (an old record with no file id), 'offline' or 'fail' (nothing was deleted) */
+function fileDelete(fid){
+  if(!fid)return Promise.resolve('none');
+  if(!window.CD_files||!window.CD_files.trash||!window.CD_files.can())return Promise.resolve('offline');
+  return window.CD_files.trash(fid).then(function(){return 'ok'},function(e){return (navigator.onLine===false||e instanceof TypeError||(e&&e.renew))?'offline':'fail'});
+}
+function delFailMsg(r){return r==='offline'?'Could not reach your file storage. Check you are online, then try Delete again.':'Could not delete the file. Try again.'}
+function delTell(r){return r==='ok'?'Deleted. The file is in your '+binName()+' if you need it back.':'Removed from the list. This file was added in an older version, so delete the file itself from your folder.'}
+/* ---------- documents for cars and the residential property: a folder in the person's own storage, like a rental property ---------- */
+var DS_SLOTS={
+  car:[['insurance','Insurance certificate','ins','Insurance renewal'],['mot','MOT certificate','mot','MOT due'],['service','Service record','service','Service due'],['v5','V5C logbook','',''],['other','Other document','','']],
+  home:[['insurance','Home insurance certificate','insRenewal','Home insurance renewal'],['boiler','Boiler service record','boilerDue','Boiler service due'],['eicr','Electrical (EICR) report','eicrDue','Electrical check due'],['mortgage','Mortgage offer or statement','dealEnd','Mortgage deal ends'],['energy','Energy contract','energyEnd','Energy deal ends'],['other','Other document','','']]
+};
+function dsKind(id){return id==='__home'?'home':'car'}
+function dsSubj(id){if(id==='__home')return HOME&&HOME.addr1?HOME:null;if(String(id).indexOf('__car:')===0)return carItems.filter(function(x){return x.id===String(id).slice(6)})[0]||null;return null}
+function dsPatch(id,up){if(id==='__home'){homeWrite(Object.assign({},HOME,up));return}var cid=String(id).slice(6);carSave(carItems.map(function(x){return x.id===cid?Object.assign({},x,up):x}))}
+function dsRoot(id){return id==='__home'?'Home':'Cars'}
+function dsFolder(id,s){return (s.folder&&s.folder.name)||(id==='__home'?(pfClean(String(s.addr1||'').split(/[\n,]/)[0])||'My home'):(pfClean(carWho(s))||'Car'))}
+function dsTitle(id,s){return id==='__home'?'Residential property · '+short(s.addr1):'Car · '+carWho(s)}
+function dsBody(id){
+  var s=dsSubj(id);if(!s)return '<p class="muted">Not found.</p>';
+  var fl=s.files||[],w=(window.CD_files&&window.CD_files.where&&window.CD_files.where())||'your file storage',slots=DS_SLOTS[dsKind(id)];
+  var h='<p class="dxsrc">'+esc(dsTitle(id,s))+'. Saved in your '+esc(w)+': <b>'+esc(dsRoot(id))+' › '+esc(dsFolder(id,s))+'</b>'+(s.folder&&s.folder.url?' · <a href="'+esc(s.folder.url)+'" target="_blank" rel="noopener">Open folder</a>':'')+'</p>';
+  slots.forEach(function(sl){
+    var mine=fl.filter(function(f){return f.k===sl[0]}).slice().reverse();
+    h+='<section class="dsslot"><div class="dshd"><b>'+esc(sl[1])+'</b><span>'+(dzTouch()?'<button type="button" style="'+DZ_BTN+'" data-dsup="'+esc(sl[0])+'" data-dscam="1">Take photo</button>':'')+'<button type="button" style="'+DZ_BTN+'" data-dsup="'+esc(sl[0])+'">Upload</button></span></div>'+
+      mine.map(function(f){return '<div class="dsf"><span class="dsn"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>'+(f.at?'<small>Added '+esc(fd(iso(new Date(f.at))))+'</small>':'')+'</span><button type="button" class="btn ghost sm danger" data-dsdel="'+esc(f.id)+'" aria-label="Delete '+esc(f.name)+'">Delete</button></div>'}).join('')+
+      (sl[2]&&!mine.length?'<small class="muted">Upload it and we will read the date and set the reminder.</small>':'')+'</section>';
+  });
+  return h;
+}
+function dsDraw(id){var b=$('#dsBody');if(b&&$('#dsOv')&&$('#dsOv').getAttribute('data-id')===id)b.innerHTML=dsBody(id)}
+function dsOpen(id){
+  if(!dsSubj(id))return;var old=$('#dsOv');if(old)old.remove();
+  var ov=document.createElement('div');ov.id='dsOv';ov.className='dxov';ov.setAttribute('data-id',id);ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-labelledby','dsT');
+  ov.innerHTML='<div class="dxbox dsbox"><div class="dshead"><h2 id="dsT">Documents</h2><button type="button" class="btn" data-dsclose="1">Done</button></div><div id="dsBody">'+dsBody(id)+'</div></div>';
+  document.body.appendChild(ov);
+  var kd=function(e){if(e.key==='Escape'&&!$('#dxOv')){ov.remove();document.removeEventListener('keydown',kd)}};document.addEventListener('keydown',kd);
+}
+function dsPick(id,k,cam){
+  if(!window.CD_files||!window.CD_files.can()){toast('Could not reach your file storage. Check you are online, then try again.');return}
+  if(dzBusy){toast('Still uploading the last file. Try again in a moment.');return}
+  var inp=document.createElement('input');inp.type='file';inp.id='dsFile';inp.accept=cam?'image/*':'.pdf,.jpg,.jpeg,.png,.heic,.webp,.doc,.docx,.xls,.xlsx,.txt,image/*,application/pdf';if(cam)inp.setAttribute('capture','environment');inp.style.display='none';
+  var o=$('#dsFile');if(o)o.remove();document.body.appendChild(inp);
+  inp.addEventListener('change',function(){var f=inp.files&&inp.files[0];inp.remove();if(f)dsSend(id,k,f,cam)});
+  inp.click();
+}
+function dsSend(id,k,file,cam){
+  var s=dsSubj(id);if(!s)return;
+  if(!file.size){toast('That file is empty.');return}
+  if(file.size>window.CD_files.max){toast('That file is over 50 MB. Choose a smaller file.');return}
+  var slot=DS_SLOTS[dsKind(id)].filter(function(x){return x[0]===k})[0]||['other','Other document','',''],oext=(/\.[A-Za-z0-9]{1,8}$/.exec(file.name)||[''])[0].toLowerCase(),folder=dsFolder(id,s),root=dsRoot(id),sent=null;
+  dzBusy=true;toast('Uploading '+(cam?'the photo':file.name)+'…',true);
+  rcPrep(file).then(function(pp){
+    var blob=pp.blob,ext=pp.ext||oext,d=new Date(),z=function(n){return String(n).padStart(2,'0')};
+    sent={blob:blob,name:file.name,type:blob.type||file.type||''};
+    var base=cam?'Photo '+iso(TODAY)+' '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds()):(pfClean(file.name.slice(0,file.name.length-oext.length),100)||'Document');
+    var fname=k==='other'?base+ext:slot[1]+' '+iso(TODAY)+ext;
+    if((s.files||[]).some(function(f){return String(f.name).toLowerCase()===fname.toLowerCase()}))fname=fname.slice(0,fname.length-ext.length)+' (added '+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+')'+ext;
+    if(blob.size>window.CD_files.max)throw {big:true};
+    return window.CD_files.upload(folder,fname,blob,undefined,root);
+  }).then(function(res){
+    dzBusy=false;var cur=dsSubj(id)||s;
+    var files=(cur.files||[]).concat([{id:'f'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),k:k,name:res.name,url:res.url,fid:res.id,size:sent.blob.size,at:Date.now()}]),up={files:files};
+    if(res.folder&&res.folder.name&&!(cur.folder&&cur.folder.url))up.folder=res.folder;
+    dsPatch(id,up);toast('Uploaded to '+root+' › '+folder);dsDraw(id);
+    if(slot[2])dsAfter(id,slot,sent);
+  },function(e){Promise.resolve(e&&e.bodyP).catch(function(){}).then(function(){dzBusy=false;toast(e&&e.big?'That file is over 50 MB. Choose a smaller file.':dzErr(e))})});
+}
+/* a document next to a date: read the date from it (on this device) and ask the person to confirm it */
+function dsAfter(id,slot,sent){
+  var isPdf=/pdf/i.test(sent.type||'')||/\.pdf$/i.test(sent.name||''),isImg=/^image\//.test(sent.type||''),fld=slot[2];
+  dxAsk({title:'When is the date on this document?',label:slot[3],kind:'end',blob:(isPdf||isImg)?sent.blob:null,isPdf:isPdf,cur:(dsSubj(id)||{})[fld]||'',applyMsg:'Saved. We will remind you before it runs out.',
+    apply:function(v){var cur=dsSubj(id);if(!cur)return;var up={};up[fld]=v;if(cur.remDone&&cur.remDone[fld]){var nr=Object.assign({},cur.remDone);delete nr[fld];up.remDone=nr}dsPatch(id,up)}});
+}
+document.addEventListener('click',function(e){
+  var t=e.target;if(!t||!t.closest)return;var b;
+  if((b=t.closest('[data-dsopen]'))){e.preventDefault();dsOpen(b.getAttribute('data-dsopen'));return}
+  var ov=t.closest('#dsOv');if(!ov)return;var id=ov.getAttribute('data-id');
+  if(t.closest('[data-dsclose]')||t===ov){ov.remove();return}
+  if((b=t.closest('[data-dsup]'))){e.preventDefault();var k=b.getAttribute('data-dsup'),cam=b.hasAttribute('data-dscam');dsPick(id,k,cam);return}
+  if((b=t.closest('[data-dsdel]'))){
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}
+    var fid=b.getAttribute('data-dsdel'),s=dsSubj(id),f=s&&(s.files||[]).filter(function(x){return x.id===fid})[0];if(!f)return;
+    toast('Deleting…',true);
+    fileDelete(f.fid).then(function(r){
+      if(r==='offline'||r==='fail'){toast(delFailMsg(r));b.classList.remove('armed');b.textContent='Delete';return}
+      var cur=dsSubj(id)||s;dsPatch(id,{files:(cur.files||[]).filter(function(x){return x.id!==fid})});dsDraw(id);toast(delTell(r));
+    });
+  }
+},true);
 /* ---------- My Properties and Cars: one list for the home, rental properties and cars ---------- */
 var carItems=[],CAR_F=[['mot','MOT due'],['ins','Insurance renewal'],['tax','Road tax due'],['service','Service due']];
 function carReg(c){return String(c.reg||'').toUpperCase().trim()}
@@ -3858,6 +3971,7 @@ function carOpen(id){
     dt('mot','MOT due')+
     dt('ins','Insurance renewal','<p class="dxo" style="margin:-6px 0 12px"><button type="button" class="btn ghost sm" id="carRead">Read the date from an insurance document</button> <input type="file" id="carFile" accept=".pdf,image/*" hidden> <span class="muted" style="font-size:12px">Read on this device. Nothing is sent anywhere.</span></p>')+
     dt('tax','Road tax due')+dt('service','Service due')+
+    (id?'<p class="dxo" style="margin:0 0 12px"><button type="button" class="btn ghost sm" data-dsopen="__car:'+esc(id)+'">Documents'+((c.files||[]).length?' ('+(c.files||[]).length+')':'')+'</button> <span class="muted" style="font-size:12px">Insurance, MOT, service and logbook.</span></p>':'<p class="dxnote" style="margin:0 0 12px">After you add the car, press <b>Documents</b> on its row to upload its insurance, MOT and other papers.</p>')+
     '<p id="carErr" role="alert" class="dxerr"></p><div class="dxbtns"><button type="submit" class="btn">'+(id?'Save changes':'Add car')+'</button><button type="button" class="btn ghost" id="carX">Cancel</button></div></form>';
   var close=function(){ov.remove();document.removeEventListener('keydown',kd)},kd=function(e){if(e.key==='Escape'&&!$('#dxOv'))close()};document.addEventListener('keydown',kd);
   setTimeout(function(){try{$('#car-reg').focus()}catch(e){}},30);
@@ -3889,7 +4003,7 @@ function assetsHTML(){
   h+='</section>';
   /* cars */
   h+='<section class="ass" aria-labelledby="asH2"><h2 id="asH2">Cars</h2>';
-  if(carItems.length)h+=carItems.slice().sort(function(a,b){return carWho(a).localeCompare(carWho(b))}).map(function(c){return '<div class="asrow asc"><span class="asic" aria-hidden="true">&#128663;</span><span class="astx"><b>'+esc(carWho(c))+'</b>'+(carReg(c)&&(c.make||c.model)?'<small>'+esc([c.make,c.model].filter(Boolean).join(' '))+'</small>':'')+'<span class="aschips">'+(due(c,CAR_F)||'<small>No dates added yet</small>')+'</span></span><span class="asact"><button type="button" class="btn ghost sm" data-ascar="'+esc(c.id)+'">Edit</button><button type="button" class="btn ghost sm danger" data-ascardel="'+esc(c.id)+'">Delete</button></span></div>'}).join('');
+  if(carItems.length)h+=carItems.slice().sort(function(a,b){return carWho(a).localeCompare(carWho(b))}).map(function(c){return '<div class="asrow asc"><span class="asic" aria-hidden="true">&#128663;</span><span class="astx"><b>'+esc(carWho(c))+'</b>'+(carReg(c)&&(c.make||c.model)?'<small>'+esc([c.make,c.model].filter(Boolean).join(' '))+'</small>':'')+'<span class="aschips">'+(due(c,CAR_F)||'<small>No dates added yet</small>')+'</span></span><span class="asact"><button type="button" class="btn ghost sm" data-dsopen="__car:'+esc(c.id)+'">Documents'+((c.files||[]).length?' ('+(c.files||[]).length+')':'')+'</button><button type="button" class="btn ghost sm" data-ascar="'+esc(c.id)+'">Edit</button><button type="button" class="btn ghost sm danger" data-ascardel="'+esc(c.id)+'">Delete</button></span></div>'}).join('');
   else h+='<p class="muted astip">None yet. Press <b>Add</b>, then <b>Car</b>, to be reminded about the MOT, insurance, road tax and service.</p>';
   h+='</section>';
   /* investment properties */
@@ -3914,11 +4028,13 @@ document.addEventListener('click',function(e){
   if(t.closest('[data-asopen="res"]')){view='myhome';render();window.scrollTo(0,0);return}
   if(t.closest('[data-asinv="open"]')){switchTrade('landlord');view='assets';render();window.scrollTo(0,0);return}
   if((b=t.closest('[data-ascar]'))){carOpen(b.getAttribute('data-ascar'));return}
-  if((b=t.closest('[data-ascardel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var id=b.getAttribute('data-ascardel');carSave(carItems.filter(function(x){return x.id!==id}));toast('Deleted');return}
+  if((b=t.closest('[data-ascardel]'))){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='Delete?';return}var id=b.getAttribute('data-ascardel'),dc=carItems.filter(function(x){return x.id===id})[0];if(dc&&(dc.files||[]).length&&!confirm('This car has '+dc.files.length+' uploaded document'+(dc.files.length===1?'':'s')+'. They stay in your Cars folder unless you delete them first. Delete the car anyway?')){b.classList.remove('armed');b.textContent='Delete';return}carSave(carItems.filter(function(x){return x.id!==id}));toast('Deleted');return}
   if(t.closest('[data-asback]')){view='assets';render();window.scrollTo(0,0)}
 },true);
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=$('#asMenu');if(m&&!m.hidden){m.hidden=true;var ab=$('#asAdd');if(ab){ab.setAttribute('aria-expanded','false');ab.focus()}}}});
 /* ---------- To do: the person's own daily tasks. Open ones due today are the first thing seen when the app opens. ---------- */
+/* the first page after logging in: the list of properties and cars for landlords and home owners, To do for everyone else */
+function landView(){return T&&T.tenancyMode?'assets':'todo'}
 var tdItems=[],tdUserNav=false,tdLanded=false;
 function tdToday(){return iso(new Date())}
 function tdRep(x){return !!x.daily}
@@ -3980,7 +4096,7 @@ function tdLand(n){
   if(tdLanded)return;
   if(!loaded){if((n||0)<20)setTimeout(function(){tdLand((n||0)+1)},400);return}
   tdLanded=true;if(tdUserNav||openId!==undefined)return;
-  if(view==='tasks'||view===undefined){view='todo';render()}
+  if(view==='tasks'||view===undefined){view=landView();render()}
 }
 /* ---------- dates read from uploaded documents. Everything happens on this device: the document is never sent anywhere. ---------- */
 var DX_MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
@@ -4080,7 +4196,7 @@ function dxAsk(o){
     if(t.closest('[data-dxsave]')){
       var iso0=($('#dxDate')||{}).value||'',er=$('#dxErr');
       if(!/^\d{4}-\d{2}-\d{2}$/.test(iso0)){er.textContent='Choose the date first.';return}
-      if(o.apply){o.apply(iso0);close();toast('Date filled in. Press Save to keep it.');return}
+      if(o.apply){o.apply(iso0);close();toast(o.applyMsg||'Date filled in. Press Save to keep it.');return}
       if(o.todo){
         var tx=(($('#dxTxt')||{}).value||'').trim(),lead=+(($('#dxLead')||{}).value||0);if(!tx){er.textContent='Write what to remind you about.';return}
         var due=iso(new Date(pd(iso0).getTime()-lead*864e5));if(due<iso(TODAY))due=iso(TODAY);
