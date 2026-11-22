@@ -15,7 +15,14 @@
   /* SHARED COMPUTER: chosen on the login screen. Nothing is then kept on the device: the sign-in and settings live only in this browser tab
      (gone when it closes) and no working copy of the records is stored. Records are read from and saved to the person's own storage each time. */
   var SHARED = false; try { SHARED = sessionStorage.getItem('cd.shared') === '1'; } catch (e) {}
+  /* a home-screen app (iPhone or Android) is the person's own device: it never uses the shared-computer mode, which forgets the sign-in when the app closes */
+  var STANDALONE = false; try { STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; } catch (e) {}
+  if (STANDALONE && SHARED) { SHARED = false; try { sessionStorage.removeItem('cd.shared'); } catch (e) {} }
   var store = function () { return SHARED ? sessionStorage : localStorage; };
+  /* a short log of sign-in events kept on this device, shown from the Log in screen, so a problem can be found */
+  function diag(e, d) { try { var a = JSON.parse(localStorage.getItem('cd.diag') || '[]'); a.push({ t: new Date().toISOString().slice(5, 19).replace('T', ' '), e: e, d: d || '' }); localStorage.setItem('cd.diag', JSON.stringify(a.slice(-16))); } catch (x) {} }
+  try { var lsOk = false; try { localStorage.setItem('cd.t', '1'); lsOk = localStorage.getItem('cd.t') === '1'; localStorage.removeItem('cd.t'); } catch (x) {}
+    diag('opened', [STANDALONE ? 'home screen app' : 'browser', 'storage ' + (lsOk ? 'ok' : 'BLOCKED'), 'sign-in ' + (JSON.parse(localStorage.getItem('cd.tok2') || 'null') ? 'saved' : 'not saved'), SHARED ? 'shared mode' : 'own device', location.search.replace(/code=[^&]+/, 'code=..').replace(/state=[^&]+/, 'state=..').slice(0, 40)].join(' | ')); } catch (e) {}
   var ls = function (k) { try { return store().getItem(k); } catch (e) { return null; } };
   var lset = function (k, v) { try { if (v == null) store().removeItem(k); else store().setItem(k, v); } catch (e) {} };
   /* 'openid email profile' asks Microsoft for a signed proof of who signed in (an ID token). Our server checks it, and it cannot open any files.
@@ -67,7 +74,7 @@
   function writeTok(t) { try { if (t) store().setItem('cd.tok2', JSON.stringify(t)); else store().removeItem('cd.tok2'); } catch (e) {} }
   var memTok = null;
   function tok() { return memTok || (memTok = readTok()); }
-  function setTok(t) { memTok = t; writeTok(t); }
+  function setTok(t) { memTok = t; writeTok(t); if (!t) diag('sign-in cleared', (new Error().stack || '').split('\n').slice(2, 4).map(function (x) { return x.trim().replace(/^at /, '').replace(/https?:\/\/[^ )]*\//, '').slice(0, 60); }).join(' < ')); }
   function b64url(buf) { var s = ''; new Uint8Array(buf).forEach(function (b) { s += String.fromCharCode(b); }); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
   function rand(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return b64url(a); }
   function form(o) { return Object.keys(o).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(o[k]); }).join('&'); }
@@ -77,6 +84,7 @@
     var v = rand(48), st = rand(16);
     var h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
     try { localStorage.setItem('cd.pkce', JSON.stringify({ v: v, st: st })); } catch (e) {}
+    diag('going to Microsoft', STANDALONE ? 'from the home screen app' : 'from the browser');
     location.href = AUTH + 'authorize?' + form(Object.assign({ client_id: CFG.clientId, response_type: 'code', redirect_uri: REDIRECT, response_mode: 'query', scope: scopes() + (ls('cd.oidc') === '1' || noOidc() ? '' : OIDC), state: st, code_challenge: b64url(h), code_challenge_method: 'S256', prompt: reauth ? 'login' : 'select_account' }, hint ? { login_hint: hint } : {}, reauth && ((tok() || {}).account || {}).mail ? { login_hint: tok().account.mail } : {}));
   }
   async function tokenRequest(params) {
@@ -1323,11 +1331,12 @@
       html = '<form id="lgForm" novalidate class="mdl">' + hdr('register') + '<h1>Welcome back</h1>' +
       '<p class="lead">Log in with the email you registered with. Your records load from your own ' + (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') + '.</p>' +
       '<label style="font-size:14px">User ID (your email address)<input id="lgMail" type="email" name="username" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" value="' + esc(lastMail) + '" style="' + lgInp + '"></label>' +
-      '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' + (SHARED ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>Shared or public computer</b><br><span style="color:#58697A;font-size:13px">Tick this on a computer that is not yours. Nothing is kept on it and you are logged out after 2 hours. Leave it unticked on your own phone or computer and you stay logged in for 30 days.</span></span></label>' +
+      (STANDALONE ? '' : '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' + (SHARED ? ' checked' : '') + ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>Shared or public computer</b><br><span style="color:#58697A;font-size:13px">Tick this on a computer that is not yours. Nothing is kept on it and you are logged out after 2 hours. Leave it unticked on your own phone or computer and you stay logged in for 30 days.</span></span></label>') +
       '<button type="submit" id="lgGo" style="' + pri + '">Log in' + sub('You type your password on ' + (ok.g ? 'their' : 'Microsoft\'s') + ' own page', 1) + '</button>' +
       '<p id="lgLock" role="alert" style="display:none;margin:12px 0 0;padding:10px 12px;background:#FDECEA;color:#A3261F;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
       '<p style="margin:18px 0 0;font-size:14px"><a href="#" data-sp="forgot" style="color:#0A6B50;font-weight:600">Forgot your password or user ID?</a></p>' +
-      '<p style="margin:26px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' + err + legal + '</form>';
+      '<p style="margin:26px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' +
+        '<p style="margin:14px 0 0;font-size:12.5px"><a href="#" id="lgDiag" style="color:#58697A">Having trouble staying logged in? Show details</a></p><pre id="lgDiagBox" hidden style="margin:8px 0 0;padding:8px 10px;background:#F3F2EE;border:1px solid #D4DBDF;border-radius:8px;font:11.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto"></pre>' + err + legal + '</form>';
     }
     else if (page === 'forgot') {
       var fgLeft = (+ls('cd.lockUntil') || 0) - Date.now();
@@ -1388,6 +1397,12 @@
     var t2a = o.querySelector('#rgT2a'); if (t2a) t2a.onclick = function (e) { e.preventDefault(); o.querySelector('#rgT2l').style.display = 'none'; o.querySelector('#rgT2w').style.display = ''; try { o.querySelector('#rgTrade2').focus(); } catch (x) {} };
     var b = o.querySelector('#mdGo'); if (b) b.onclick = function () { b.disabled = true; sset('cd.intent', 'login'); lset('cd.prov', 'ms'); startLogin(); };
     var bg = o.querySelector('#mdGoG'); if (bg) bg.onclick = function () { bg.disabled = true; sset('cd.intent', 'login'); gStart(); };
+    var dg = o.querySelector('#lgDiag');
+    if (dg) dg.onclick = function (e) {
+      e.preventDefault(); var bx = o.querySelector('#lgDiagBox'); if (!bx.hidden) { bx.hidden = true; return; }
+      var a = []; try { a = JSON.parse(localStorage.getItem('cd.diag') || '[]'); } catch (x) {}
+      bx.textContent = (a.length ? a.map(function (r) { return r.t + '  ' + r.e + (r.d ? ': ' + r.d : ''); }).join('\n') : 'Nothing recorded yet.') + '\n\nApp ' + (window.MD_BUILD || '') + '\n' + String(navigator.userAgent || '').slice(0, 120); bx.hidden = false;
+    };
     var lf = o.querySelector('#lgForm');
     if (lf) {
       var lm = o.querySelector('#lgMail'); try { if (lm && !lm.value) lm.focus(); } catch (e) {}
@@ -2425,6 +2440,7 @@
     if (p.get('error')) { var m = p.get('error_description') || p.get('error'); lset('cd.calwant', null); lset('cd.mailwant', null); lset('cd.reauth', null); clean(); throw new Error(m); }
     var pk = null; try { pk = JSON.parse(localStorage.getItem('cd.pkce') || 'null'); } catch (e) {}
     var code = p.get('code'), state = p.get('state'); clean();
+    diag('back from Microsoft', (STANDALONE ? 'home screen app' : 'browser') + ' | ' + (pk ? (pk.st === state ? 'check matches' : 'check DOES NOT match') : 'check MISSING in this window'));
     if (!pk || pk.st !== state) throw new Error('Sign-in could not be verified. Please try again.');
     var prevAcc = (tok() || {}).account || {};
     var tj = await tokenRequest({ grant_type: 'authorization_code', code: code, redirect_uri: REDIRECT, code_verifier: pk.v });
@@ -2438,7 +2454,7 @@
       if (/calendars\.readwrite/i.test(tj.scope || '')) { lset('cd.cal', '1'); lset('cd.calnote', 'Calendar reminders are on.'); }
       else lset('cd.calnote', 'Microsoft did not grant calendar access, so reminders are still off.');
     }
-    markAct();
+    markAct(); diag('signed in', 'saved on this device');
     try { localStorage.removeItem('cd.pkce'); } catch (e) {}
     var meMail = '';
     try {
@@ -2632,6 +2648,7 @@
       }
     }
     startIdleWatch(); startLockWatch(); setTimeout(pinWarnMaybe, 2500);
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
     resumeStart();
     setTimeout(pinOffer, 9000);
     window.addEventListener('beforeunload', function (e) { if (pending() && (st.err || st.offline)) { e.preventDefault(); e.returnValue = ''; } });
