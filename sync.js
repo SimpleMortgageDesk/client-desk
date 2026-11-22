@@ -8149,7 +8149,10 @@
       } catch (e) {
         return;
       }
-      if (!v || !v.build || v.build === window.MD_BUILD) return;
+      var tag = function (b) {
+        return (String(b || '').match(/LATEST\d+/) || [''])[0];
+      };
+      if (!v || !v.build || tag(v.build) === tag(window.MD_BUILD)) return;
       try {
         var last = JSON.parse(sessionStorage.getItem('cd.upd') || 'null');
         if (last && last.b === v.build && Date.now() - last.t < 600000) return;
