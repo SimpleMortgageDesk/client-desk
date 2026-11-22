@@ -5,7 +5,7 @@ name: Code checks
 on:
   push:
     branches: [main]
-    paths: ['js/**', '*.js', 'index.html', 'functions/**', 'tools/**', 'eslint.config.mjs', '.github/workflows/checks.yml']
+    paths: ['js/**', '*.js', 'index.html', 'functions/**', 'tools/**', 'eslint.config.mjs', '.prettierrc.json', '.github/workflows/checks.yml']
   workflow_dispatch:
 
 jobs:
@@ -17,8 +17,10 @@ jobs:
         with:
           node-version: '22'
       - name: Install the checker
-        run: npm install --no-save --no-package-lock eslint@9 globals acorn
+        run: npm install --no-save --no-package-lock eslint@9 globals acorn prettier@3
       - name: Check the code
         run: npx eslint .
+      - name: Check the code is tidily laid out
+        run: npx prettier --check js/*.js sync.js trades.js sw.js config.js "functions/**/*.js" "tools/*.mjs" eslint.config.mjs
       - name: Check the order the app files load in
         run: node tools/check-code.mjs

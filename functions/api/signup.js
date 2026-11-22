@@ -11,48 +11,107 @@
    Deleting (event "delete"): the app sends a key that only the signed-in account holder's app can work out.
    If it matches the key saved for that email, the entry is deleted at once. If it cannot be checked, the entry is
    only marked "asked to be deleted" for the owner to confirm on the admin page, so nobody can delete someone else. */
-const PER_HOUR = 30, NEW_PER_DAY = 300;
+const PER_HOUR = 30,
+  NEW_PER_DAY = 300;
 let ready = false;
 export async function ensureTable(db) {
   if (ready) return;
-  await db.prepare(`CREATE TABLE IF NOT EXISTS users (
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS users (
     email TEXT PRIMARY KEY, name TEXT, account_email TEXT, mobile TEXT, business TEXT, trade TEXT, account TEXT,
-    signed_up TEXT, first_seen TEXT, last_seen TEXT, days_active INTEGER DEFAULT 0, app_build TEXT)`).run();
+    signed_up TEXT, first_seen TEXT, last_seen TEXT, days_active INTEGER DEFAULT 0, app_build TEXT)`
+    )
+    .run();
   await db.prepare('CREATE TABLE IF NOT EXISTS hits (k TEXT PRIMARY KEY, hr TEXT, n INTEGER)').run();
   /* added later: del_key lets a person delete their own entry; delete_requested marks a request we could not verify */
-  for (const col of ['del_key TEXT', 'delete_requested TEXT', 'suspended TEXT', 'props INTEGER', 'home INTEGER', 'user_no INTEGER', 'pay TEXT', 'ms_sub TEXT', 'trade_unlock TEXT', 'deleted_at TEXT']) { try { await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run(); } catch (e) {} }
-  try { await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS users_no ON users (user_no)').run(); } catch (e) {}
-  try { await db.prepare('CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, n INTEGER)').run(); } catch (e) {}
+  for (const col of [
+    'del_key TEXT',
+    'delete_requested TEXT',
+    'suspended TEXT',
+    'props INTEGER',
+    'home INTEGER',
+    'user_no INTEGER',
+    'pay TEXT',
+    'ms_sub TEXT',
+    'trade_unlock TEXT',
+    'deleted_at TEXT'
+  ]) {
+    try {
+      await db.prepare('ALTER TABLE users ADD COLUMN ' + col).run();
+    } catch (e) {}
+  }
+  try {
+    await db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS users_no ON users (user_no)').run();
+  } catch (e) {}
+  try {
+    await db.prepare('CREATE TABLE IF NOT EXISTS counters (k TEXT PRIMARY KEY, n INTEGER)').run();
+  } catch (e) {}
   ready = true;
 }
 /* every account gets a user number, starting at 1001, used as the payment reference. One statement, so two sign-ups cannot get the same number. */
 export async function giveNumber(db, email) {
   try {
-    await db.prepare("UPDATE users SET user_no = MAX(COALESCE((SELECT MAX(user_no) FROM users), 1000), COALESCE((SELECT n FROM counters WHERE k = 'user_no'), 1000)) + 1 WHERE email = ?1 AND user_no IS NULL").bind(email).run();
+    await db
+      .prepare(
+        "UPDATE users SET user_no = MAX(COALESCE((SELECT MAX(user_no) FROM users), 1000), COALESCE((SELECT n FROM counters WHERE k = 'user_no'), 1000)) + 1 WHERE email = ?1 AND user_no IS NULL"
+      )
+      .bind(email)
+      .run();
     /* remember the highest number ever given, so a deleted account's number is never used again */
-    await db.prepare("INSERT INTO counters (k, n) VALUES ('user_no', (SELECT COALESCE(MAX(user_no), 1000) FROM users)) ON CONFLICT(k) DO UPDATE SET n = MAX(counters.n, excluded.n)").run();
+    await db
+      .prepare(
+        "INSERT INTO counters (k, n) VALUES ('user_no', (SELECT COALESCE(MAX(user_no), 1000) FROM users)) ON CONFLICT(k) DO UPDATE SET n = MAX(counters.n, excluded.n)"
+      )
+      .run();
   } catch (e) {}
 }
 /* the same idea for any other kind of call, counted separately: scope names the kind, max is the most allowed from one sender in an hour */
 export async function rateLimit(db, request, now, scope, max) {
   try {
-    const hr = now.slice(0, 13), ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const hr = now.slice(0, 13),
+      ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     const dig = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(scope + '|' + ip + '|' + hr));
-    const k = Array.from(new Uint8Array(dig)).slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
-    const r = await db.prepare('INSERT INTO hits (k, hr, n) VALUES (?1, ?2, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n').bind(k, hr).first();
+    const k = Array.from(new Uint8Array(dig))
+      .slice(0, 12)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    const r = await db
+      .prepare(
+        'INSERT INTO hits (k, hr, n) VALUES (?1, ?2, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n'
+      )
+      .bind(k, hr)
+      .first();
     return !!r && r.n > max;
-  } catch (e) { return false; }
+  } catch (e) {
+    return false;
+  }
 }
 /* true when this sender has made too many calls this hour */
 export async function tooMany(db, request, now) {
   try {
-    const hr = now.slice(0, 13), ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const hr = now.slice(0, 13),
+      ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     const dig = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip + '|' + hr));
-    const k = Array.from(new Uint8Array(dig)).slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
-    const r = await db.prepare('INSERT INTO hits (k, hr, n) VALUES (?1, ?2, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n').bind(k, hr).first();
-    if (Math.random() < 0.02) await db.prepare('DELETE FROM hits WHERE hr < ?1').bind(new Date(Date.parse(now) - 3 * 3600e3).toISOString().slice(0, 13)).run();
+    const k = Array.from(new Uint8Array(dig))
+      .slice(0, 12)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    const r = await db
+      .prepare(
+        'INSERT INTO hits (k, hr, n) VALUES (?1, ?2, 1) ON CONFLICT(k) DO UPDATE SET n = n + 1 RETURNING n'
+      )
+      .bind(k, hr)
+      .first();
+    if (Math.random() < 0.02)
+      await db
+        .prepare('DELETE FROM hits WHERE hr < ?1')
+        .bind(new Date(Date.parse(now) - 3 * 3600e3).toISOString().slice(0, 13))
+        .run();
     return !!r && r.n > PER_HOUR;
-  } catch (e) { return false; }
+  } catch (e) {
+    return false;
+  }
 }
 /* ---------- proof of sign-in ----------
    The app sends the ID token Microsoft issued when the person signed in. It is signed by Microsoft, says who they are and which app it was
@@ -61,59 +120,123 @@ export async function tooMany(db, request, now) {
 const MS_CLIENT = 'e47f8292-11f2-469c-ad6b-0af918c885e1';
 const MS_ISS = 'https://login.microsoftonline.com/9188040d-6c67-4c5b-b112-36a304b66dad/v2.0';
 const MS_KEYS = 'https://login.microsoftonline.com/consumers/discovery/v2.0/keys';
-const ub64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
-let msKeys = null, msKeysAt = 0;
+const ub64 = (s) =>
+  Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), (c) =>
+    c.charCodeAt(0)
+  );
+let msKeys = null,
+  msKeysAt = 0;
 /* Google's proof of sign-in is checked the same way, against Google's published keys. It needs the Cloudflare variable GOOGLE_CLIENT_ID
    (the same client ID as in config.js); without it no Google proof is accepted. The account identifier is prefixed g: to keep it apart from Microsoft's. */
 const G_KEYS = 'https://www.googleapis.com/oauth2/v3/certs';
-let gKeys = null, gKeysAt = 0;
+let gKeys = null,
+  gKeysAt = 0;
 async function verifyGoogle(parts, head, body, env) {
   const aud = env && env.GOOGLE_CLIENT_ID;
   if (!aud || body.aud !== aud) return null;
   const now = Date.now() / 1000;
   if (!(body.exp > now) || !body.sub) return null;
   if (body.email_verified === false || body.email_verified === 'false') return null;
-  let jwk = gKeys && (gKeys.keys || []).find(k => k.kid === head.kid);
-  if (!jwk || Date.now() - gKeysAt > 6 * 3600e3) { gKeys = await (await fetch(G_KEYS)).json(); gKeysAt = Date.now(); jwk = (gKeys.keys || []).find(k => k.kid === head.kid); }
+  let jwk = gKeys && (gKeys.keys || []).find((k) => k.kid === head.kid);
+  if (!jwk || Date.now() - gKeysAt > 6 * 3600e3) {
+    gKeys = await (await fetch(G_KEYS)).json();
+    gKeysAt = Date.now();
+    jwk = (gKeys.keys || []).find((k) => k.kid === head.kid);
+  }
   if (!jwk) return null;
-  const key = await crypto.subtle.importKey('jwk', { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
-  const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, ub64(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify']
+  );
+  const ok = await crypto.subtle.verify(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    ub64(parts[2]),
+    new TextEncoder().encode(parts[0] + '.' + parts[1])
+  );
   return ok ? { sub: 'g:' + String(body.sub), email: String(body.email || '').toLowerCase() } : null;
 }
 export async function verifyMs(idt, env) {
   try {
     if (typeof idt !== 'string' || idt.length > 5000) return null;
-    const parts = idt.split('.'); if (parts.length !== 3) return null;
-    const head = JSON.parse(new TextDecoder().decode(ub64(parts[0]))), body = JSON.parse(new TextDecoder().decode(ub64(parts[1])));
+    const parts = idt.split('.');
+    if (parts.length !== 3) return null;
+    const head = JSON.parse(new TextDecoder().decode(ub64(parts[0]))),
+      body = JSON.parse(new TextDecoder().decode(ub64(parts[1])));
     if (head.alg !== 'RS256' || !head.kid) return null;
-    if (body.iss === 'https://accounts.google.com' || body.iss === 'accounts.google.com') return await verifyGoogle(parts, head, body, env);
+    if (body.iss === 'https://accounts.google.com' || body.iss === 'accounts.google.com')
+      return await verifyGoogle(parts, head, body, env);
     const aud = (env && env.MS_CLIENT_ID) || MS_CLIENT;
     if (body.aud !== aud || body.iss !== MS_ISS) return null;
     const now = Date.now() / 1000;
     if (!(body.exp > now) || (body.nbf && body.nbf > now + 300)) return null;
-    let jwk = msKeys && (msKeys.keys || []).find(k => k.kid === head.kid);
-    if (!jwk || Date.now() - msKeysAt > 6 * 3600e3) { msKeys = await (await fetch(MS_KEYS)).json(); msKeysAt = Date.now(); jwk = (msKeys.keys || []).find(k => k.kid === head.kid); }
+    let jwk = msKeys && (msKeys.keys || []).find((k) => k.kid === head.kid);
+    if (!jwk || Date.now() - msKeysAt > 6 * 3600e3) {
+      msKeys = await (await fetch(MS_KEYS)).json();
+      msKeysAt = Date.now();
+      jwk = (msKeys.keys || []).find((k) => k.kid === head.kid);
+    }
     if (!jwk) return null;
-    const key = await crypto.subtle.importKey('jwk', { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
-    const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, ub64(parts[2]), new TextEncoder().encode(parts[0] + '.' + parts[1]));
+    const key = await crypto.subtle.importKey(
+      'jwk',
+      { kty: jwk.kty, n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const ok = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      ub64(parts[2]),
+      new TextEncoder().encode(parts[0] + '.' + parts[1])
+    );
     if (!ok || !body.sub) return null;
-    return { sub: String(body.sub), email: String(body.email || body.preferred_username || '').toLowerCase() };
-  } catch (e) { return null; }
+    return {
+      sub: String(body.sub),
+      email: String(body.email || body.preferred_username || '').toLowerCase()
+    };
+  } catch (e) {
+    return null;
+  }
 }
-const clean = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, n);
-const say = (t, s) => new Response(t, { status: s || 200, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'Cross-Origin-Resource-Policy': 'same-origin' } });
+const clean = (v, n) =>
+  String(v == null ? '' : v)
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .trim()
+    .slice(0, n);
+const say = (t, s) =>
+  new Response(t, {
+    status: s || 200,
+    headers: {
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
+      'Cross-Origin-Resource-Policy': 'same-origin'
+    }
+  });
 
 export async function onRequestPost({ request, env }) {
   if (!env.DB) return say('sign-up list not set up', 503);
   /* only accept calls made by the app's own pages */
   const origin = request.headers.get('Origin');
-  let oh = ''; try { oh = new URL(origin).host; } catch (e) {}
+  let oh = '';
+  try {
+    oh = new URL(origin).host;
+  } catch (e) {}
   if (!origin || oh !== new URL(request.url).host) return say('forbidden', 403);
   const site = request.headers.get('Sec-Fetch-Site');
   if (site && site !== 'same-origin') return say('forbidden', 403);
   const raw = await request.text();
   if (raw.length > 9000) return say('too large', 413);
-  let d; try { d = JSON.parse(raw); } catch (e) { return say('bad request', 400); }
+  let d;
+  try {
+    d = JSON.parse(raw);
+  } catch (e) {
+    return say('bad request', 400);
+  }
   const email = clean(d.email || d.accountEmail, 160).toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return say('ignored', 202);
   const now = new Date().toISOString();
@@ -124,21 +247,44 @@ export async function onRequestPost({ request, env }) {
   /* who is really signed in, if the app sent Microsoft's proof */
   const id = d.idt ? await verifyMs(String(d.idt), env) : null;
   const acctMail = clean(d.accountEmail, 160).toLowerCase();
-  const cur = known ? await env.DB.prepare('SELECT del_key, ms_sub, account_email, deleted_at FROM users WHERE email = ?1').bind(email).first() : null;
+  const cur = known
+    ? await env.DB.prepare('SELECT del_key, ms_sub, account_email, deleted_at FROM users WHERE email = ?1')
+        .bind(email)
+        .first()
+    : null;
   const bound = !!(cur && cur.ms_sub);
   /* the owner: once an account is tied to a Microsoft sign-in, only that sign-in counts. Before that, the proof must be for the account's own email. */
-  const owner = !!id && (bound ? cur.ms_sub === id.sub : cur ? (String(cur.account_email || '').toLowerCase() === id.email || (!cur.account_email && email === id.email)) : (acctMail === id.email || (!acctMail && email === id.email)));
+  const owner =
+    !!id &&
+    (bound
+      ? cur.ms_sub === id.sub
+      : cur
+        ? String(cur.account_email || '').toLowerCase() === id.email ||
+          (!cur.account_email && email === id.email)
+        : acctMail === id.email || (!acctMail && email === id.email));
   if (d.event === 'delete') {
     if (!known) return say('deleted');
     const row = cur;
-    if (bound ? owner : (owner || (key && row && row.del_key && row.del_key === key))) { /* kept for 30 days so it can be restored if the person asks; the admin page erases it after that */ await env.DB.prepare('UPDATE users SET deleted_at = ?2, delete_requested = NULL WHERE email = ?1').bind(email, now).run(); return say('deleted'); }
+    if (bound ? owner : owner || (key && row && row.del_key && row.del_key === key)) {
+      /* kept for 30 days so it can be restored if the person asks; the admin page erases it after that */ await env.DB.prepare(
+        'UPDATE users SET deleted_at = ?2, delete_requested = NULL WHERE email = ?1'
+      )
+        .bind(email, now)
+        .run();
+      return say('deleted');
+    }
     await env.DB.prepare('UPDATE users SET delete_requested = ?2 WHERE email = ?1').bind(email, now).run();
     return say('requested', 202);
   }
   /* only a completed registration (name, mobile and kind of work all filled in) creates an entry; activity from anyone else is ignored */
   if (!known) {
     /* an entry is made from any call that carries a complete registration (the usual one, or a returning person's first visit after the list started); calls with missing details are ignored */
-    if (clean(d.name, 100).length < 2 || clean(d.mobile, 30).replace(/\D/g, '').length < 7 || !clean(d.trade, 60)) return d.event === 'signup' ? say('incomplete registration', 400) : say('ok');
+    if (
+      clean(d.name, 100).length < 2 ||
+      clean(d.mobile, 30).replace(/\D/g, '').length < 7 ||
+      !clean(d.trade, 60)
+    )
+      return d.event === 'signup' ? say('incomplete registration', 400) : say('ok');
   }
   /* a deleted account stays quiet until the owner restores it; a fresh registration starts it again */
   if (cur && cur.deleted_at) {
@@ -148,10 +294,13 @@ export async function onRequestPost({ request, env }) {
   /* an account tied to a Microsoft sign-in accepts nothing from anyone else */
   if (bound && !owner) return say('ok');
   if (!known) {
-    const c = await env.DB.prepare('SELECT COUNT(*) AS c FROM users WHERE substr(first_seen, 1, 10) = ?1').bind(now.slice(0, 10)).first();
+    const c = await env.DB.prepare('SELECT COUNT(*) AS c FROM users WHERE substr(first_seen, 1, 10) = ?1')
+      .bind(now.slice(0, 10))
+      .first();
     if (c && c.c >= NEW_PER_DAY) return say('too many requests', 429);
   }
-  await env.DB.prepare(`INSERT INTO users (email, name, account_email, mobile, business, trade, account, signed_up, first_seen, last_seen, days_active, app_build)
+  await env.DB.prepare(
+    `INSERT INTO users (email, name, account_email, mobile, business, trade, account, signed_up, first_seen, last_seen, days_active, app_build)
       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9, 1, ?10)
       ON CONFLICT(email) DO UPDATE SET
         name = COALESCE(NULLIF(users.name, ''), excluded.name),
@@ -163,16 +312,41 @@ export async function onRequestPost({ request, env }) {
         signed_up = COALESCE(users.signed_up, excluded.signed_up),
         days_active = users.days_active + (CASE WHEN substr(COALESCE(users.last_seen, ''), 1, 10) <> substr(excluded.last_seen, 1, 10) THEN 1 ELSE 0 END),
         last_seen = excluded.last_seen,
-        app_build = COALESCE(NULLIF(excluded.app_build, ''), users.app_build)`)
-    .bind(email, clean(d.name, 100), clean(d.accountEmail, 160).toLowerCase(), clean(d.mobile, 30), clean(d.business, 120),
-      clean(d.trade, 60), clean(d.account, 20), d.event === 'signup' ? now : null, now, clean(d.build, 40))
+        app_build = COALESCE(NULLIF(excluded.app_build, ''), users.app_build)`
+  )
+    .bind(
+      email,
+      clean(d.name, 100),
+      clean(d.accountEmail, 160).toLowerCase(),
+      clean(d.mobile, 30),
+      clean(d.business, 120),
+      clean(d.trade, 60),
+      clean(d.account, 20),
+      d.event === 'signup' ? now : null,
+      now,
+      clean(d.build, 40)
+    )
     .run();
-  if (owner) await env.DB.prepare('UPDATE users SET ms_sub = ?2, del_key = COALESCE(?3, del_key) WHERE email = ?1').bind(email, id.sub, key || null).run();
-  else if (key) await env.DB.prepare("UPDATE users SET del_key = ?2 WHERE email = ?1 AND (del_key IS NULL OR del_key = '')").bind(email, key).run();
+  if (owner)
+    await env.DB.prepare('UPDATE users SET ms_sub = ?2, del_key = COALESCE(?3, del_key) WHERE email = ?1')
+      .bind(email, id.sub, key || null)
+      .run();
+  else if (key)
+    await env.DB.prepare(
+      "UPDATE users SET del_key = ?2 WHERE email = ?1 AND (del_key IS NULL OR del_key = '')"
+    )
+      .bind(email, key)
+      .run();
   await giveNumber(env.DB, email);
   /* how many properties they manage: a number only, sent by the app so the right plan can be shown */
   /* only from the app signed in to that account (it holds the matching key), so nobody else can change someone's count */
-  if (key && Number.isInteger(d.props) && d.props >= 0 && d.props < 10000) { try { await env.DB.prepare('UPDATE users SET props = ?2, home = ?3 WHERE email = ?1 AND del_key = ?4').bind(email, d.props, d.home ? 1 : 0, key).run(); } catch (e) {} }
+  if (key && Number.isInteger(d.props) && d.props >= 0 && d.props < 10000) {
+    try {
+      await env.DB.prepare('UPDATE users SET props = ?2, home = ?3 WHERE email = ?1 AND del_key = ?4')
+        .bind(email, d.props, d.home ? 1 : 0, key)
+        .run();
+    } catch (e) {}
+  }
   return say('ok');
 }
 export const onRequest = () => say('use POST', 405);

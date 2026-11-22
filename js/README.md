@@ -34,3 +34,8 @@ The sign-in, storage and settings code is in `../sync.js`; the trades (plumber, 
 - **Adding a file:** add its `<script>` line to `index.html` in the right place, add it to `FILES` in `sw.js` (and raise `CACHE`),
   and add it to the list in `tools/check-code.mjs` is automatic (it reads `index.html`).
 - **Deploying:** raise the `?v=` label on the script lines in `index.html` so browsers fetch the new files.
+
+## Layout of the code
+The code is laid out by Prettier (settings in `../.prettierrc.json`), so lines stay short and every file looks the same.
+Before you push, run `npx prettier --write js/*.js sync.js trades.js sw.js config.js "functions/**/*.js"`; the automatic check
+on GitHub fails if a file is not laid out that way. Laying code out never changes what it does.

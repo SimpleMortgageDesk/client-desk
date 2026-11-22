@@ -1,0 +1,11 @@
+lib/
+android/
+media/
+admin/
+node_modules/
+*.html
+*.css
+*.json
+*.md
+*.xml
+*.webmanifest
