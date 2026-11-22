@@ -6,9 +6,13 @@ name: Android app
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -65,3 +69,15 @@ jobs:
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
+
+      # A plain download link for the test app, so it can be installed straight onto an Android phone.
+      # Only the test (debug) app is published here. The signed app for Google Play stays in the build's private files.
+      - name: Publish the test app for download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk MySimpleDesk-test.apk
+          gh release delete android-test --yes --cleanup-tag || true
+          gh release create android-test MySimpleDesk-test.apk --prerelease --target "$GITHUB_SHA" \
+            --title "MySimpleDesk test app (Android)" \
+            --notes "Test version of the Android app. Open this page on your Android phone, download MySimpleDesk-test.apk and install it (Android will ask you to allow installs from this source). It shows a thin address bar until the app is published on Google Play and linked to the website."

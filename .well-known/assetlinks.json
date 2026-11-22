@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "uk.co.mysimpledesk.app",
+      "sha256_cert_fingerprints": [
+        "B2:00:16:4C:7B:BC:13:C2:8E:7A:0D:60:4E:B1:D4:70:A7:D7:D0:26:D2:C9:35:12:10:2E:10:A3:13:73:7B:9E"
+      ]
+    }
+  }
+]
