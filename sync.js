@@ -8150,7 +8150,7 @@
         return;
       }
       var tag = function (b) {
-        return (String(b || '').match(/LATEST\d+/) || [''])[0];
+        return (String(b || '').match(/LATEST\d+(-[0-9a-f]{8})?/) || [''])[0];
       };
       if (!v || !v.build || tag(v.build) === tag(window.MD_BUILD)) return;
       try {
