@@ -3775,21 +3775,46 @@
         '<p class="lead">Log in with the email you registered with. Your records load from your own ' +
         (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') +
         '.</p>' +
+        (lastMail
+          ? '<button type="button" id="lgQuick" style="' +
+            pri +
+            '">Log in as ' +
+            esc(lastMail) +
+            sub('One tap. You type your password on ' + (ok.g ? 'their' : "Microsoft's") + ' own page', 1) +
+            '</button><p style="margin:14px 0 6px"><a href="#" id="lgOther" style="color:#0A6B50;font-weight:600">Use a different account</a></p>'
+          : '<button type="button" id="lgMs" style="' +
+            pri +
+            '">Log in with Microsoft' +
+            sub('Outlook, Hotmail, Live or a work account', 1) +
+            '</button>' +
+            (ok.g
+              ? '<button type="button" id="lgGg" style="' +
+                sec +
+                '">Log in with Google' +
+                sub('Gmail or a Google account') +
+                '</button>'
+              : '') +
+            '<p style="margin:16px 0 2px;color:#58697A;font-size:13.5px">Or type your email address:</p>') +
+        '<div id="lgEmailBox" style="' +
+        (lastMail ? 'display:none' : '') +
+        '">' +
         '<label style="font-size:14px">User ID (your email address)<input id="lgMail" type="email" name="username" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" value="' +
         esc(lastMail) +
         '" style="' +
         lgInp +
-        '"></label>' +
+        '"></label></div>' +
         (STANDALONE
           ? ''
           : '<label style="display:flex;gap:9px;align-items:flex-start;margin:0 0 10px;font-size:14px;cursor:pointer"><input type="checkbox" id="lgShared"' +
             (SHARED ? ' checked' : '') +
             ' style="margin-top:3px;width:18px;height:18px;flex:none"><span><b>Shared or public computer</b><br><span style="color:#58697A;font-size:13px">Tick this on a computer that is not yours. Nothing is kept on it and you are logged out after 2 hours. Leave it unticked on your own phone or computer and you stay logged in for 30 days.</span></span></label>') +
-        '<button type="submit" id="lgGo" style="' +
+        '<div id="lgGoBox" style="' +
+        (lastMail ? 'display:none' : '') +
+        '"><button type="submit" id="lgGo" style="' +
         pri +
         '">Log in' +
         sub('You type your password on ' + (ok.g ? 'their' : "Microsoft's") + ' own page', 1) +
-        '</button>' +
+        '</button></div>' +
         '<p id="lgLock" role="alert" style="display:none;margin:12px 0 0;padding:10px 12px;background:#FDECEA;color:#A3261F;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
         '<p style="margin:18px 0 0;font-size:14px"><a href="#" data-sp="forgot" style="color:#0A6B50;font-weight:600">Forgot your password or user ID?</a></p>' +
         '<p style="margin:26px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' +
@@ -3886,8 +3911,7 @@
     /* after 3 unsuccessful log-ins the log-in is paused for 5 minutes, then there are 3 more chances */
     (function () {
       var lk = o.querySelector('#lgLock'),
-        fk = o.querySelector('#fgLock'),
-        go = o.querySelector('#lgGo');
+        fk = o.querySelector('#fgLock');
       if (!lk && !fk) return;
       function tick() {
         var left = (+ls('cd.lockUntil') || 0) - Date.now(),
@@ -3908,11 +3932,10 @@
           fk.style.display = on ? 'block' : 'none';
           fk.textContent = msgT;
         }
-        if (go) go.disabled = on;
-        if (!on) {
-          clearInterval(iv);
-          if (go) go.disabled = false;
-        }
+        o.querySelectorAll('#lgGo,#lgMs,#lgGg,#lgQuick').forEach(function (x) {
+          x.disabled = on;
+        });
+        if (!on) clearInterval(iv);
       }
       var iv = setInterval(function () {
         if (!document.body.contains(o)) {
@@ -4014,6 +4037,60 @@
       try {
         if (lm && !lm.value) lm.focus();
       } catch (e) {}
+      var applyShared = function () {
+        var shc = o.querySelector('#lgShared');
+        try {
+          if (shc && shc.checked) {
+            sessionStorage.setItem('cd.shared', '1');
+            SHARED = true;
+          } else {
+            sessionStorage.removeItem('cd.shared');
+            SHARED = false;
+          }
+        } catch (x) {}
+      };
+      /* one-tap log in: no email to type; Microsoft or Google asks for the account on their own page */
+      var oneTap = function (kind) {
+        if ((+ls('cd.lockUntil') || 0) > Date.now()) return;
+        lf.querySelectorAll('button').forEach(function (x) {
+          x.disabled = true;
+        });
+        applyShared();
+        sset('cd.intent', 'login');
+        if (kind === 'google') gStart();
+        else {
+          lset('cd.prov', 'ms');
+          startLogin(false);
+        }
+      };
+      var q1 = o.querySelector('#lgMs'),
+        q2 = o.querySelector('#lgGg'),
+        q3 = o.querySelector('#lgQuick'),
+        q4 = o.querySelector('#lgOther');
+      if (q1)
+        q1.onclick = function () {
+          oneTap('ms');
+        };
+      if (q2)
+        q2.onclick = function () {
+          oneTap('google');
+        };
+      if (q3)
+        q3.onclick = function () {
+          lf.dispatchEvent(new Event('submit', { cancelable: true }));
+        };
+      if (q4)
+        q4.onclick = function (e) {
+          e.preventDefault();
+          o.querySelector('#lgEmailBox').style.display = '';
+          o.querySelector('#lgGoBox').style.display = '';
+          q3.style.display = 'none';
+          q4.parentNode.style.display = 'none';
+          try {
+            lm.focus();
+            lm.select();
+          } catch (x) {}
+        };
       lf.addEventListener('submit', function (e) {
         e.preventDefault();
         if ((+ls('cd.lockUntil') || 0) > Date.now()) return;
@@ -4034,16 +4111,7 @@
         lf.querySelectorAll('button').forEach(function (x) {
           x.disabled = true;
         });
-        var shc = o.querySelector('#lgShared');
-        try {
-          if (shc && shc.checked) {
-            sessionStorage.setItem('cd.shared', '1');
-            SHARED = true;
-          } else {
-            sessionStorage.removeItem('cd.shared');
-            SHARED = false;
-          }
-        } catch (x) {}
+        applyShared();
         lset('cd.lastMail', em);
         sset('cd.intent', 'login');
         if (useG) gStart(em);
@@ -5822,6 +5890,19 @@
         return;
       }
       var files = ov.querySelector('#mdDelFiles').checked;
+      if (
+        files &&
+        !confirm(
+          'Last warning: this moves your whole ' +
+            APPN +
+            ' folder in your ' +
+            w +
+            ' to the ' +
+            bin +
+            ': every property, tenant, client, record and uploaded document. Only continue if you are sure you no longer need them.'
+        )
+      )
+        return;
       b.disabled = true;
       b.textContent = 'Deleting…';
       msg.textContent = '';
@@ -7492,6 +7573,8 @@
     if (!p.ok) throw httpErr(p);
     return { name: name };
   }
+  /* the name every new records folder gets: it says what it is and warns anyone tidying their Drive */
+  var DEFAULT_FOLDER = 'My Simple Desk - Do not delete';
   function useFolder(f) {
     lset('cd.folder', f.name);
     if (PROV === 'google') {
@@ -7500,7 +7583,7 @@
       lset('cd.gcols', null);
     }
     var p = profGet();
-    if (!p.biz && f.name) {
+    if (!p.biz && f.name && f.name.indexOf(DEFAULT_FOLDER) !== 0) {
       p.biz = f.name;
       lset('cd.profile', JSON.stringify(p));
     }
@@ -7508,7 +7591,15 @@
   function askFolder(list) {
     return new Promise(function (res) {
       var acc = (tok() || {}).account || {},
-        def = cleanName(profGet().biz || profGet().name || acc.name || '');
+        def = DEFAULT_FOLDER;
+      for (
+        var dn = 2;
+        list.some(function (f) {
+          return f.name.toLowerCase() === def.toLowerCase();
+        });
+        dn++
+      )
+        def = DEFAULT_FOLDER + ' ' + dn;
       var o = overlay(
         '<form id="cdFold" style="width:min(460px,100%);background:#fff;border:1px solid #D4DBDF;border-radius:12px;padding:26px;box-shadow:0 8px 30px rgba(16,28,38,.12)">' +
           '<div style="font-weight:700;font-size:19px;margin-bottom:6px">Your records folder</div>' +
@@ -7610,6 +7701,13 @@
     if (f.list.length === 1) {
       useFolder(f.list[0]);
       return;
+    }
+    if (!f.list.length) {
+      /* a new account: no question to answer, the folder is made with its standard name */
+      try {
+        useFolder(await makeFolder(DEFAULT_FOLDER));
+        return;
+      } catch (x) {}
     }
     await askFolder(f.list);
   }
