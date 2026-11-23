@@ -418,6 +418,7 @@ function openDrawer(id, draft) {
   colOpen = {};
   if (T.tenancyMode) {
     if (!id) colOpen[(T.sections[0].title || '').toLowerCase()] = 1;
+    colOpen['property documents'] = true;
   } else if (!id) colOpen[(T.sections[0].title || '').toLowerCase()] = true;
   lkOpen = false;
   curLinks = ((c && c.links) || []).map(function (l) {

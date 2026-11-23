@@ -949,6 +949,7 @@ function llBody(c) {
     '<div class="llgrid"><div class="llmain">' +
     prop +
     tenants +
+    dzSide(c) +
     '</div>' +
     '<aside class="llside">' +
     advBox(fv(c, 'btlFixedUntil'), 'Buy-to-let mortgage deal') +
@@ -966,7 +967,6 @@ function llBody(c) {
         );
       })
       .join('') +
-    dzSide(c) +
     '</aside></div>'
   );
 }
