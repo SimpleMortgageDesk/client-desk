@@ -161,8 +161,10 @@ function dsBody(id) {
   return h;
 }
 function dsDraw(id) {
-  var b = $('#dsBody');
+  var b = $('#dsBody'),
+    bi = $('#dsBodyIn');
   if (b && $('#dsOv') && $('#dsOv').getAttribute('data-id') === id) b.innerHTML = dsBody(id);
+  if (bi && $('#dsInline') && $('#dsInline').getAttribute('data-id') === id) bi.innerHTML = dsBody(id);
 }
 function dsOpen(id) {
   if (!dsSubj(id)) return;
@@ -336,10 +338,10 @@ document.addEventListener(
       dsOpen(b.getAttribute('data-dsopen'));
       return;
     }
-    var ov = t.closest('#dsOv');
+    var ov = t.closest('#dsOv,#dsInline');
     if (!ov) return;
     var id = ov.getAttribute('data-id');
-    if (t.closest('[data-dsclose]') || t === ov) {
+    if (ov.id === 'dsOv' && (t.closest('[data-dsclose]') || t === ov)) {
       ov.remove();
       return;
     }
@@ -397,6 +399,7 @@ document.addEventListener(
 );
 /* ---------- My Properties and Cars: one list for the home, rental properties and cars ---------- */
 var carItems = [],
+  carPageId = '',
   CAR_F = [
     ['mot', 'MOT due'],
     ['ins', 'Insurance renewal'],
@@ -449,7 +452,7 @@ function carSave(items) {
     write('set-cars', function () {
       return setCol.doc('cars').set({ items: items, updatedAt: Date.now() });
     });
-  if (view === 'assets' && !$('#carOv')) render();
+  if ((view === 'assets' || view === 'mycar') && !$('#carOv')) render();
   renderSide();
   renderRem();
   renderNav();
@@ -595,6 +598,52 @@ function carOpen(id) {
     toast(id ? 'Saved' : 'Car added');
   });
 }
+function asChips(c, ks, t) {
+  return ks
+    .map(function (f) {
+      var d = c[f[0]];
+      return d && /^\d{4}-\d{2}-\d{2}$/.test(d)
+        ? '<span class="aschip' +
+            (d < t ? ' bad' : diff(d) <= 30 ? ' warn' : '') +
+            '">' +
+            esc(f[1].replace(/ (due|renewal)$/, '')) +
+            ' ' +
+            esc(fd(d)) +
+            '</span>'
+        : '';
+    })
+    .join('');
+}
+/* one car on its own page, like a rental property: its dates, Edit and Delete, and its documents */
+function carPageHTML() {
+  var c = carItems.filter(function (x) {
+    return x.id === carPageId;
+  })[0];
+  if (!c) {
+    view = 'assets';
+    return assetsHTML();
+  }
+  var id = '__car:' + c.id;
+  return (
+    '<div class="pagehead"><h1>' +
+    esc(carWho(c)) +
+    '</h1><button type="button" class="btn ghost" data-asback="1">&larr; My Properties and Cars</button></div>' +
+    '<section class="ass"><h2>' +
+    (carReg(c) && (c.make || c.model) ? esc([c.make, c.model].filter(Boolean).join(' ')) : 'Car') +
+    '</h2><span class="aschips">' +
+    (asChips(c, CAR_F, iso(TODAY)) || '<small>No dates added yet</small>') +
+    '</span><p class="asact" style="margin:12px 0 0"><button type="button" class="btn ghost sm" data-ascar="' +
+    esc(c.id) +
+    '">Edit details and dates</button><button type="button" class="btn ghost sm danger" data-ascardel="' +
+    esc(c.id) +
+    '">Delete</button></p></section>' +
+    '<section class="ass" style="margin-top:14px"><h2>Documents</h2><div id="dsInline" data-id="' +
+    esc(id) +
+    '"><div id="dsBodyIn">' +
+    dsBody(id) +
+    '</div></div></section>'
+  );
+}
 function assetsHTML() {
   var t = iso(TODAY),
     hasHome = !!(HOME && HOME.addr1),
@@ -603,20 +652,7 @@ function assetsHTML() {
     '<div class="pagehead"><h1>My Properties and Cars</h1><div class="asadd"><button type="button" class="btn" id="asAdd" aria-haspopup="true" aria-expanded="false" aria-controls="asMenu">Add</button>' +
     '<div id="asMenu" class="asmenu" role="menu" hidden><button type="button" role="menuitem" data-asnew="res">Residential Property</button><button type="button" role="menuitem" data-asnew="inv">Investment Property</button><button type="button" role="menuitem" data-asnew="car">Car</button></div></div></div><div class="aswrap">';
   var due = function (c, ks) {
-    return ks
-      .map(function (f) {
-        var d = c[f[0]];
-        return d && /^\d{4}-\d{2}-\d{2}$/.test(d)
-          ? '<span class="aschip' +
-              (d < t ? ' bad' : diff(d) <= 30 ? ' warn' : '') +
-              '">' +
-              esc(f[1].replace(/ (due|renewal)$/, '')) +
-              ' ' +
-              esc(fd(d)) +
-              '</span>'
-          : '';
-      })
-      .join('');
+    return asChips(c, ks, t);
   };
   /* residential property */
   h += '<section class="ass" aria-labelledby="asH1"><h2 id="asH1">Residential property</h2>';
@@ -646,7 +682,9 @@ function assetsHTML() {
       })
       .map(function (c) {
         return (
-          '<div class="asrow asc"><span class="asic" aria-hidden="true">&#128663;</span><span class="astx"><b>' +
+          '<button type="button" class="asrow" data-ascarpage="' +
+          esc(c.id) +
+          '"><span class="asic" aria-hidden="true">&#128663;</span><span class="astx"><b>' +
           esc(carWho(c)) +
           '</b>' +
           (carReg(c) && (c.make || c.model)
@@ -654,15 +692,7 @@ function assetsHTML() {
             : '') +
           '<span class="aschips">' +
           (due(c, CAR_F) || '<small>No dates added yet</small>') +
-          '</span></span><span class="asact"><button type="button" class="btn ghost sm" data-dsopen="__car:' +
-          esc(c.id) +
-          '">Documents' +
-          ((c.files || []).length ? ' (' + (c.files || []).length + ')' : '') +
-          '</button><button type="button" class="btn ghost sm" data-ascar="' +
-          esc(c.id) +
-          '">Edit</button><button type="button" class="btn ghost sm danger" data-ascardel="' +
-          esc(c.id) +
-          '">Delete</button></span></div>'
+          '</span></span><span class="asgo" aria-hidden="true">&rsaquo;</span></button>'
         );
       })
       .join('');
@@ -740,6 +770,13 @@ document.addEventListener(
       window.scrollTo(0, 0);
       return;
     }
+    if ((b = t.closest('[data-ascarpage]'))) {
+      carPageId = b.getAttribute('data-ascarpage');
+      view = 'mycar';
+      render();
+      window.scrollTo(0, 0);
+      return;
+    }
     if (t.closest('[data-asinv="open"]')) {
       switchTrade('landlord');
       view = 'assets';
@@ -781,6 +818,11 @@ document.addEventListener(
           return x.id !== id;
         })
       );
+      if (view === 'mycar') {
+        view = 'assets';
+        render();
+        window.scrollTo(0, 0);
+      }
       toast('Deleted');
       return;
     }

@@ -1148,7 +1148,8 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .astip{margin:0;font-size:14px}
 .asrow{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;text-align:left;background:none;border:0;border-top:1px solid var(--line,#D4DBDF);padding:12px 0;color:inherit;font:inherit;cursor:pointer}
 .ass>h2+.asrow{border-top:0}
-.asrow.asc{cursor:default;flex-wrap:wrap}
+.asrow:hover{background:rgba(10,107,80,.06)}
+.asrow:focus-visible{outline:2px solid #0A6B50;outline-offset:2px}
 .asic{font-size:26px;line-height:1;flex:none}
 .astx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.astx b{font-size:16px;overflow-wrap:anywhere}.astx small{color:var(--muted,#58697A);font-size:13px}
 .aschips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}

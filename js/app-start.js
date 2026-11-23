@@ -34,7 +34,7 @@ claude.use('db').then(function (d) {
         return x.id === 'cars';
       })[0];
       carItems = (d && d.data().items) || [];
-      if (view === 'assets' && !$('#carOv')) render();
+      if ((view === 'assets' || view === 'mycar') && !$('#carOv')) render();
       renderRem();
       renderSide();
       renderNav();

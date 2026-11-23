@@ -121,7 +121,7 @@ function renderNav() {
           '<button data-v="' +
           i[0] +
           '"' +
-          (view === i[0] ? ' aria-current="page"' : '') +
+          (view === i[0] || (view === 'mycar' && i[0] === 'assets') ? ' aria-current="page"' : '') +
           '>' +
           i[1] +
           (i[0] === 'myhome' ? homeSmall(true) : '') +
@@ -549,6 +549,7 @@ function render() {
   else if (view === 'pipeline') v.innerHTML = pipelineHTML();
   else if (view === 'cases') v.innerHTML = casesHTML();
   else if (view === 'assets') v.innerHTML = assetsHTML();
+  else if (view === 'mycar') v.innerHTML = carPageHTML();
   else if (view === 'tradesmen') v.innerHTML = tmHTML();
   else if (view === 'todo') {
     if (

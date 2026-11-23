@@ -69,6 +69,26 @@
       localStorage.setItem('cd.diag', JSON.stringify(a.slice(-16)));
     } catch (x) {}
   }
+  /* the same log as plain text, for the Log in screen and for Settings */
+  function diagText() {
+    var a = [];
+    try {
+      a = JSON.parse(localStorage.getItem('cd.diag') || '[]');
+    } catch (x) {}
+    return (
+      (a.length
+        ? a
+            .map(function (r) {
+              return r.t + '  ' + r.e + (r.d ? ': ' + r.d : '');
+            })
+            .join('\n')
+        : 'Nothing recorded yet.') +
+      '\n\nApp ' +
+      (window.MD_BUILD || '') +
+      '\n' +
+      String(navigator.userAgent || '').slice(0, 120)
+    );
+  }
   try {
     var lsOk = false;
     try {
@@ -1257,8 +1277,10 @@
       st.offline = false;
       st.err = '';
       st.last = Date.now();
+      diag('records loaded', nRemote + ' found in your ' + (SNAME() || 'storage'));
     } catch (e) {
       hideLoading();
+      diag('records NOT loaded', (e && (e.message || e.status)) || 'error');
       handleErr(e);
       fpRes();
     }
@@ -3930,22 +3952,7 @@
           bx.hidden = true;
           return;
         }
-        var a = [];
-        try {
-          a = JSON.parse(localStorage.getItem('cd.diag') || '[]');
-        } catch (x) {}
-        bx.textContent =
-          (a.length
-            ? a
-                .map(function (r) {
-                  return r.t + '  ' + r.e + (r.d ? ': ' + r.d : '');
-                })
-                .join('\n')
-            : 'Nothing recorded yet.') +
-          '\n\nApp ' +
-          (window.MD_BUILD || '') +
-          '\n' +
-          String(navigator.userAgent || '').slice(0, 120);
+        bx.textContent = diagText();
         bx.hidden = false;
       };
     var lf = o.querySelector('#lgForm');
@@ -4608,7 +4615,14 @@
               'What is stored, where, and your rights.',
               '<a class="cds-btn" href="privacy.html" target="_blank" rel="noopener">Open</a>'
             ) +
-            row('App version', esc(window.MD_BUILD || 'unknown'), '')
+            row(
+              'App version',
+              esc(window.MD_BUILD || 'unknown') +
+                '<details style="margin-top:6px"><summary style="cursor:pointer">Support details (send a screenshot if something does not load)</summary><pre style="white-space:pre-wrap;font-size:11px;margin:6px 0 0;max-height:180px;overflow:auto">' +
+                esc(diagText()) +
+                '</pre></details>',
+              ''
+            )
         ) +
         '<div class="cds-out"><div><b>Log out of this device</b><span>Removes your records from this device. They stay safe in your ' +
         SNAME() +

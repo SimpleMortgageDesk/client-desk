@@ -993,7 +993,7 @@ function renderSide() {
     (an2 ? '<strong class="an">' + esc(an2) + '</strong>' : '') +
     (lm2 ? '<span class="am">Logged in with<br><b>' + esc(lm2) + '</b></span>' : '') +
     '</div><button type="button" class="sbtn" data-v="assets"' +
-    (view === 'assets' || view === 'myhome' ? ' aria-current="page"' : '') +
+    (view === 'assets' || view === 'myhome' || view === 'mycar' ? ' aria-current="page"' : '') +
     '>My Properties and Cars</button><div class="sh"><b>Tools</b></div>' +
     items
       .map(function (i) {
