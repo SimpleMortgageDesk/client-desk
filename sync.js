@@ -549,10 +549,52 @@
     opt = opt || {};
     var at = await getToken();
     var url = path.indexOf('http') === 0 ? path : (PROV === 'google' ? GAPI : GRAPH) + path;
-    var r = await fetch(
-      url,
-      Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + at }, opt.headers || {}) })
-    );
+    /* Reading is tried twice and never left waiting for ever (a phone's home-screen app can leave a request hanging);
+       every failed try is noted in the support log with how long it took. Uploads are not repeated here. */
+    var meth = String(opt.method || 'GET').toUpperCase(),
+      t0 = Date.now(),
+      r;
+    for (var att = 0; ; att++) {
+      var ac = meth === 'GET' && window.AbortController ? new AbortController() : null,
+        tm = ac
+          ? setTimeout(function () {
+              ac.abort();
+            }, 25000)
+          : 0;
+      try {
+        r = await fetch(
+          url,
+          Object.assign({}, opt, {
+            signal: ac ? ac.signal : opt.signal,
+            headers: Object.assign({ Authorization: 'Bearer ' + at }, opt.headers || {})
+          })
+        );
+        clearTimeout(tm);
+        break;
+      } catch (fe) {
+        clearTimeout(tm);
+        diag(
+          'network',
+          meth +
+            ' ' +
+            String(path)
+              .replace(/^https?:\/\/[^/]+/, '')
+              .replace(/\?.*/, '')
+              .replace(/[A-Za-z0-9!_-]{16,}/g, '…')
+              .slice(0, 50) +
+            ' ' +
+            ((fe && fe.name) || '') +
+            ' ' +
+            ((fe && fe.message) || '') +
+            ' after ' +
+            Math.round((Date.now() - t0) / 1000) +
+            's' +
+            (navigator.onLine ? '' : ' (phone says offline)')
+        );
+        if (meth !== 'GET' || att >= 1) throw fe;
+        await sleep(1500);
+      }
+    }
     if (r.status === 401 && PROV === 'google') {
       var tg = tok();
       if (tg) {
@@ -1158,13 +1200,23 @@
       if (!e.auth) scheduleFlush(30000);
     }
   }
+  /* a request that never reached the other side (no signal, request left hanging, or the phone refused it) */
+  function isNetErr(e) {
+    return !!(
+      e &&
+      !e.auth &&
+      (e instanceof TypeError ||
+        e.name === 'AbortError' ||
+        /Failed to fetch|NetworkError|Load failed|aborted/i.test(e.message || ''))
+    );
+  }
   function handleErr(e) {
     if (e && e.auth) {
       st.err = e.renew ? 'Reconnect Google Drive to sync' : 'Sign-in needed';
       setState();
       return;
     }
-    if (e instanceof TypeError || (e && /Failed to fetch|NetworkError|Load failed/i.test(e.message))) {
+    if (isNetErr(e)) {
       st.offline = true;
       st.err = '';
     } else {
@@ -1189,6 +1241,7 @@
     if (window.CD_TEST) return;
     if (pulling || !tok()) return;
     pulling = true;
+    if (!firstPullDone) diag('loading records', 'started');
     try {
       var todo = [],
         removed = {},
@@ -7978,6 +8031,26 @@
             gBanner('Google needs you to confirm access before your folder can be opened.');
           });
           await ensureWorkspace();
+        } else if (isNetErr(e)) {
+          /* no connection to the storage right now: stay signed in, show offline, and keep trying to open the folder */
+          diag('could not reach storage', 'staying signed in and trying again');
+          st.offline = true;
+          var wsTries = 0,
+            wsAgain = function () {
+              wsTries++;
+              ensureWorkspace().then(
+                function () {
+                  st.offline = false;
+                  setState();
+                  pull();
+                },
+                function (e2) {
+                  if (isNetErr(e2) && wsTries < 60) setTimeout(wsAgain, 10000);
+                  else if (e2 && !isNetErr(e2)) handleErr(e2);
+                }
+              );
+            };
+          setTimeout(wsAgain, 4000);
         } else {
           if (e && e.bodyP) {
             try {
