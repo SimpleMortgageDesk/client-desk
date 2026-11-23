@@ -1151,7 +1151,7 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .asrow:hover{background:rgba(10,107,80,.06)}
 .asrow:focus-visible{outline:2px solid #0A6B50;outline-offset:2px}
 .asic{font-size:26px;line-height:1;flex:none}
-.astx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.astx b{font-size:16px;overflow-wrap:anywhere}.astx small{color:var(--muted,#58697A);font-size:13px}
+.astx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}.astx b{font-size:17.5px;color:var(--ink,#101C26);overflow-wrap:anywhere}.astx small{color:var(--muted,#58697A);font-size:13px}
 .aschips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .aschip{font-size:12.5px;border:1px solid var(--line,#D4DBDF);border-radius:99px;padding:2px 10px;background:var(--surface,#fff)}
 .aschip.warn{background:#FFF1CC;border-color:#E8B93C;color:#5c4200}.aschip.bad{background:#FDECEA;border-color:#E3B5B0;color:#A3261F;font-weight:600}
@@ -1282,3 +1282,10 @@ a.doclink:focus-visible{outline:2px solid #0B57B0;outline-offset:2px;border-radi
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) a.doclink,:root:not([data-theme="light"]) .pl a.doclink{color:#8EC2FF}:root:not([data-theme="light"]) a.doclink:hover{color:#B9D9FF}}
 :root[data-theme="dark"] a.doclink,:root[data-theme="dark"] .pl a.doclink{color:#8EC2FF}
 :root[data-theme="dark"] a.doclink:hover{color:#B9D9FF}
+
+/* a car's registration drawn like a UK number plate */
+.plate{display:inline-block;background:#F7D117;color:#111;border:2px solid #111;border-radius:6px;padding:1px 10px;font:700 1em/1.35 system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.pagehead h1 .plate{font-size:.8em}
+/* the address in the property table and cards: a little larger */
+tr.click td:first-child b{font-size:16px}
+.card .nm{font-size:16px}

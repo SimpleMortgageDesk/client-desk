@@ -411,6 +411,10 @@ function carReg(c) {
     .toUpperCase()
     .trim();
 }
+/* the registration drawn like a UK number plate; a car without one shows its make and model as plain bold text */
+function carPlate(c) {
+  return carReg(c) ? '<span class="plate">' + esc(carReg(c)) + '</span>' : esc(carWho(c));
+}
 function carWho(c) {
   return carReg(c) || [c.make, c.model].filter(Boolean).join(' ') || 'Car';
 }
@@ -626,7 +630,7 @@ function carPageHTML() {
   var id = '__car:' + c.id;
   return (
     '<div class="pagehead"><h1>' +
-    esc(carWho(c)) +
+    carPlate(c) +
     '</h1><button type="button" class="btn backbtn" data-asback="1">&larr; Back to My Properties and Cars</button></div>' +
     '<section class="ass"><h2>' +
     (carReg(c) && (c.make || c.model) ? esc([c.make, c.model].filter(Boolean).join(' ')) : 'Car') +
@@ -685,7 +689,7 @@ function assetsHTML() {
           '<button type="button" class="asrow" data-ascarpage="' +
           esc(c.id) +
           '"><span class="asic" aria-hidden="true">&#128663;</span><span class="astx"><b>' +
-          esc(carWho(c)) +
+          carPlate(c) +
           '</b>' +
           (carReg(c) && (c.make || c.model)
             ? '<small>' + esc([c.make, c.model].filter(Boolean).join(' ')) + '</small>'
