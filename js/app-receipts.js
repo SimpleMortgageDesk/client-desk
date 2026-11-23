@@ -1317,7 +1317,9 @@ function expOpen(caseId, editId) {
                 gbp(e.amount) +
                 '</td><td>' +
                 (e.receipt && rcUrl(e.receipt.url)
-                  ? '<a class="doclink" href="' + esc(e.receipt.url) + '" target="_blank" rel="noopener">Show</a>'
+                  ? '<a class="doclink" href="' +
+                    esc(e.receipt.url) +
+                    '" target="_blank" rel="noopener">Show</a>'
                   : '<span class="muted">—</span>') +
                 '</td><td class="exact"><button type="button" class="exed" data-exedit="' +
                 esc(e.id) +
