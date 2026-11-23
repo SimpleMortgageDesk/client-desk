@@ -30,12 +30,11 @@ try {
 }
 
 /* what the website consists of */
-const FOLDERS = ['admin', '.well-known', 'lib', 'media', 'js'];
+const FOLDERS = ['admin', '.well-known', 'lib', 'js'];
 const FILES = [
   'index.html',
   'home.html',
   'privacy.html',
-  'explainer.html',
   '404.html',
   'config.js',
   'trades.js',
