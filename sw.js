@@ -65,15 +65,33 @@ self.addEventListener('install', function (e) {
     caches
       .open(CACHE)
       .then(function (c) {
-        return Promise.all(
-          FILES.map(function (f) {
-            var req = new Request(f, { cache: 'reload' });
-            return fetch(req).then(function (res) {
-              if (!res.ok) throw new Error(f + ' ' + res.status);
-              return save(c, req, res);
-            });
+        /* the start page names each script and style file with its current ?v= code: keep those exact copies, so the
+           very next visit can use them without asking the server */
+        return fetch('index.html', { cache: 'reload' })
+          .then(function (r) {
+            return r.text();
           })
-        );
+          .catch(function () {
+            return '';
+          })
+          .then(function (html) {
+            var ver = {};
+            (html.match(/(?:src|href)="[^"]+\.(?:js|css)\?v=[^"]+"/g) || []).forEach(function (m) {
+              var u = m.replace(/^(?:src|href)="|"$/g, '');
+              ver[keyOf(u)] = new URL(u, self.location.href).href;
+            });
+            return Promise.all(
+              FILES.map(function (f) {
+                var full = ver[keyOf(f)],
+                  req = new Request(full || f, { cache: 'reload' });
+                return fetch(req).then(function (res) {
+                  if (!res.ok) throw new Error(f + ' ' + res.status);
+                  if (full) c.put(full, res.clone());
+                  return save(c, req, res);
+                });
+              })
+            );
+          });
       })
       .then(function () {
         return self.skipWaiting();
@@ -134,6 +152,38 @@ self.addEventListener('fetch', function (e) {
     /^\/(api|admin)\//.test(u.pathname)
   )
     return;
+  /* Our own script and style files carry a code that changes whenever their content changes (?v=...), so a saved copy
+     with the same address is always the right one: use it straight away instead of asking the server first. */
+  if (/\.(js|css)$/.test(u.pathname) && u.searchParams.get('v') && u.pathname.indexOf('/lib/') !== 0) {
+    e.respondWith(
+      caches.open(CACHE).then(function (c) {
+        return c.match(r.url).then(function (hit) {
+          if (hit) return hit;
+          return fetch(r)
+            .then(function (res) {
+              if (res && res.ok && res.type === 'basic') {
+                var cp = res.clone(),
+                  cp2 = res.clone();
+                c.put(r.url, cp);
+                save(c, r, cp2);
+                /* drop older copies of the same file */
+                c.keys().then(function (ks) {
+                  ks.forEach(function (k) {
+                    var ku = new URL(k.url);
+                    if (ku.pathname === u.pathname && ku.search && k.url !== r.url) c.delete(k);
+                  });
+                });
+              }
+              return res;
+            })
+            .catch(function () {
+              return offline(r);
+            });
+        });
+      })
+    );
+    return;
+  }
   e.respondWith(
     fetch(r, { cache: 'no-cache' })
       .then(function (res) {

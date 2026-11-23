@@ -38,3 +38,8 @@ Welcome email; sign-in-first registration with automatic email proof; To do, Rem
 
 ## Testing notes
 Playwright suites are in the session scratchpad `qa/` (not in the repo): run against `python3 -m http.server 8766`; test mode `?test=<trade|both>`; tests set `window.CD_DEMO=false` to exercise the login gate. Server tests are in `srv/`. All passed at LATEST159. The scratchpad may be cleared, so re-create tests if needed.
+
+## Speed notes (added 2026-11-23)
+- `sw.js` now serves script and style files that carry a `?v=` code straight from its saved copy (no server check), and saves them at install, so repeat opens skip the network for code. This relies on the `?v=` code changing whenever a file changes: the Cloudflare build stamps it from a hash of the content. On a manual (unbuilt) deploy, bump the `?v=` labels or users will keep old files.
+- `index.html` preconnects to graph.microsoft.com and login.microsoftonline.com.
+- Measured: only ~17% of the JS runs on the first screen. Next options: load agreements/receipts/leases/import/legal after first paint (medium risk), split `sync.js`. Test with `swcache.js`-style checks (second visit fetches no js/css).
