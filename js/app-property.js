@@ -508,7 +508,7 @@ function dzInner(c, k, label) {
       fl
         .map(function (f) {
           return (
-            '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a href="' +
+            '<div class="pl" style="flex-wrap:wrap;margin:0 0 8px"><a class="doclink" href="' +
             esc(f.url) +
             '" target="_blank" rel="noopener">' +
             esc(f.name) +
@@ -530,7 +530,7 @@ function dzInner(c, k, label) {
   if (!fl.length) return dzCam(k, 'Take photo') + up('Upload ' + label);
   var f = fl[fl.length - 1];
   return (
-    '<a href="' +
+    '<a class="doclink" href="' +
     esc(f.url) +
     '" target="_blank" rel="noopener" title="' +
     esc(f.name) +
@@ -566,7 +566,7 @@ function dzFolderHtml(c) {
       esc(f.name) +
       '</b></p>' +
       (f.url
-        ? '<div class="pl" style="margin:0 0 6px"><a href="' +
+        ? '<div class="pl" style="margin:0 0 6px"><a class="doclink" href="' +
           esc(f.url) +
           '" target="_blank" rel="noopener">Open ' +
           dzNoun() +

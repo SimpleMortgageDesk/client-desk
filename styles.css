@@ -1184,8 +1184,7 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .mdr .ft{margin-top:auto;padding-top:18px;font:13px/1.5 system-ui;color:#C9D3D0}
 .mdhd{display:flex;align-items:center;gap:10px;margin-bottom:22px}
 .mdhd a.br{display:flex;align-items:center;gap:10px;color:#101C26;text-decoration:none}
-.mdhd .lg{width:30px;height:30px;border-radius:8px;background:#0A6B50;position:relative;flex:0 0 30px}
-.mdhd .lg:after{content:"";position:absolute;inset:8px;border:2.5px solid #fff;border-radius:3px;border-top-width:5px}
+.mdhd .lg{width:30px;height:30px;flex:0 0 30px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect x='6' y='14' width='68' height='56' rx='8' fill='%230A6B50'/%3E%3Crect x='28' y='6' width='24' height='14' rx='4' fill='none' stroke='%230A6B50' stroke-width='6'/%3E%3Crect x='18' y='34' width='44' height='6' rx='3' fill='%23fff'/%3E%3Crect x='18' y='48' width='30' height='6' rx='3' fill='%239fd8c0'/%3E%3C/svg%3E") center/contain no-repeat}
 .mdhd b{display:block;font:600 15px system-ui}
 .mdhd small{display:block;font:11.5px system-ui;color:#6B7780}
 .mdhd .sw{margin-left:auto;font:14px system-ui;color:#37474F;text-decoration:none}
@@ -1275,3 +1274,11 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.backbtn{background:#4A2623;border-color:#8A4540;color:#FFC9C3}:root:not([data-theme="light"]) .btn.backbtn:hover{background:#5A2D29}}
 :root[data-theme="dark"] .btn.backbtn{background:#4A2623;border-color:#8A4540;color:#FFC9C3}
 :root[data-theme="dark"] .btn.backbtn:hover{background:#5A2D29}
+
+/* the name of an uploaded document: blue and underlined, so it plainly opens the file */
+a.doclink,.pl a.doclink,.dsn a.doclink{color:#0B57B0;text-decoration:underline;text-underline-offset:2px;font-weight:600;cursor:pointer}
+a.doclink:hover{color:#08408A;text-decoration-thickness:2px}
+a.doclink:focus-visible{outline:2px solid #0B57B0;outline-offset:2px;border-radius:2px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) a.doclink,:root:not([data-theme="light"]) .pl a.doclink{color:#8EC2FF}:root:not([data-theme="light"]) a.doclink:hover{color:#B9D9FF}}
+:root[data-theme="dark"] a.doclink,:root[data-theme="dark"] .pl a.doclink{color:#8EC2FF}
+:root[data-theme="dark"] a.doclink:hover{color:#B9D9FF}

@@ -233,7 +233,7 @@ function lgDocInner(c, k) {
   if (!fl.length) return up;
   var lk = function (f, t) {
     return (
-      '<a href="' +
+      '<a class="doclink" href="' +
       esc(f.url) +
       '" target="_blank" rel="noopener" title="' +
       esc(f.name) +

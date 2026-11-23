@@ -252,7 +252,7 @@ function homeCard(pg) {
             '</span><b>' +
             esc(gbp(e.amount)) +
             (e.receipt && rcUrl(e.receipt.url)
-              ? ' <a href="' +
+              ? ' <a class="doclink" href="' +
                 esc(e.receipt.url) +
                 '" target="_blank" rel="noopener" title="Show receipt">Receipt</a>'
               : '') +
@@ -309,7 +309,7 @@ function homeCard(pg) {
               .reverse()
               .map(function (f) {
                 return (
-                  '<div class="hrow"><span><a href="' +
+                  '<div class="hrow"><span><a class="doclink" href="' +
                   esc(f.url) +
                   '" target="_blank" rel="noopener">' +
                   esc(f.name) +

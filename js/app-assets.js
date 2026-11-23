@@ -139,7 +139,7 @@ function dsBody(id) {
       mine
         .map(function (f) {
           return (
-            '<div class="dsf"><span class="dsn"><a href="' +
+            '<div class="dsf"><span class="dsn"><a class="doclink" href="' +
             esc(f.url) +
             '" target="_blank" rel="noopener">' +
             esc(f.name) +

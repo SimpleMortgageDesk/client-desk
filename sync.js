@@ -3857,7 +3857,7 @@
         '<div class="mdl">' +
         hdr('login') +
         '<h1>Free to start. No card needed.</h1>' +
-        '<p class="lead"><b>Free forever for home owners.</b> Landlords and professionals: free for the first year, then from £0.99 a month.</p>' +
+        '<p class="lead"><b>Free for home owners.</b> Landlords: first year free.</p>' +
         '<p style="margin:0 0 14px;color:#2b3b47;font-size:15px">Sign in with the email account you use. It takes a few seconds, and there is no new password to make.</p>' +
         '<button type="button" id="rgMs" style="' +
         pri +
@@ -3876,15 +3876,12 @@
             sub('Gmail or any Google account') +
             '</button>'
           : '') +
-        '<p style="margin:12px 0 0;color:#58697A;font-size:13.5px">After that we only ask for your mobile number and what you do. Your records are kept in your own ' +
+        '<p style="margin:12px 0 0;color:#58697A;font-size:13.5px">After signing in we ask for your mobile number and what you do. Your records stay in your own ' +
         (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') +
-        '.</p>' +
-        (suOn()
-          ? '<p style="margin:10px 0 0;color:#58697A;font-size:12.5px">We keep your name, email and mobile to run your account. We never see your tenants\', clients\' or properties\' details. <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy</a></p>'
-          : '') +
+        (suOn() ? '. We keep only your name, email and mobile to run your account.' : '.') +
+        ' <a href="privacy.html" target="_blank" rel="noopener" style="color:#0A6B50">Privacy</a></p>' +
         '<p style="margin:14px 0 0;font-size:14px">Already registered? <a href="#" data-sp="login" style="color:#0A6B50;font-weight:600">Log in</a></p>' +
         err +
-        legal +
         '</div>';
     } else
       html =
