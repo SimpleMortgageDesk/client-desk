@@ -20,7 +20,7 @@ Static HTML/JS/CSS records-and-reminders app for home owners, landlords and trad
 
 Local build: `npm install` then `npm run build` (output `dist/`, git-ignored). Measured with Lighthouse (mobile, same server): app page score 83-85 -> 91-93, largest paint ~4.3s -> ~3.3s, 275 KB -> 230 KB over the wire. Tests that append hooks to internal names inside `sync.js` cannot run against `dist/`; every other suite passed against it.
 
-**Cloudflare switch (owner step, not yet done):** Pages project > Settings > Builds: Build command `npm install && npm run build`, Build output directory `dist`. `functions/` stays at the repo root and still works. Keep the old settings noted so you can revert in one minute.
+**Cloudflare switch (owner set these on 2026-11-23; confirm it built):** Pages project > Settings > Builds: Build command `npm install && npm run build`, Build output directory `dist`. `functions/` stays at the repo root and still works. Keep the old settings noted so you can revert in one minute.
 
 ## This stretch (all deployed)
 Welcome email; sign-in-first registration with automatic email proof; To do, Reminders and Calendar; My Properties and Cars with documents and Delete everywhere; automatic 60-day expiry reminders read from uploaded documents; PIN and 30-day stay-logged-in; admin "Registered, not finished" list and logout tab; Android app build; code split into 19 files and Prettier formatted; LATEST159 moved the sign-in and settings-dialog CSS into `styles.css`.
