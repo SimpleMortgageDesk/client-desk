@@ -565,7 +565,7 @@ function render() {
     }
   } else if (view === 'myhome')
     v.innerHTML =
-      '<div class="pagehead"><h1>Residential property</h1><button type="button" class="btn ghost" data-asback="1">&larr; My Properties and Cars</button></div>' +
+      '<div class="pagehead"><h1>Residential property</h1><button type="button" class="btn backbtn" data-asback="1">&larr; Back to My Properties and Cars</button></div>' +
       homeCard(true);
   else v.innerHTML = remindersHTML();
 }

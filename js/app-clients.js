@@ -343,7 +343,7 @@ function openDrawer(id, draft) {
     '<div class="bk" data-close></div><div class="panel" role="dialog" aria-modal="true" aria-label="' +
     esc(T.noun[0]) +
     '">' +
-    '<div class="dh"><div style="min-width:0"><div class="eyebrow">' +
+    '<div class="dh"><div style="min-width:0"><button type="button" class="btn backbtn" id="backBtn">&larr; Back</button><div class="eyebrow">' +
     (id
       ? esc(T.noun[0])
       : draft && draft._from

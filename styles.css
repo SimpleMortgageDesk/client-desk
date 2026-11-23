@@ -1266,3 +1266,12 @@ main#view{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 }
 @media(prefers-color-scheme:dark){html:not([data-theme=light]) .cds{color-scheme:light}
 }
+
+/* the Back button on a record and on the home and car pages: light red so it is easy to spot */
+.btn.backbtn{display:inline-flex;align-items:center;gap:6px;background:#FDE3E0;border:1px solid #E8A9A2;color:#8F1D15;font-weight:700}
+.dh .backbtn{margin:0 0 8px}
+.btn.backbtn:hover{background:#FBCFCA;border-color:#D98A82}
+.btn.backbtn:focus-visible{outline:2px solid #8F1D15;outline-offset:2px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.backbtn{background:#4A2623;border-color:#8A4540;color:#FFC9C3}:root:not([data-theme="light"]) .btn.backbtn:hover{background:#5A2D29}}
+:root[data-theme="dark"] .btn.backbtn{background:#4A2623;border-color:#8A4540;color:#FFC9C3}
+:root[data-theme="dark"] .btn.backbtn:hover{background:#5A2D29}

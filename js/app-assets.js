@@ -627,7 +627,7 @@ function carPageHTML() {
   return (
     '<div class="pagehead"><h1>' +
     esc(carWho(c)) +
-    '</h1><button type="button" class="btn ghost" data-asback="1">&larr; My Properties and Cars</button></div>' +
+    '</h1><button type="button" class="btn backbtn" data-asback="1">&larr; Back to My Properties and Cars</button></div>' +
     '<section class="ass"><h2>' +
     (carReg(c) && (c.make || c.model) ? esc([c.make, c.model].filter(Boolean).join(' ')) : 'Car') +
     '</h2><span class="aschips">' +

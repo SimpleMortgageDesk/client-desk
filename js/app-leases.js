@@ -386,6 +386,12 @@ document.addEventListener('click', function (e) {
     saveCase();
     return;
   }
+  /* Back: for a saved record it does what Done does (saves, then closes); for a new one nobody typed into it just closes, and one that was typed into is saved like Done */
+  if (t.id === 'backBtn') {
+    if (openId || JSON.stringify(collectForm()) !== newBase) saveCase();
+    else closeDrawer();
+    return;
+  }
 });
 document.addEventListener('input', function (e) {
   var t = e.target;
