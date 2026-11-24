@@ -434,6 +434,7 @@ function reviewItems(c, useStage) {
     out = [];
   T.reminders.forEach(function (r) {
     if (useStage && r.only && r.only.indexOf(st) < 0) return;
+    if (useStage && r.not && r.not.indexOf(st) > -1) return;
     if (
       r.unless &&
       r.unless.some(function (k) {
@@ -464,6 +465,24 @@ function reviewItems(c, useStage) {
     if (remDone(c, r, d)) return;
     out.push({ date: d, label: r.l + rl, key: r.k, sec: false });
   });
+  /* mortgage adviser: each extra property (security) on the case has its own deal end and review date */
+  if (T.securities && !(useStage && st === 'lost'))
+    (c.securities || []).forEach(function (s) {
+      var end = /^\d{4}-\d{2}-\d{2}$/.test(s.fixedUntil || '') ? s.fixedUntil : '',
+        d = /^\d{4}-\d{2}-\d{2}$/.test(s.reviewDate || '') ? s.reviewDate : end ? addMonths(end, -REVM) : '';
+      if (!d) return;
+      var key = 'sec:' + s.id;
+      if (c.remDone && c.remDone[key] === d) return;
+      out.push({
+        date: d,
+        label:
+          'Start rate review' +
+          (s.address ? ' (' + short(s.address) + ')' : '') +
+          (end ? '. Product ends ' + fd(end) : ''),
+        key: key,
+        sec: false
+      });
+    });
   return out
     .concat(tnReminders(c))
     .concat(T.tenancyMode ? rlReminders(c).concat(rpReminders(c)) : [])

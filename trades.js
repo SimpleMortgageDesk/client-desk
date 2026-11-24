@@ -194,7 +194,7 @@
       {
         k: 'reviewDate',
         l: 'Start rate review',
-        only: ['completed'],
+        not: ['lost'],
         ref: 'fixedUntil',
         refL: 'Product ends'
       }
