@@ -168,7 +168,7 @@ function waOpen(a, kind) {
         if (ni) ni.focus();
         return;
       }
-      window.open('https://wa.me/' + n + '?text=' + encodeURIComponent(tx), '_blank', 'noopener');
+      waGo('https://wa.me/' + n + '?text=' + encodeURIComponent(tx));
       toast('WhatsApp opened for ' + first());
       ov.remove();
     }

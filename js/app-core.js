@@ -888,6 +888,54 @@ function ltv(c) {
     ? (c.loanAmount / (c.purchasePrice || c.propertyValue)) * 100
     : null;
 }
+/* ---------- WhatsApp: on a computer, open the WhatsApp app straight away instead of a browser tab first ---------- */
+function waDesktop() {
+  var ua = navigator.userAgent || '';
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return false;
+  if (navigator.maxTouchPoints > 1 && /Mac/i.test(navigator.platform || '')) return false;
+  return true;
+}
+function waGo(url) {
+  var phone = '',
+    text = '';
+  try {
+    var u = new URL(url);
+    phone = /wa\.me$/.test(u.hostname) ? u.pathname.replace(/\D/g, '') : u.searchParams.get('phone') || '';
+    text = u.searchParams.get('text') || '';
+  } catch (e) {}
+  phone = String(phone).replace(/\D/g, '');
+  if (!phone || !waDesktop()) {
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  var handled = false,
+    mark = function () {
+      handled = true;
+    };
+  window.addEventListener('blur', mark, { once: true });
+  document.addEventListener('visibilitychange', mark, { once: true });
+  var f = document.createElement('iframe');
+  f.style.display = 'none';
+  f.src = 'whatsapp://send?phone=' + phone + (text ? '&text=' + encodeURIComponent(text) : '');
+  document.body.appendChild(f);
+  setTimeout(function () {
+    f.remove();
+    window.removeEventListener('blur', mark);
+    document.removeEventListener('visibilitychange', mark);
+    /* the WhatsApp app did not take over (not installed): use the web page instead */
+    if (!handled) window.open(url, '_blank', 'noopener');
+  }, 2500);
+}
+document.addEventListener(
+  'click',
+  function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href^="https://wa.me/"]') : null;
+    if (!a || e.defaultPrevented || e.button || e.ctrlKey || e.metaKey || e.shiftKey || !waDesktop()) return;
+    e.preventDefault();
+    waGo(a.href);
+  },
+  true
+);
 function toast(m, sticky) {
   var t = $('#toast');
   t.textContent = m;

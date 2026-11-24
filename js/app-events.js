@@ -482,7 +482,7 @@ document.addEventListener('click', function (e) {
     }
     var stx = bdText(sp);
     bdDraft[sp.key] = stx;
-    window.open('https://wa.me/' + si + '?text=' + encodeURIComponent(stx), '_blank', 'noopener');
+    waGo('https://wa.me/' + si + '?text=' + encodeURIComponent(stx));
     bdSetSent(sp, true);
     toast('WhatsApp opened for ' + bdFirst(sp.name));
     return;
