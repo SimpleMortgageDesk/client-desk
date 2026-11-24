@@ -374,6 +374,12 @@ IM_TRADE.mortgage = {
     ],
     ['lender', 'Lender', ['lender', 'lendername', 'mortgagelender', 'bank', 'provider'], 'Nationwide'],
     [
+      'fee',
+      'Broker fee (£)',
+      ['fee', 'brokerfee', 'adviserfee', 'advicefee', 'brokeragefee', 'procfee'],
+      '695'
+    ],
+    [
       'loan',
       'Loan amount',
       ['loan', 'loanamount', 'mortgageamount', 'borrowing', 'advance', 'amountborrowed'],
@@ -598,6 +604,7 @@ function imMgRecord(g) {
   if (g('lender')) d.lender = g('lender');
   var m;
   if ((m = imNum(g('loan')))) d.loanAmount = +m;
+  if ((m = imNum(g('fee')))) d.fee = +m;
   if ((m = imNum(g('value')))) d.propertyValue = +m;
   if ((m = imNum(g('price')))) d.purchasePrice = +m;
   if ((m = imNum(g('rate')))) d.rate = +m;

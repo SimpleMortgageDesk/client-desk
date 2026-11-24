@@ -188,6 +188,22 @@
           },
           { k: 'lenderRef', l: 'Lender reference / roll number', t: 'text' }
         ]
+      },
+      {
+        id: 'fee',
+        title: 'Broker fee',
+        fields: [
+          {
+            k: 'feeNone',
+            l: 'Fee for this client',
+            t: 'sel',
+            o: [
+              ['', 'Fee payable'],
+              ['none', 'No fee']
+            ]
+          },
+          { k: 'fee', l: 'Broker fee (£)', t: 'money' }
+        ]
       }
     ],
     reminders: [

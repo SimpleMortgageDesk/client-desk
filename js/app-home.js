@@ -1227,6 +1227,7 @@ function docsFs(c) {
     '</fieldset>'
   );
 }
+var dcNoFeeOk = false;
 function dcOpen(caseId, docId, kind, from) {
   var c = cases.filter(function (x) {
     return x.id === caseId;
@@ -1238,6 +1239,24 @@ function dcOpen(caseId, docId, kind, from) {
         return x.id === docId;
       })[0]
     : null;
+  if (!d && kind === 'invoice' && T.id === 'mortgage' && c.feeNone && !dcNoFeeOk) {
+    docAsk(
+      'No fee for this client',
+      'This client is marked <b>No fee</b>, so there is normally nothing to invoice. Make an invoice anyway?',
+      [
+        { pri: true, label: '<b>Do not make an invoice</b>', go: null },
+        {
+          label: 'Make an invoice anyway',
+          go: function () {
+            dcNoFeeOk = true;
+            dcOpen(caseId, docId, kind, from);
+            dcNoFeeOk = false;
+          }
+        }
+      ]
+    );
+    return;
+  }
   if (d) dcDoc = JSON.parse(JSON.stringify(d));
   else {
     var ap = (c.applicants || []).filter(function (a) {
@@ -1245,7 +1264,10 @@ function dcOpen(caseId, docId, kind, from) {
       }),
       addr = (ap[0] && ap[0].address) || '',
       job = fv(c, T.addr) || '',
-      today = iso(TODAY);
+      today = iso(TODAY),
+      mg = T.id === 'mortgage' && !T.tenancyMode,
+      mgWhat = [c.type, c.lender].filter(Boolean).join(', '),
+      mgProp = String(c.propertyAddress || '').replace(/\s*\n+\s*/g, ', ');
     dcDoc = {
       id: 'd' + uid(),
       kind: kind,
@@ -1258,12 +1280,29 @@ function dcOpen(caseId, docId, kind, from) {
       status: 'draft',
       toName: T.tenancyMode
         ? tnCurrent(c).map(tnNames).filter(Boolean).join(' & ')
-        : pnames(c) === 'Unnamed client'
-          ? ''
-          : pnames(c),
+        : mg && isSpv(c) && c.companyName
+          ? c.companyName
+          : pnames(c) === 'Unnamed client'
+            ? ''
+            : pnames(c),
       toAddr: T.tenancyMode ? paddr(c) : addr,
-      job: job && job !== addr && T.byKey[T.addr] && T.byKey[T.addr].t === 'text' ? job : '',
-      lines: [{ d: c.type || '', q: 1, p: '', v: vatOn() ? (BIZ.vatRate != null ? BIZ.vatRate : 20) : 0 }],
+      /* mortgage adviser: the property the invoice is for, written out for you (address, then case type and lender) */
+      job: mg
+        ? mgProp + (mgProp && mgWhat ? ' (' + mgWhat + ')' : mgWhat)
+        : job && job !== addr && T.byKey[T.addr] && T.byKey[T.addr].t === 'text'
+          ? job
+          : '',
+      clientNo: mg ? c.clientNo || '' : '',
+      lines: [
+        {
+          d: mg
+            ? 'Broker fee' + (c.type ? ' - ' + c.type : '') + (mgProp ? ', ' + mgProp : '')
+            : c.type || '',
+          q: 1,
+          p: mg && !c.feeNone && +c.fee > 0 ? +c.fee : '',
+          v: vatOn() ? (BIZ.vatRate != null ? BIZ.vatRate : 20) : 0
+        }
+      ],
       notes: '',
       isNew: true
     };
@@ -1398,7 +1437,14 @@ function dcRender() {
       '"></label><label class="f wide">Their address<textarea id="dc-toAddr" rows="2">' +
       esc(d.toAddr || '') +
       '</textarea></label>' +
-      '<label class="f wide">Job or property address (if different)<input id="dc-job" value="' +
+      (T.id === 'mortgage'
+        ? '<label class="f">Client number<input id="dc-clientNo" value="' +
+          esc(d.clientNo || '') +
+          '"></label>'
+        : '') +
+      '<label class="f wide">' +
+      (T.id === 'mortgage' ? 'Regarding (property)' : 'Job or property address (if different)') +
+      '<input id="dc-job" value="' +
       esc(d.job || '') +
       '"></label></div>' +
       '<table class="dclines"><thead><tr><th>Description</th><th>Qty</th><th>Price (£)</th>' +
@@ -1437,7 +1483,7 @@ function dcRead() {
       return e ? e.value : null;
     };
   if (!$('#dcOv')) return d;
-  ['number', 'status', 'date', 'due', 'toName', 'toAddr', 'job', 'notes'].forEach(function (k) {
+  ['number', 'status', 'date', 'due', 'toName', 'toAddr', 'job', 'notes', 'clientNo'].forEach(function (k) {
     var v = g(k);
     if (v != null) d[k] = k === 'notes' || k === 'toAddr' ? v : v.trim();
   });
@@ -1481,6 +1527,15 @@ function dcHtml(d) {
       ? '<div class="dpaid">PAID' + (d.paidDate ? ' ' + fd(d.paidDate) : '') + '</div>'
       : '') +
     '</div></div>' +
+    (T.id === 'mortgage' && (d.job || d.clientNo)
+      ? '<div class="dregard"><div><div class="dlab">Client</div><b>' +
+        esc(d.toName || '') +
+        '</b>' +
+        (d.clientNo ? ' · Client no. ' + esc(d.clientNo) : '') +
+        '</div><div><div class="dlab">Regarding (property)</div><b>' +
+        esc(d.job || '') +
+        '</b></div></div>'
+      : '') +
     '<div class="dparties"><div><div class="dlab">From</div><b>' +
     esc(bizName() || 'Your business name') +
     '</b><br>' +
@@ -1491,7 +1546,7 @@ function dcHtml(d) {
     esc(d.toName || '') +
     '</b><br>' +
     nl2br(d.toAddr || '') +
-    (d.job
+    (d.job && T.id !== 'mortgage'
       ? '<div style="margin-top:6px"><span class="dlab">' +
         (T.id === 'landlord' ? 'Property' : 'Job address') +
         '</span><br>' +
@@ -1598,8 +1653,28 @@ function dcPdf(d) {
     P.t(555, my + 4, 'PAID' + (d.paidDate ? ' ' + fd(d.paidDate) : ''), 12, true, 'r', [0.1, 0.5, 0.25]);
     my += 18;
   }
-  var top = Math.max(40 + lh, my) + 18,
-    ly = top,
+  var top = Math.max(40 + lh, my) + 18;
+  if (T.id === 'mortgage' && (d.job || d.clientNo)) {
+    /* client and property at the top of the invoice */
+    var cy = top,
+      py = top;
+    P.t(40, cy, 'CLIENT', 7.5, true, 'l', G);
+    P.t(320, py, 'REGARDING (PROPERTY)', 7.5, true, 'l', G);
+    cy += 11;
+    py += 11;
+    wrapT((d.toName || '') + (d.clientNo ? '  ·  Client no. ' + d.clientNo : ''), 260, 10, true).forEach(
+      function (l) {
+        P.t(40, cy, l, 10, true);
+        cy += 13;
+      }
+    );
+    wrapT(d.job || '', 235, 10, true).forEach(function (l) {
+      P.t(320, py, l, 10, true);
+      py += 13;
+    });
+    top = Math.max(cy, py) + 14;
+  }
+  var ly = top,
     ry = top;
   P.t(40, ly, 'FROM', 7.5, true, 'l', G);
   ly += 11;
@@ -1620,7 +1695,7 @@ function dcPdf(d) {
     P.t(320, ry, l, 9);
     ry += 12;
   });
-  if (d.job) {
+  if (d.job && T.id !== 'mortgage') {
     ry += 4;
     P.t(320, ry, T.id === 'landlord' ? 'PROPERTY' : 'JOB ADDRESS', 7.5, true, 'l', G);
     ry += 11;
