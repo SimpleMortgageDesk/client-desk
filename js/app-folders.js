@@ -203,3 +203,8 @@ function cfBulk() {
     })();
   }
 }
+
+window.CD_folderCount = function () {
+  return cfWanted().length;
+};
+window.CD_foldersOpen = cfBulk;

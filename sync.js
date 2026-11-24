@@ -5378,7 +5378,38 @@
             isG
               ? '<span class="cds-note">Google asks you to confirm access about once an hour. A yellow bar appears when it does, and your changes wait safely on this device.</span>'
               : ''
-          ) + row('Sync', esc(pend), btn('sync', 'Sync now'))
+          ) +
+            row('Sync', esc(pend), btn('sync', 'Sync now')) +
+            (TR().id === 'mortgage' && window.CD_tidyCount
+              ? (function () {
+                  var tn = window.CD_tidyCount(),
+                    fc = window.CD_folderCount ? window.CD_folderCount() : 0;
+                  return (
+                    row(
+                      'Client numbers',
+                      tn
+                        ? '<b>' +
+                            tn +
+                            '</b> client' +
+                            (tn === 1 ? ' has' : 's have') +
+                            ' more than one number, or share a number with someone else.'
+                        : 'Every client has their own number.',
+                      tn ? btn('tidy', 'Tidy client numbers') : ''
+                    ) +
+                    row(
+                      'Client folders',
+                      fc
+                        ? '<b>' +
+                            fc +
+                            '</b> client' +
+                            (fc === 1 ? ' has' : 's have') +
+                            ' no folder yet. A folder per client, named after the client, is made inside your records folder to keep their documents.'
+                        : 'Every client has a folder for their documents.',
+                      fc ? btn('cfold', 'Make client folders') : ''
+                    )
+                  );
+                })()
+              : '')
         ) +
         grp(
           'Email and calendar',
@@ -5666,6 +5697,12 @@
       } else if (a === 'biz') {
         ov.remove();
         if (window.CD_openBiz) window.CD_openBiz();
+      } else if (a === 'tidy') {
+        ov.remove();
+        if (window.CD_openTidy) window.CD_openTidy();
+      } else if (a === 'cfold') {
+        ov.remove();
+        if (window.CD_foldersOpen) window.CD_foldersOpen();
       } else if (a === 'imp') {
         ov.remove();
         if (window.CD_import) window.CD_import();

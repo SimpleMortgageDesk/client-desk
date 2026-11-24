@@ -573,3 +573,8 @@ function fillClientNos() {
   );
 }
 setInterval(fillClientNos, 8000);
+
+window.CD_tidyCount = function () {
+  return planNos().length;
+};
+window.CD_openTidy = openTidyNos;

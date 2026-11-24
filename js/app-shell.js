@@ -905,14 +905,9 @@ function casesHTML(embed) {
     (embed ? 'Investment properties' : T.tenancyMode ? 'Buy to let properties' : 'All ' + NS()) +
     '</h1>' +
     llSum +
-    (T.id === 'mortgage' && planNos().length
-      ? '<button class="btn ghost" data-act="tidyno" title="Some clients have more than one number, or two clients share a number">Tidy client numbers (' +
-        planNos().length +
-        ')</button>'
-      : '') +
     (T.id !== 'mortgage' && imKind() ? '<button class="btn ghost" data-act="import">Import</button>' : '') +
     (T.id !== 'mortgage' && cases.length > 1 ? dupBtn() : '') +
-    (!T.tenancyMode && T.jobDocs && cases.length && cfWanted().length
+    (!T.tenancyMode && T.jobDocs && T.id !== 'mortgage' && cases.length && cfWanted().length
       ? '<button class="btn ghost" data-act="cfolders" title="Make a Clients folder in your OneDrive with one folder per client">Client folders (' +
         cfWanted().length +
         ')</button>'
