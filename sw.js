@@ -2,7 +2,7 @@
    Online: always fetches the newest files. Offline: uses the saved copy.
    Hosts such as Cloudflare Pages shorten addresses (home.html -> /home), so saved copies are stored without the
    "moved" step and can be found under either address. */
-var CACHE = 'client-desk-v7';
+var CACHE = 'client-desk-v8';
 var FILES = [
   './',
   'index.html',
@@ -30,6 +30,7 @@ var FILES = [
   'js/app-todo.js',
   'js/app-dates.js',
   'js/app-import.js',
+  'js/app-mortgage.js',
   'js/app-start.js',
   'manifest.webmanifest',
   'icon-192.png',

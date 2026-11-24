@@ -7962,7 +7962,21 @@
         fixedUntil: D(40),
         reviewDate: D(25),
         applicants: [
-          { name: 'A. Sample', dob: '1985-04-12', phone: '07700900111', email: 'a.sample@example.com' }
+          {
+            name: 'A. Sample',
+            dob: '1985-04-12',
+            phone: '07700900111',
+            email: 'a.sample@example.com',
+            address: '1 Example Road, AB1 2CD',
+            resStatus: 'owner',
+            resMort: 'yes',
+            resLender: 'Sample Building Society',
+            resType: 'repayment',
+            resDealEnd: D(40),
+            resRate: 4.1,
+            resBalance: 150000,
+            resOwn: 'joint'
+          }
         ]
       });
       mk('m2', {
@@ -8014,6 +8028,17 @@
         companyNumber: '01234567',
         propertyAddress: '5 Demo Mews, AB9 0KL',
         applicants: [{ name: 'D. Director', dob: '1975-06-30' }]
+      });
+      mk('m6', {
+        clientNo: 'C004',
+        type: 'Buy to let',
+        stage: 'application',
+        propUse: 'btl',
+        propertyAddress: '6 Sample Close, AB2 3CD',
+        applicants: [
+          { name: 'D. Director', dob: '1975-06-30' },
+          { name: 'E. Partner', dob: '1977-02-02' }
+        ]
       });
       put('appointments', 'a1', {
         caseId: 'm3',

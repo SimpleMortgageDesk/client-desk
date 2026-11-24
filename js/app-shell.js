@@ -750,6 +750,85 @@ function revSelHTML() {
     ' date</option></select>'
   );
 }
+/* one row of the cases table (also used to list a company's directors' own properties) */
+function caseRowHTML(c, ing) {
+  var mg = T.id === 'mortgage',
+    shown = T.cols.filter(function (x) {
+      return colOn(x[0]);
+    });
+  var ad = T.tenancyMode
+    ? [c.type, c.bedrooms ? c.bedrooms + ' bed' : ''].filter(Boolean).join(' · ')
+    : short(fv(c, T.addr)) || short(((c.applicants || [])[0] || {}).address);
+  var rv0 = mg ? reviewOf(c) : '',
+    rd0 = rv0 ? diff(rv0) : 9999;
+  return (
+    '<tr class="click' +
+    (mg
+      ? ' stc st-' +
+        esc(stageOf(c) || 'enquiry') +
+        (rd0 <= 30 ? ' rend-red' : rd0 <= 90 ? ' rend-amb' : '') +
+        (ing ? ' ing' : '')
+      : '') +
+    '" data-open="' +
+    c.id +
+    '">' +
+    (mg ? '<td class="cnocol">' + esc(c.clientNo || '') + '</td>' : '') +
+    '<td><b>' +
+    esc(names(c)) +
+    '</b>' +
+    (mg ? propTag(c) : cno(c)) +
+    (mg && isSpv(c) && pnames(c) !== 'Unnamed client'
+      ? '<div class="muted" style="font-size:12px">Directors: ' + esc(pnames(c)) + '</div>'
+      : '') +
+    '<div class="muted" style="font-size:12px">' +
+    esc(ad) +
+    '</div></td>' +
+    shown
+      .map(function (x) {
+        var k = x[0];
+        if (k === 'type') return '<td>' + esc(c.type || '') + '</td>';
+        if (k === 'tenants')
+          return (
+            '<td>' +
+            (tnCurrent(c)
+              .map(function (tn) {
+                return esc(tnNames(tn) || 'Unnamed tenant');
+              })
+              .join('<br>') || '<span class="muted">None</span>') +
+            '</td>'
+          );
+        if (k === 'rentSum') {
+          var rs = rentSum(c);
+          return '<td class="num">' + (rs ? money(Math.round(rs * 100) / 100) : '—') + '</td>';
+        }
+        if (k === 'occ') return '<td>' + occChip(c) + '</td>';
+        if (k === 'legal') return '<td>' + lgChip(c) + '</td>';
+        if (k === 'rentSt') return '<td>' + rentStatusCell(c) + '</td>';
+        if (k === 'stage')
+          return '<td><span class="chip">' + esc(STAGE_LABEL[stageOf(c)] || '') + '</span></td>';
+        if (k === 'task') return taskCell(c);
+        if (k === 'review') {
+          var rv = reviewOf(c);
+          return (
+            '<td>' +
+            (rv
+              ? '<span class="chip ' + tone(rv) + '">' + fd(rv) + '</span>'
+              : '<span class="muted">—</span>') +
+            '</td>'
+          );
+        }
+        if (k === 'note') return '<td class="ntc">' + latestNoteCell(c) + '</td>';
+        if (k === 'prot') return '<td class="ntc">' + latestNoteCell(c, 'protection') + '</td>';
+        var sub =
+          T.sub === k && T.subRef
+            ? '<div class="muted num" style="font-size:12px">' + esc(fmtField(c, T.subRef)) + '</div>'
+            : '';
+        return '<td>' + esc(fmtField(c, k)) + sub + '</td>';
+      })
+      .join('') +
+    '</tr>'
+  );
+}
 /* colour key for the stage colours on the rows, and the red and amber edge for a review or rate end that is close */
 function stLegendHTML() {
   return (
@@ -806,6 +885,11 @@ function casesHTML(embed) {
     (embed ? 'Investment properties' : T.tenancyMode ? 'Buy to let properties' : 'All ' + NS()) +
     '</h1>' +
     llSum +
+    (T.id === 'mortgage' && planNos().length
+      ? '<button class="btn ghost" data-act="tidyno" title="Some clients have more than one number, or two clients share a number">Tidy client numbers (' +
+        planNos().length +
+        ')</button>'
+      : '') +
     (imKind() ? '<button class="btn ghost" data-act="import">Import</button>' : '') +
     '<button class="btn ghost" data-act="export">Export CSV</button></div>' +
     '<div class="filters">' +
@@ -874,77 +958,7 @@ function casesHTML(embed) {
   if (!list.length)
     h += '<tr><td colspan="' + (shown.length + 1) + '" class="muted">No ' + NS() + ' match.</td></tr>';
   var rowOf = function (c, ing) {
-    var ad = T.tenancyMode
-      ? [c.type, c.bedrooms ? c.bedrooms + ' bed' : ''].filter(Boolean).join(' · ')
-      : short(fv(c, T.addr)) || short(((c.applicants || [])[0] || {}).address);
-    var rv0 = mg ? reviewOf(c) : '',
-      rd0 = rv0 ? diff(rv0) : 9999;
-    h +=
-      '<tr class="click' +
-      (mg
-        ? ' stc st-' +
-          esc(stageOf(c) || 'enquiry') +
-          (rd0 <= 30 ? ' rend-red' : rd0 <= 90 ? ' rend-amb' : '') +
-          (ing ? ' ing' : '')
-        : '') +
-      '" data-open="' +
-      c.id +
-      '">' +
-      (mg ? '<td class="cnocol">' + esc(c.clientNo || '') + '</td>' : '') +
-      '<td><b>' +
-      esc(names(c)) +
-      '</b>' +
-      (mg ? propTag(c) : cno(c)) +
-      (mg && isSpv(c) && pnames(c) !== 'Unnamed client'
-        ? '<div class="muted" style="font-size:12px">Directors: ' + esc(pnames(c)) + '</div>'
-        : '') +
-      '<div class="muted" style="font-size:12px">' +
-      esc(ad) +
-      '</div></td>' +
-      shown
-        .map(function (x) {
-          var k = x[0];
-          if (k === 'type') return '<td>' + esc(c.type || '') + '</td>';
-          if (k === 'tenants')
-            return (
-              '<td>' +
-              (tnCurrent(c)
-                .map(function (tn) {
-                  return esc(tnNames(tn) || 'Unnamed tenant');
-                })
-                .join('<br>') || '<span class="muted">None</span>') +
-              '</td>'
-            );
-          if (k === 'rentSum') {
-            var rs = rentSum(c);
-            return '<td class="num">' + (rs ? money(Math.round(rs * 100) / 100) : '—') + '</td>';
-          }
-          if (k === 'occ') return '<td>' + occChip(c) + '</td>';
-          if (k === 'legal') return '<td>' + lgChip(c) + '</td>';
-          if (k === 'rentSt') return '<td>' + rentStatusCell(c) + '</td>';
-          if (k === 'stage')
-            return '<td><span class="chip">' + esc(STAGE_LABEL[stageOf(c)] || '') + '</span></td>';
-          if (k === 'task') return taskCell(c);
-          if (k === 'review') {
-            var rv = reviewOf(c);
-            return (
-              '<td>' +
-              (rv
-                ? '<span class="chip ' + tone(rv) + '">' + fd(rv) + '</span>'
-                : '<span class="muted">—</span>') +
-              '</td>'
-            );
-          }
-          if (k === 'note') return '<td class="ntc">' + latestNoteCell(c) + '</td>';
-          if (k === 'prot') return '<td class="ntc">' + latestNoteCell(c, 'protection') + '</td>';
-          var sub =
-            T.sub === k && T.subRef
-              ? '<div class="muted num" style="font-size:12px">' + esc(fmtField(c, T.subRef)) + '</div>'
-              : '';
-          return '<td>' + esc(fmtField(c, k)) + sub + '</td>';
-        })
-        .join('') +
-      '</tr>';
+    h += caseRowHTML(c, ing);
   };
   if (mg) {
     var grp = {},
@@ -977,7 +991,7 @@ function casesHTML(embed) {
     list.forEach(function (c) {
       rowOf(c, false);
     });
-  return h + '</tbody></table></div>' + (mg ? '' : mtdCard()) + '</div>';
+  return h + '</tbody></table></div>' + (mg ? resHTML(list) + dirPropsHTML(list) : mtdCard()) + '</div>';
 }
 
 /* ---------- reminders ---------- */
@@ -1393,9 +1407,12 @@ function appRow(a, i) {
     '"><span class="pl el">' +
     elinks(a.email) +
     '</span></label>' +
-    '<label class="f wide">Address<input data-a="address" value="' +
+    '<label class="f wide">' +
+    (T.id === 'mortgage' ? 'Current address' : 'Address') +
+    '<input data-a="address" value="' +
     esc(a.address) +
-    '"></label></div></div>'
+    '"></label>' +
+    (T.id === 'mortgage' ? resFieldsHTML(a) + '</div>' : '</div></div>')
   );
 }
 var pendingNotes = [];

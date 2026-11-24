@@ -206,6 +206,10 @@ document.addEventListener('click', function (e) {
     else openDrawer(null);
     return;
   }
+  if (t.closest('[data-act="tidyno"]')) {
+    openTidyNos();
+    return;
+  }
   if (t.closest('[data-act="export"]')) {
     exportCsv();
     return;
