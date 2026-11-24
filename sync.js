@@ -760,6 +760,7 @@
     var d = mem[col][id];
     if (d)
       idbPut('docs', { k: col + '/' + id, col: col, id: id, data: d.data, etag: d.etag, itemId: d.itemId });
+    mirQueue(col, id);
   }
   function snap(col) {
     return {
@@ -1147,6 +1148,7 @@
     var oldItem = mem[col][id] ? mem[col][id].itemId : null;
     delete mem[col][id];
     idbDel('docs', col + '/' + id);
+    mirQueue(col, id);
     var k = col + '/' + id,
       nd = { k: k, col: col, id: id, kind: 'del', patch: {}, v: ++vctr, itemId: oldItem };
     dirty[k] = nd;
@@ -1370,6 +1372,7 @@
       hideLoading();
       diag('records NOT loaded', (e && (e.message || e.status)) || 'error');
       handleErr(e);
+      if (!Object.keys(mem.cases).length) mirLoad('your cloud storage is not answering');
       fpRes();
     }
     pulling = false;
@@ -2923,6 +2926,326 @@
   function bkCanPick() {
     return typeof window.showDirectoryPicker === 'function';
   }
+
+  /* ---------- local copy: an identical set of the records in a folder on this computer (loads when your cloud storage is slow or down) ---------- */
+  var mirH = null,
+    mirQ = {},
+    mirTimer = null,
+    mirBusy = false,
+    mirLoaded = false,
+    mirReady = false,
+    mirErr = '';
+  function mirMail() {
+    var t = tok();
+    return String((t && t.account && t.account.mail) || ls('cd.lastMail') || '').toLowerCase();
+  }
+  function mirInfo() {
+    try {
+      return JSON.parse(ls('cd.mir') || 'null') || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function mirOn() {
+    return !!mirInfo();
+  }
+  async function mirHandle() {
+    if (mirH) return mirH;
+    mirH = await bkGetDir('mirror');
+    return mirH;
+  }
+  async function mirPerm(ask) {
+    var h = await mirHandle();
+    if (!h) return 'none';
+    try {
+      var p = await h.queryPermission({ mode: 'readwrite' });
+      if (p !== 'granted' && ask) p = await h.requestPermission({ mode: 'readwrite' });
+      return p;
+    } catch (e) {
+      return 'denied';
+    }
+  }
+  function mirQueue(col, id) {
+    if (!mirOn()) return;
+    mirQ[col + '/' + id] = 1;
+    clearTimeout(mirTimer);
+    mirTimer = setTimeout(mirFlush, 1500);
+  }
+  async function mirSub(h, col, create) {
+    try {
+      return await h.getDirectoryHandle(col, { create: !!create });
+    } catch (e) {
+      return null;
+    }
+  }
+  async function mirWriteOne(h, col, id) {
+    var d = mem[col] && mem[col][id],
+      sub = await mirSub(h, col, true);
+    if (!sub) throw new Error('folder');
+    if (!d) {
+      try {
+        await sub.removeEntry(id + '.json');
+      } catch (e) {}
+      return;
+    }
+    var fh = await sub.getFileHandle(id + '.json', { create: true }),
+      w = await fh.createWritable();
+    await w.write(
+      JSON.stringify({
+        md: 1,
+        col: col,
+        id: id,
+        etag: d.etag || null,
+        itemId: d.itemId || null,
+        data: d.data
+      })
+    );
+    await w.close();
+  }
+  async function mirFlush() {
+    if (mirBusy || !mirOn()) return;
+    var keys = Object.keys(mirQ);
+    if (!keys.length) return;
+    if ((await mirPerm(false)) !== 'granted') {
+      mirErr = 'needs permission';
+      return;
+    }
+    mirBusy = true;
+    var h = await mirHandle();
+    try {
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i],
+          ix = k.indexOf('/');
+        delete mirQ[k];
+        await mirWriteOne(h, k.slice(0, ix), k.slice(ix + 1));
+      }
+      var inf = mirInfo() || {};
+      inf.at = Date.now();
+      inf.name = h.name;
+      lset('cd.mir', JSON.stringify(inf));
+      mirErr = '';
+    } catch (e) {
+      mirErr = 'could not write (' + ((e && e.message) || 'error') + ')';
+    }
+    mirBusy = false;
+    if (Object.keys(mirQ).length) {
+      clearTimeout(mirTimer);
+      mirTimer = setTimeout(mirFlush, 3000);
+    }
+  }
+  function mirAll() {
+    if (!mirOn()) return;
+    COLS.forEach(function (c) {
+      Object.keys(mem[c]).forEach(function (id) {
+        mirQ[c + '/' + id] = 1;
+      });
+    });
+    clearTimeout(mirTimer);
+    mirTimer = setTimeout(mirFlush, 200);
+  }
+  async function mirRead(h) {
+    var out = { docs: 0 };
+    for (var ci = 0; ci < COLS.length; ci++) {
+      var col = COLS[ci],
+        sub = await mirSub(h, col, false);
+      if (!sub) continue;
+      for await (var ent of sub.values()) {
+        if (ent.kind !== 'file' || !/\.json$/.test(ent.name)) continue;
+        try {
+          var f = await ent.getFile(),
+            j = JSON.parse(await f.text());
+          if (!j || j.md !== 1 || !j.data) continue;
+          var id = j.id || ent.name.slice(0, -5);
+          if (mem[col][id] || dirty[col + '/' + id]) continue;
+          mem[col][id] = { data: j.data, etag: j.etag || null, itemId: j.itemId || null };
+          idbPut('docs', {
+            k: col + '/' + id,
+            col: col,
+            id: id,
+            data: j.data,
+            etag: j.etag || null,
+            itemId: j.itemId || null
+          });
+          out.docs++;
+        } catch (e) {}
+      }
+    }
+    return out;
+  }
+  /* Loads the local copy into the app when the device has nothing yet. Only for the same Microsoft account that made the copy. */
+  async function mirLoad(why, interactive) {
+    var inf = mirInfo();
+    if (!inf) return false;
+    if (inf.mail && mirMail() && inf.mail !== mirMail()) return false;
+    var p = await mirPerm(!!interactive);
+    if (p === 'none') return false;
+    if (p !== 'granted') {
+      mirAsk(why);
+      return false;
+    }
+    var h = await mirHandle();
+    try {
+      var r = await mirRead(h);
+    } catch (e) {
+      mirErr = 'could not read';
+      return false;
+    }
+    if (r.docs) {
+      mirLoaded = true;
+      COLS.forEach(notify);
+      toast(
+        'Loaded ' +
+          r.docs +
+          ' record' +
+          (r.docs > 1 ? 's' : '') +
+          ' from the local copy in "' +
+          h.name +
+          '"' +
+          (why ? ' because ' + why : '') +
+          '.'
+      );
+      return true;
+    }
+    return false;
+  }
+  function mirAsk(why) {
+    if ($('mirAsk')) return;
+    var b = document.createElement('div');
+    b.id = 'mirAsk';
+    b.style.cssText =
+      'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:320;background:#101C26;color:#fff;padding:12px 16px;border-radius:12px;font:14px system-ui,sans-serif;display:flex;gap:12px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.35);max-width:min(560px,94vw)';
+    b.innerHTML =
+      '<span>' +
+      esc(
+        (why ? why.charAt(0).toUpperCase() + why.slice(1) + '. ' : '') +
+          'Your records can be loaded from the local copy on this computer.'
+      ) +
+      '</span><button class="btn" id="mirAskGo" style="white-space:nowrap">Load local copy</button><button class="btn ghost sm" id="mirAskNo" style="color:#fff">Not now</button>';
+    document.body.appendChild(b);
+    $('mirAskGo').onclick = async function () {
+      b.remove();
+      var pp = $('mirPerm');
+      if (pp) pp.remove();
+      var ok = await mirLoad(why, true);
+      if (ok) mirAll();
+      if (!ok && (await mirPerm(false)) === 'granted')
+        toast('The local copy has no records that are not already here.');
+    };
+    $('mirAskNo').onclick = function () {
+      b.remove();
+    };
+  }
+  async function mirStart() {
+    if (!mirOn()) return;
+    var p = await mirPerm(false);
+    if (p === 'granted') {
+      if (Object.keys(mem.cases).length) mirAll();
+    } else if (p === 'prompt') {
+      if ($('mirAsk') || $('mirPerm')) return;
+      /* Chrome asks once per session: ask with a user click so the copy keeps being written. */
+      var b = document.createElement('div');
+      b.id = 'mirPerm';
+      b.style.cssText =
+        'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:320;background:#101C26;color:#fff;padding:12px 16px;border-radius:12px;font:14px system-ui,sans-serif;display:flex;gap:12px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.35);max-width:min(560px,94vw)';
+      b.innerHTML =
+        '<span>Allow the app to keep the local copy of your records up to date in "' +
+        esc((mirInfo() || {}).name || 'your folder') +
+        '"?</span><button class="btn" id="mirPermGo" style="white-space:nowrap">Allow</button><button class="btn ghost sm" id="mirPermNo" style="color:#fff">Not now</button>';
+      document.body.appendChild(b);
+      $('mirPermGo').onclick = async function () {
+        b.remove();
+        if ((await mirPerm(true)) === 'granted') {
+          mirAll();
+          toast('Local copy is on.');
+        }
+      };
+      $('mirPermNo').onclick = function () {
+        b.remove();
+      };
+    }
+  }
+  async function openLocalCopy() {
+    var ov = document.createElement('div');
+    ov.style.cssText =
+      'position:fixed;inset:0;z-index:250;background:rgba(8,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+    document.body.appendChild(ov);
+    async function draw(msg) {
+      var inf = mirInfo(),
+        h = await mirHandle(),
+        p = h ? await mirPerm(false) : 'none',
+        n = 0;
+      COLS.forEach(function (c) {
+        n += Object.keys(mem[c]).length;
+      });
+      ov.innerHTML =
+        '<div style="background:#fff;color:#101C26;width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">Local copy</h2><button class="btn ghost" data-m="close">Close</button></div>' +
+        '<p style="margin:12px 0;color:#58697A">Keeps an identical copy of every record in a folder on this computer, updated as you work. If your cloud storage is slow or down when the app opens, your clients load from this folder instead. It is a safety net, not a backup for other people: keep it on this computer (for example in Documents), ideally with BitLocker or FileVault on. It is not password-protected. Works in Chrome and Edge on a computer.</p>' +
+        (bkCanPick()
+          ? inf && h
+            ? '<p style="margin:8px 0"><b>Folder:</b> ' +
+              esc(h.name) +
+              ' &middot; ' +
+              (p === 'granted'
+                ? '<span style="color:#1b5e20">allowed</span>'
+                : '<span style="color:#8A5A00">needs permission this session</span>') +
+              (inf.at ? ' &middot; last written ' + new Date(inf.at).toLocaleString('en-GB') : '') +
+              (mirErr ? ' &middot; <span style="color:#A3261F">' + esc(mirErr) + '</span>' : '') +
+              '</p>' +
+              '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+              (p !== 'granted'
+                ? '<button class="btn" data-m="allow">Allow access</button>'
+                : '<button class="btn" data-m="write">Write all ' + n + ' records now</button>') +
+              '<button class="btn ghost" data-m="pick">Change folder</button><button class="btn ghost" data-m="off">Turn off</button></div>'
+            : '<p style="margin:8px 0;color:#58697A">No folder chosen yet.</p><button class="btn" data-m="pick">Choose a folder on this computer</button>'
+          : '<p style="margin:8px 0;color:#58697A">This browser cannot keep a folder on this device (phones, Safari and Firefox). Use Chrome or Edge on a computer for this feature.</p>') +
+        '<p id="mirMsg" style="min-height:18px;margin:10px 0 0">' +
+        esc(msg || '') +
+        '</p></div>';
+    }
+    await draw();
+    ov.addEventListener('mousedown', function (e) {
+      if (e.target === ov) ov.remove();
+    });
+    ov.addEventListener('click', async function (e) {
+      var el = e.target.closest && e.target.closest('[data-m]');
+      if (!el) return;
+      var a = el.getAttribute('data-m');
+      if (a === 'close') ov.remove();
+      else if (a === 'pick') {
+        try {
+          var h = await window.showDirectoryPicker({ mode: 'readwrite' });
+          mirH = h;
+          await bkPutDir('mirror', h);
+          lset('cd.mir', JSON.stringify({ name: h.name, mail: mirMail(), at: 0 }));
+          mirAll();
+          await draw('Folder chosen. Writing the records now.');
+        } catch (x) {
+          if (!x || x.name !== 'AbortError') await draw('Could not use that folder.');
+        }
+      } else if (a === 'allow') {
+        if ((await mirPerm(true)) === 'granted') {
+          mirAll();
+          await draw('Allowed. Writing the records now.');
+        } else await draw('Permission was not given.');
+      } else if (a === 'write') {
+        mirAll();
+        await draw('Writing all records now.');
+      } else if (a === 'off') {
+        if (
+          !confirm(
+            'Turn off the local copy? The files already in the folder are left as they are; you can delete the folder yourself.'
+          )
+        )
+          return;
+        await bkPutDir('mirror', null);
+        mirH = null;
+        lset('cd.mir', null);
+        await draw('Local copy is off.');
+      }
+    });
+  }
+
   async function bkPerm(slot, interactive) {
     var h = await bkGetDir(slot);
     if (!h) return { none: true };
@@ -3769,13 +4092,16 @@
   }
   /* ---------- open without signing in: the copy kept on this device, behind the app PIN ---------- */
   function offlineChoices() {
-    return { dev: !!pinData() && Object.keys(mem.cases).length > 0 };
+    return { dev: !!pinData() && Object.keys(mem.cases).length > 0, dir: mirOn() };
   }
   function offlineHtml() {
-    if (!offlineChoices().dev) return '';
+    var oc = offlineChoices();
+    if (!oc.dev && !oc.dir) return '';
     return (
       '<div style="margin-top:16px;border-top:1px solid #E1E7EA;padding-top:14px"><button id="lgOff" type="button" style="width:100%;padding:11px;border:1px solid #0A6B50;border-radius:8px;background:#fff;color:#0A6B50;font:600 14px system-ui;cursor:pointer">Open without logging in</button>' +
-      '<p style="color:#58697A;margin:8px 0 0;font-size:12.5px;line-height:1.4">Microsoft or OneDrive not answering? This opens the copy kept on this device, behind your app PIN. Your changes are kept and uploaded the next time you log in.</p></div>'
+      '<p style="color:#58697A;margin:8px 0 0;font-size:12.5px;line-height:1.4">Microsoft or OneDrive not answering? This opens ' +
+      (oc.dev ? 'the copy kept on this device, behind your app PIN' : 'the local copy in your folder') +
+      '. Your changes are kept and uploaded the next time you log in.</p></div>'
     );
   }
   function offlineBar() {
@@ -3792,8 +4118,24 @@
     };
   }
   async function startOffline() {
-    if (!offlineChoices().dev) return false;
-    lset('cd.locked', '1');
+    var oc = offlineChoices();
+    if (!oc.dev && !oc.dir) return false;
+    if (!Object.keys(mem.cases).length) {
+      /* no copy on this device: read the local copy in the folder (the click lets the browser ask for permission) */
+      var mh = await mirHandle();
+      if (!mh || (await mirPerm(true)) !== 'granted') return false;
+      try {
+        var mr = await mirRead(mh);
+        if (mr.docs) {
+          mirLoaded = true;
+          COLS.forEach(notify);
+        }
+      } catch (e) {
+        return false;
+      }
+      if (!Object.keys(mem.cases).length) return false;
+    }
+    if (pinData()) lset('cd.locked', '1');
     var o = $('mdSign');
     if (o) o.remove();
     bootOk = true;
@@ -4775,6 +5117,19 @@
             'All records in a password-protected ZIP, saved to folders you choose, with an automatic backup every 24 hours.',
             btn('pdfbk', 'Back up')
           ) +
+            (TR().id === 'mortgage' && bkCanPick()
+              ? row(
+                  'Local copy (if ' + esc(SNAME()) + ' is slow or down)',
+                  mirOn()
+                    ? 'On: an identical copy is kept in the folder "' +
+                        esc((mirInfo() || {}).name || '') +
+                        '" on this computer.'
+                    : 'Keeps an identical copy of your records in a folder on this computer, so they still load when ' +
+                        esc(SNAME()) +
+                        ' is not responding.',
+                  btn('mirror', mirOn() ? 'Settings' : 'Set up')
+                )
+              : '') +
             row(
               'Import a backup file',
               'Adds records from a ' +
@@ -4963,7 +5318,10 @@
         return;
       }
       if (a === 'close') ov.remove();
-      else if (a === 'backup') {
+      else if (a === 'mirror') {
+        ov.remove();
+        openLocalCopy();
+      } else if (a === 'backup') {
         var bb = $('backupBtn');
         if (bb) bb.click();
       } else if (a === 'sync') {
@@ -6089,6 +6447,7 @@
         'cd.readme',
         'cd.su',
         'cd.bkpw',
+        'cd.mir',
         'cd.act',
         'cd.lastMail',
         'cd.signMsg'
@@ -7430,6 +7789,7 @@
         'cd.auth',
         'cd.locked',
         'cd.bkpw',
+        'cd.mir',
         'cd.bk',
         'cd.bkrec',
         'cd.bkq',
@@ -8471,7 +8831,19 @@
         }
       });
     }
+    /* a device with no records yet, and a local copy chosen: load the copy first (it never waits more than 10 seconds) */
+    if (!Object.keys(mem.cases).length && mirOn()) {
+      try {
+        await Promise.race([
+          mirLoad('this device had no copy yet'),
+          new Promise(function (r) {
+            setTimeout(r, 10000);
+          })
+        ]);
+      } catch (e) {}
+    }
     readyRes({ collection: collection });
+    setTimeout(mirStart, 4000);
     setState();
     flush();
     pull();

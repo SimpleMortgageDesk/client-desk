@@ -10,7 +10,7 @@ var T,
   homeMonth;
 /* the first page after logging in: the list of properties and cars for landlords and home owners, To do for everyone else */
 function landView() {
-  return T && T.tenancyMode ? 'assets' : 'todo';
+  return T && T.tenancyMode ? 'assets' : T && T.id === 'mortgage' ? 'tasks' : 'todo';
 }
 /* the site name: "My" is quiet, "Simple" is bold and "Desk" is bold green, so it reads as SimpleDesk */
 function brandHtml(an) {
@@ -48,7 +48,7 @@ function tagTr(d) {
 }
 function applyTrade() {
   T = window.CD_T();
-  homeMonth = true;
+  homeMonth = T.id !== 'mortgage';
   /* the calendar opens as a month view with the coming up appointments on top, for every trade */ /* each trade has its own colour theme */ document.body.setAttribute(
     'data-theme-trade',
     T.id || ''
@@ -71,9 +71,13 @@ function applyTrade() {
   if (nb) nb.style.display = T.tenancyMode ? 'none' : '';
   if (nb)
     nb.textContent =
-      T.noun[0] === 'Client' || T.tenancyMode
-        ? 'Add ' + T.noun[0].toLowerCase()
-        : 'New ' + T.noun[0].toLowerCase();
+      T.id === 'mortgage'
+        ? 'Create Case'
+        : T.noun[0] === 'Client' || T.tenancyMode
+          ? 'Add ' + T.noun[0].toLowerCase()
+          : 'New ' + T.noun[0].toLowerCase();
+  var pb = document.getElementById('addPdfBtn');
+  if (pb) pb.style.display = T.id === 'mortgage' ? '' : 'none';
   var q = document.getElementById('q');
   if (q) q.placeholder = 'Search ' + T.noun[1].toLowerCase();
   var bn = document.getElementById('brandName'),

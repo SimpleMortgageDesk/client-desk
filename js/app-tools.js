@@ -980,23 +980,39 @@ function renderSide() {
           ['birthdays', 'Birthdays'],
           ['marketing', 'Marketing']
         ]
-      : [
-          ['invoices', 'Quotes & invoices'],
-          ['calculator', T.calcKind === 'tax' ? 'Calculator' : 'Mortgage Calculator'],
-          ['notebook', 'Notebook'],
-          ['birthdays', 'Birthdays'],
-          ['marketing', 'Marketing']
-        ]
+      : T.id === 'mortgage'
+        ? [
+            ['calculator', 'Mortgage Calculator'],
+            ['appointments', 'Calendar'],
+            ['notebook', 'Notebook'],
+            ['birthdays', 'Birthdays'],
+            ['marketing', 'Marketing'],
+            ['todo', 'To do'],
+            ['reminders', 'Reminders'],
+            ['clients', CL()],
+            ['invoices', 'Quotes & invoices']
+          ]
+        : [
+            ['invoices', 'Quotes & invoices'],
+            ['calculator', T.calcKind === 'tax' ? 'Calculator' : 'Mortgage Calculator'],
+            ['notebook', 'Notebook'],
+            ['birthdays', 'Birthdays'],
+            ['marketing', 'Marketing']
+          ]
   );
+  var assetsBtn =
+    '<button type="button" class="sbtn" data-v="assets"' +
+    (view === 'assets' || view === 'myhome' || view === 'mycar' ? ' aria-current="page"' : '') +
+    '>My Properties and Cars</button>';
   var an2 = bizName() || profA().name || '',
     lm2 = (window.CD_loginMail && window.CD_loginMail()) || '';
   s.innerHTML =
     '<div id="sideTools"><div class="sh acctname"><b>Account</b>' +
     (an2 ? '<strong class="an">' + esc(an2) + '</strong>' : '') +
     (lm2 ? '<span class="am">Logged in with<br><b>' + esc(lm2) + '</b></span>' : '') +
-    '</div><button type="button" class="sbtn" data-v="assets"' +
-    (view === 'assets' || view === 'myhome' || view === 'mycar' ? ' aria-current="page"' : '') +
-    '>My Properties and Cars</button><div class="sh"><b>Tools</b></div>' +
+    '</div>' +
+    (T.id === 'mortgage' ? '' : assetsBtn) +
+    '<div class="sh"><b>Tools</b></div>' +
     items
       .map(function (i) {
         return (
@@ -1014,6 +1030,7 @@ function renderSide() {
         );
       })
       .join('') +
+    (T.id === 'mortgage' ? assetsBtn : '') +
     '<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
 function renderRem() {
@@ -1023,7 +1040,7 @@ function renderRem() {
   var h =
     '<div class="sh"><b>Reminders</b><span class="muted" style="font-size:12px">' +
     ev.length +
-    ' key date' +
+    (T.id === 'mortgage' ? ' review' : ' key date') +
     (ev.length === 1 ? '' : 's') +
     '</span></div>';
   [

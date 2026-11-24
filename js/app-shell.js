@@ -40,6 +40,23 @@ function renderNav() {
     items = items.map(function (i) {
       return i[0] === 'cases' ? ['assets', 'My Properties and Cars'] : i;
     });
+  var mgNav = T.id === 'mortgage';
+  if (mgNav)
+    /* the mortgage adviser's menu: All cases, Pipeline, Tasks across the top; the tools down the side */
+    items = [
+      ['cases', 'All ' + NS()],
+      ['pipeline', 'Pipeline'],
+      ['tasks', 'Tasks'],
+      ['calculator', 'Mortgage Calculator'],
+      ['appointments', 'Calendar'],
+      ['notebook', 'Notebook'],
+      ['birthdays', 'Birthdays'],
+      ['marketing', 'Marketing'],
+      ['todo', 'To do'],
+      ['reminders', 'Reminders'],
+      ['clients', CL()],
+      ['invoices', 'Quotes & invoices']
+    ];
   var tdIx = items
       .map(function (i) {
         return i[0];
@@ -54,24 +71,28 @@ function renderNav() {
       .indexOf('appointments');
     tdAnch = 'appointments';
   }
-  items.splice(tdIx < 0 ? 0 : tdIx + 1, 0, ['todo', 'To do']);
-  items = items.filter(function (i) {
-    return i[0] !== 'reminders';
-  });
-  items.splice(
-    items
-      .map(function (i) {
-        return i[0];
-      })
-      .indexOf('todo') + 1,
-    0,
-    ['reminders', 'Reminders']
-  );
+  if (!mgNav) {
+    items.splice(tdIx < 0 ? 0 : tdIx + 1, 0, ['todo', 'To do']);
+    items = items.filter(function (i) {
+      return i[0] !== 'reminders';
+    });
+    items.splice(
+      items
+        .map(function (i) {
+          return i[0];
+        })
+        .indexOf('todo') + 1,
+      0,
+      ['reminders', 'Reminders']
+    );
+  }
   var dc = dueCount(),
     tdc = allTasks().filter(function (x) {
       return trBucket(x) === 'over';
     }).length;
-  if (!T.tenancyMode) items.unshift(['assets', 'My Properties and Cars']);
+  if (!T.tenancyMode)
+    if (mgNav) items.push(['assets', 'My Properties and Cars']);
+    else items.unshift(['assets', 'My Properties and Cars']);
   var tools = {
     assets: T.tenancyMode ? 0 : 1,
     logout: 1,
@@ -87,6 +108,12 @@ function renderNav() {
     myhome: 1,
     more: 1
   };
+  if (mgNav) {
+    tools.appointments = 1;
+    tools.todo = 1;
+    tools.reminders = 1;
+    tools.clients = 1;
+  }
   if (T.calTab) tools.tasks = 1;
   if (T.calTab && tdAnch === 'tasks') {
     tools.todo = 1;
@@ -302,7 +329,7 @@ if (NAV_MQ) {
 function toolItems(l) {
   return l.filter(function (i) {
     return (
-      !(i[0] === 'appointments' && !T.apptTab) &&
+      !(i[0] === 'appointments' && !T.apptTab && T.id !== 'mortgage') &&
       !(i[0] === 'calculator' && !T.calculator) &&
       !(i[0] === 'birthdays' && !T.dob) &&
       !(T.hideTabs && T.hideTabs.indexOf(i[0]) > -1)

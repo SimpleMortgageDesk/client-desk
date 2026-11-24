@@ -835,12 +835,18 @@ function apHome() {
     return (
       '<div class="aphead" style="margin-bottom:6px"><h2 style="font-size:' +
       (T.tenancyMode || T.calTab ? '20' : '15') +
-      'px">Calendar</h2><button type="button" class="btn ghost sm" data-hmtog="0">List view</button></div>' +
+      'px">' +
+      (T.id === 'mortgage' ? 'Month view' : 'Calendar') +
+      '</h2><button type="button" class="btn ghost sm" data-hmtog="0">' +
+      (T.id === 'mortgage' ? 'Back to agenda' : 'List view') +
+      '</button></div>' +
       apHTML(true)
     );
   var tI = iso(TODAY),
     h =
-      '<div class="aphead"><h2>Today and next 7 days</h2><button type="button" class="btn ghost sm" data-hmtog="1">Calendar view</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>',
+      '<div class="aphead"><h2>Today and next 7 days</h2><button type="button" class="btn ghost sm" data-hmtog="1">' +
+      (T.id === 'mortgage' ? 'Month view' : 'Calendar view') +
+      '</button><button type="button" class="btn" data-apnew="1" style="margin-left:auto">Book appointment</button></div>',
     any = 0;
   for (var i = 0; i < 8; i++) {
     var di = addDays(tI, i),
@@ -851,7 +857,7 @@ function apHome() {
       );
     if (!l.length && i > 0) continue;
     any += l.length;
-    h +=
+    var sec =
       '<div class="agd"><b>' +
       (i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : '') +
       (i < 2 ? ' · ' : '') +
@@ -872,6 +878,7 @@ function apHome() {
             })
             .join('')
         : '<div class="muted" style="margin:0 0 8px">Nothing booked today.</div>');
+    h += i === 0 && T.id === 'mortgage' ? '<div class="agtoday">' + sec + '</div>' : sec;
   }
   if (!any) h += '<div class="muted" style="margin-top:6px">No appointments in the next 7 days.</div>';
   return h;

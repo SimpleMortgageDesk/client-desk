@@ -1345,3 +1345,12 @@ body.apdragging,body.apdragging *{cursor:grabbing!important;user-select:none!imp
 .ntsug .sgb{display:flex;gap:6px}.sgk{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:#1565c0;color:#fff;border-radius:4px;padding:1px 6px;margin-right:4px}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ntsug{background:#3d3410;border-color:#8a7200}:root:not([data-theme="light"]) .ntsug .sgi{border-top-color:#6b5a1a}}
 :root[data-theme="dark"] .ntsug{background:#3d3410;border-color:#8a7200}:root[data-theme="dark"] .ntsug .sgi{border-top-color:#6b5a1a}
+
+/* mortgage adviser home: today in a red box, times in red, appointment buttons stacked at the right */
+body[data-theme-trade="mortgage"] .aptm{min-width:64px}
+body[data-theme-trade="mortgage"] .aptm b{font-size:19px;line-height:1.1;color:#c62828;font-weight:700}
+.agtoday{background:#fbd5d5;border:2px solid #d64545;border-radius:10px;padding:8px 12px 4px;margin:4px 0 12px}
+.agtoday .agd{margin-top:0;font-size:16px}.agtoday .agd b{color:#b71c1c}
+.agtoday .apc{border-left-color:#c62828}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .agtoday{background:#5a2323;border-color:#e57373}:root:not([data-theme="light"]) body[data-theme-trade="mortgage"] .aptm b,:root:not([data-theme="light"]) .agtoday .agd b{color:#ff8a80}}
+:root[data-theme="dark"] .agtoday{background:#5a2323;border-color:#e57373}:root[data-theme="dark"] body[data-theme-trade="mortgage"] .aptm b,:root[data-theme="dark"] .agtoday .agd b{color:#ff8a80}
