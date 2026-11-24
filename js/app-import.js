@@ -1625,3 +1625,5 @@ document.addEventListener('change', function (e) {
     imDraw();
   }
 });
+
+window.CD_import = imOpen;

@@ -598,7 +598,11 @@ function emptyHTML() {
     '<br><button class="btn" data-act="new">Add your first ' +
     N1() +
     '</button>' +
-    (imKind() ? ' <button class="btn ghost" data-act="import">Import from Excel or CSV</button>' : '') +
+    (T.id === 'mortgage'
+      ? '<p class="muted" style="font-size:12.5px;margin:10px 0 0">Bringing in an existing list? Use Settings › Backup and restore › Import.</p>'
+      : imKind()
+        ? ' <button class="btn ghost" data-act="import">Import from Excel or CSV</button>'
+        : '') +
     '</div>'
   );
 }
@@ -901,29 +905,28 @@ function casesHTML(embed) {
     (embed ? 'Investment properties' : T.tenancyMode ? 'Buy to let properties' : 'All ' + NS()) +
     '</h1>' +
     llSum +
-    (T.id === 'mortgage'
-      ? '<button class="btn ghost" data-act="portfolio" title="Fill in the Personal Portfolio Summary from a client\'s buy to let cases">Portfolio summary</button>'
-      : '') +
-    (T.id === 'mortgage'
-      ? '<button class="btn ghost" data-act="pdfnew" title="Make a new case from a lender document (decision in principle or mortgage offer)">New client from a PDF</button>'
-      : '') +
     (T.id === 'mortgage' && planNos().length
       ? '<button class="btn ghost" data-act="tidyno" title="Some clients have more than one number, or two clients share a number">Tidy client numbers (' +
         planNos().length +
         ')</button>'
       : '') +
-    (imKind() ? '<button class="btn ghost" data-act="import">Import</button>' : '') +
-    (cases.length > 1 ? dupBtn() : '') +
+    (T.id !== 'mortgage' && imKind() ? '<button class="btn ghost" data-act="import">Import</button>' : '') +
+    (T.id !== 'mortgage' && cases.length > 1 ? dupBtn() : '') +
     (!T.tenancyMode && T.jobDocs && cases.length && cfWanted().length
       ? '<button class="btn ghost" data-act="cfolders" title="Make a Clients folder in your OneDrive with one folder per client">Client folders (' +
         cfWanted().length +
         ')</button>'
       : '') +
-    '<button class="btn ghost" data-act="export">Export CSV</button></div>' +
+    (T.id !== 'mortgage' ? '<button class="btn ghost" data-act="export">Export CSV</button>' : '') +
+    '</div>' +
     dupBar() +
     '<div class="filters">' +
-    (imKind() ? '<button type="button" class="btn ghost xpm" data-act="import">Import</button>' : '') +
-    '<button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>' +
+    (T.id !== 'mortgage' && imKind()
+      ? '<button type="button" class="btn ghost xpm" data-act="import">Import</button>'
+      : '') +
+    (T.id !== 'mortgage'
+      ? '<button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>'
+      : '') +
     (T.tenancyMode ? '' : '<select id="stageSel" aria-label="Filter by stage">' + opts + '</select> ') +
     '<select id="sortSel" aria-label="Sort clients">' +
     [

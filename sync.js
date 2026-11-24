@@ -5446,6 +5446,13 @@
             'All records in a password-protected ZIP, saved to folders you choose, with an automatic backup every 24 hours.',
             btn('pdfbk', 'Back up')
           ) +
+            (TR().id === 'mortgage' && window.CD_import
+              ? row(
+                  'Import or export a spreadsheet',
+                  'Bring in clients from an Excel or CSV file made in another app (the columns are matched for you, and you check them before anything is added), or save all your cases as a CSV.',
+                  btn('imp', 'Import from Excel or CSV') + ' ' + btn('csvx', 'Export CSV')
+                )
+              : '') +
             (TR().id === 'mortgage' && bkCanPick()
               ? row(
                   'Local copy (if ' + esc(SNAME()) + ' is slow or down)',
@@ -5659,6 +5666,11 @@
       } else if (a === 'biz') {
         ov.remove();
         if (window.CD_openBiz) window.CD_openBiz();
+      } else if (a === 'imp') {
+        ov.remove();
+        if (window.CD_import) window.CD_import();
+      } else if (a === 'csvx') {
+        if (window.CD_exportCsv) window.CD_exportCsv();
       } else if (a === 'inv') {
         ov.remove();
         if (window.CD_openInv) window.CD_openInv();

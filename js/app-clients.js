@@ -429,6 +429,12 @@ function openDrawer(id, draft) {
           (T.id === 'mortgage'
             ? '<button type="button" class="btn ghost" id="docBtn" title="Read a lender document (decision in principle or mortgage offer) on this device">Read a document</button>'
             : '') +
+          (T.id === 'mortgage' &&
+          pfGroups().some(function (g) {
+            return g.k === clientKey(c);
+          })
+            ? '<button type="button" class="btn ghost" id="pfBtn" title="Fill in the Personal Portfolio Summary from this client\'s buy to let cases">Portfolio summary</button>'
+            : '') +
           '<button type="button" class="btn" id="bookBtn">Book appointment</button>'
       : '') +
     (id && !T.tenancyMode && N1() !== 'client'

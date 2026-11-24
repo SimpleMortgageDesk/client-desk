@@ -686,7 +686,7 @@ function pfPdf() {
   }, 4000);
   toast('PDF saved');
 }
-function openPortfolio() {
+function openPortfolio(key) {
   var old = document.getElementById('pfOv');
   if (old) old.remove();
   var grps = pfGroups();
@@ -696,7 +696,17 @@ function openPortfolio() {
   }
   var q = (document.getElementById('q') || {}).value || '',
     pick = grps[0].k;
-  if (q.trim()) {
+  if (key) {
+    if (
+      !grps.some(function (x) {
+        return x.k === key;
+      })
+    ) {
+      toast('This client has no buy to let cases to put in a portfolio summary');
+      return;
+    }
+    pick = key;
+  } else if (q.trim()) {
     var ql = q.trim().toLowerCase(),
       hit = cases.filter(function (c) {
         return (

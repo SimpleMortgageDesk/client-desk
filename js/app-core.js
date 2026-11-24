@@ -76,8 +76,6 @@ function applyTrade() {
         : T.noun[0] === 'Client' || T.tenancyMode
           ? 'Add ' + T.noun[0].toLowerCase()
           : 'New ' + T.noun[0].toLowerCase();
-  var pb = document.getElementById('addPdfBtn');
-  if (pb) pb.style.display = T.id === 'mortgage' ? '' : 'none';
   var q = document.getElementById('q');
   if (q) q.placeholder = 'Search ' + T.noun[1].toLowerCase();
   var bn = document.getElementById('brandName'),

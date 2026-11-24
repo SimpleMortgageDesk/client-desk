@@ -1764,3 +1764,5 @@ function backupAll() {
       );
   });
 }
+
+window.CD_exportCsv = exportCsv;

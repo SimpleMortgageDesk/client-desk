@@ -203,11 +203,31 @@ document.addEventListener('click', function (e) {
   }
   if (t.closest('#newBtn') || t.closest('[data-act="new"]')) {
     if (T.tenancyMode) qaOpen();
+    else if (T.id === 'mortgage')
+      docAsk('Create a case', 'How do you want to start?', [
+        {
+          pri: true,
+          label:
+            '<b>Blank case</b><br><span style="font-size:12.5px;opacity:.8">Type the client and case details yourself.</span>',
+          go: function () {
+            openDrawer(null);
+          }
+        },
+        {
+          label:
+            '<b>From a lender PDF</b><br><span style="font-size:12.5px;opacity:.8">Read a decision in principle or mortgage offer on this device and fill in the case. Documents are not stored.</span>',
+          go: function () {
+            docChoose(importPdfs);
+          }
+        },
+        { label: 'Cancel', go: null }
+      ]);
     else openDrawer(null);
     return;
   }
-  if (t.closest('#addPdfBtn')) {
-    docChoose(importPdfs);
+  if (t.id === 'pfBtn') {
+    var pc = currentCase();
+    if (pc) openPortfolio(clientKey(pc));
     return;
   }
   if (t.closest('[data-act="portfolio"]')) {
