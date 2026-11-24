@@ -435,11 +435,6 @@ function openDrawer(id, draft) {
           })
             ? '<button type="button" class="btn ghost" id="pfBtn" title="Fill in the Personal Portfolio Summary from this client\'s buy to let cases">Portfolio summary</button>'
             : '') +
-          (T.id === 'mortgage' && c.folder && /^https?:\/\//i.test(c.folder.url || '')
-            ? '<a class="btn ghost" id="fldLink" href="' +
-              esc(c.folder.url) +
-              '" target="_blank" rel="noopener" title="Open this client\'s folder in your OneDrive">Open client folder</a>'
-            : '') +
           '<button type="button" class="btn" id="bookBtn">Book appointment</button>'
       : '') +
     (id && !T.tenancyMode && N1() !== 'client'

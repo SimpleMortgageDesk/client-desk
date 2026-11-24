@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST204)
+# MySimpleDesk – handoff (build LATEST205)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -57,4 +57,4 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - **PDF reader upgraded** to PDF.js 6.5.438 (legacy build) in `lib/pdfjs/` (was 3.11.174, which had CVE-2024-4367). Loaded as a module via `lib/pdfjs/load.mjs` (`dxLoad(src, true)`); the three image decoders are in `lib/pdfjs/wasm/` (`PDFJS_WASM`). Re-copy from `pdfjs-dist/legacy/build` to update.
 - **Mortgage adviser layout:** All cases header has no Import/Export/Find duplicates/Portfolio/New-client-from-PDF buttons. Create Case asks Blank or From a lender PDF; Portfolio summary is on the client page (`pfBtn`); Import and Export CSV are in Settings > Backup and restore; duplicates are suggested by the yellow banner (runs automatically). Other trades unchanged.
 - **Mortgage invoices:** new invoice fills Regarding (property) = address (case type, lender), description 'Broker fee - type, address', amount from the case's Broker fee, client name/address/number; Client and Regarding show at the top of the invoice and PDF. Case has a 'Broker fee' section (fee amount, 'No fee'); a No-fee client asks before an invoice is made. CSV import reads a fee column.
-- **Mortgage client page:** 'Advice fee and invoices' section (fee mode None/Fee, amount, description, payable, status, paid on, Create invoice; invoice list; saving/paying an invoice updates Fee status); no Documents section (Read a document button kept; 'Open client folder' shows if a folder was made from Settings); the Done button is called Save.
+- **Mortgage client page:** 'Advice fee and invoices' section (fee mode None/Fee, amount, description, payable, status, paid on, Create invoice; invoice list; saving/paying an invoice updates Fee status); no Documents section (Read a document button kept); the Done button is called Save. Client numbers still exist on cases but the Tidy tool and the Client folders tool (app-folders.js) were removed completely.

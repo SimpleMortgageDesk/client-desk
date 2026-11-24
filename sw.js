@@ -34,7 +34,6 @@ var FILES = [
   'js/app-lender-pdf.js',
   'js/app-portfolio.js',
   'js/app-appts.js',
-  'js/app-folders.js',
   'js/app-dupes.js',
   'js/app-start.js',
   'manifest.webmanifest',

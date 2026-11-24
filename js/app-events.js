@@ -238,14 +238,6 @@ document.addEventListener('click', function (e) {
     docChoose(importPdfs);
     return;
   }
-  if (t.id === 'cfMake') {
-    cfDrawer();
-    return;
-  }
-  if (t.closest('[data-act="cfolders"]')) {
-    cfBulk();
-    return;
-  }
   if (t.closest('[data-act="dupes"]')) {
     dupOpen();
     return;
@@ -253,10 +245,6 @@ document.addEventListener('click', function (e) {
   if (t.closest('[data-act="dupsnooze"]')) {
     dupLS('cd.dupSnooze', String(Date.now() + 7 * 864e5));
     render();
-    return;
-  }
-  if (t.closest('[data-act="tidyno"]')) {
-    openTidyNos();
     return;
   }
   if (t.closest('[data-act="export"]')) {
