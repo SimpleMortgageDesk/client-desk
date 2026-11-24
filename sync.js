@@ -3302,7 +3302,14 @@
       return { ok: false, msg: 'Could not write to the folder (' + ((e && e.name) || 'error') + ').' };
     }
   }
-  async function bkRun(interactive) {
+  async function bkRun(interactive, onStep) {
+    /* onStep(text, fraction): lets the backup window show what is happening; a short pause after each step lets the screen redraw */
+    var step = async function (t, f) {
+      if (onStep) {
+        onStep(t, f);
+        await sleep(40);
+      }
+    };
     if (bkRunning) return null;
     if (!bkPw()) return { nopw: true };
     var pick = bkCanPick(),
@@ -3315,6 +3322,7 @@
     } else if (!interactive) return { nofolder: true };
     bkRunning = true;
     try {
+      await step('Reading your records…', 0.04);
       var all = bkCases(),
         d = new Date(),
         pad = function (n) {
@@ -3328,19 +3336,34 @@
         ':' +
         pad(d.getMinutes());
       var pw = bkPw();
+      await step(
+        'Making the PDF of ' +
+          all.length +
+          ' record' +
+          (all.length === 1 ? '' : 's') +
+          '… (the longest step)',
+        0.1
+      );
+      var pdfBytes = bkPdf(all, stamp, pw);
+      await step('Making the CSV…', 0.55);
+      var csvBytes = new TextEncoder().encode(bkCsv(all));
+      await step('Locking the ZIP with your password…', 0.65);
       var zipBytes = await bkZip(
         [
-          { name: APPF + '-' + TR().noun[1] + '-' + day + '.pdf', data: bkPdf(all, stamp, pw) },
-          { name: APPF + '-' + TR().noun[1] + '-' + day + '.csv', data: new TextEncoder().encode(bkCsv(all)) }
+          { name: APPF + '-' + TR().noun[1] + '-' + day + '.pdf', data: pdfBytes },
+          { name: APPF + '-' + TR().noun[1] + '-' + day + '.csv', data: csvBytes }
         ],
         pw
       );
       var blob = new Blob([zipBytes], { type: 'application/zip' });
-      var res = { at: Date.now(), count: all.length };
+      var res = { at: Date.now(), count: all.length, size: blob.size };
       if (pick) {
+        if (g1 && !g1.none) await step('Saving to Location 1…', 0.8);
         res.l1 = await bkWrite(g1, blob);
+        if (g2 && !g2.none) await step('Saving to Location 2…', 0.92);
         res.l2 = await bkWrite(g2, blob);
       } else {
+        await step('Downloading to this device…', 0.85);
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = BK_FILE;
@@ -3405,7 +3428,19 @@
       h = '';
     h += cfg.last ? 'Last successful backup: ' + f(cfg.last) + '.' : 'No backup yet.';
     if (r.at) {
-      h += '<br>Last attempt ' + f(r.at) + ' (' + (r.count || 0) + ' records):';
+      h +=
+        '<br>Last attempt ' +
+        f(r.at) +
+        ' (' +
+        (r.count || 0) +
+        ' records' +
+        (r.size
+          ? ', ' +
+            (r.size >= 1048576
+              ? (r.size / 1048576).toFixed(1) + ' MB'
+              : Math.max(1, Math.round(r.size / 1024)) + ' KB')
+          : '') +
+        '):';
       if (r.l1) h += '<br>' + (r.l1.ok ? '\u2713' : '\u2717') + ' Location 1: ' + esc(r.l1.msg);
       if (r.l2) h += '<br>' + (r.l2.ok ? '\u2713' : '\u2717') + ' Location 2: ' + esc(r.l2.msg);
     }
@@ -3774,7 +3809,9 @@
         label +
         '</b><br><span style="color:#58697A;font-size:13px">' +
         (names[slot] ? 'Folder: <b>' + esc(names[slot]) + '</b>' : opt ? 'Optional' : 'Not chosen yet') +
-        '</span></div>' +
+        '</span></div><span id="bkal-' +
+        slot +
+        '"></span>' +
         '<button class="btn ghost sm" data-b="pick" data-slot="' +
         slot +
         '">' +
@@ -3838,6 +3875,7 @@
         (c.auto ? ' checked' : '') +
         ' style="margin-top:3px"><span>Back up automatically every 24 hours<br><span style="color:#58697A;font-size:13px">Runs while the app is open. If it was closed, it runs the next time you open it.</span></span></label>' +
         '<div style="margin:12px 0 8px"><button class="btn" data-b="run">Back up now</button></div>' +
+        '<div id="bkProg" hidden style="margin:10px 0;padding:12px 14px;border:1px solid #BFE0D2;border-radius:10px;background:#EEF8F3"><div id="bkStep" style="font-weight:600"></div><div style="height:10px;border-radius:99px;background:#D4E8DE;margin:8px 0;overflow:hidden"><i id="bkFill" style="display:block;height:100%;width:0;background:#0A6B50;border-radius:99px;transition:width .35s"></i></div><div style="color:#58697A;font-size:13px">Please keep this window open until it says the backup is done.</div></div>' +
         '<p id="bkStatus" style="margin:8px 0;font-size:13px;color:#2b3b47"></p>' +
         (hasPw
           ? '<h3 style="margin:16px 0 4px;font-size:15px">Forgot the password?</h3>' +
@@ -3849,6 +3887,24 @@
           : '') +
         '<p id="bkMsg" style="min-height:18px;margin:10px 0 0"></p></div>';
       bkPaint();
+      /* a folder the browser has stopped trusting: one button to allow it again */
+      ['dir', 'dir2'].forEach(function (sl) {
+        if (!names[sl]) return;
+        bkGetDir(sl).then(function (h) {
+          if (!h || !h.queryPermission) return;
+          h.queryPermission({ mode: 'readwrite' }).then(
+            function (p) {
+              var s = $('bkal-' + sl);
+              if (p !== 'granted' && s)
+                s.innerHTML =
+                  '<button class="btn sm" data-b="allow" data-slot="' +
+                  sl +
+                  '" title="The browser asks for permission once per visit">Allow access</button>';
+            },
+            function () {}
+          );
+        });
+      });
     }
     draw();
     var say = function (m) {
@@ -3886,6 +3942,10 @@
         } catch (x) {
           if (!x || x.name !== 'AbortError') say('Could not choose that folder.');
         }
+      } else if (b === 'allow') {
+        var ap = await bkPerm(slot, true);
+        draw();
+        say(ap && ap.ok ? 'Allowed. You can press Back up now.' : 'Permission was not given.');
       } else if (b === 'unpick') {
         await bkPutDir(slot, null);
         names[slot] = '';
@@ -3936,17 +3996,49 @@
           say('Choose a folder for Location 1 first.');
           return;
         }
-        say('Backing up…');
-        var r = await bkRun(true);
+        say('');
+        var pg = $('bkProg'),
+          fill = $('bkFill'),
+          stp = $('bkStep'),
+          guard = function (ev) {
+            ev.preventDefault();
+            ev.returnValue = '';
+          };
+        if (pg) pg.hidden = false;
+        ov.querySelectorAll('[data-b]').forEach(function (x) {
+          x.disabled = true;
+        });
+        window.addEventListener('beforeunload', guard);
+        var r;
+        try {
+          r = await bkRun(true, function (t, f) {
+            if (stp) stp.textContent = t;
+            if (fill) fill.style.width = Math.round(f * 100) + '%';
+          });
+        } finally {
+          window.removeEventListener('beforeunload', guard);
+        }
+        if (fill) fill.style.width = '100%';
+        ov.querySelectorAll('[data-b]').forEach(function (x) {
+          x.disabled = false;
+        });
+        if (pg) pg.hidden = true;
         bkPaint();
         if (r && r.nopw) say('Set a backup password first.');
         else if (r && r.nofolder) say('Choose a folder for Location 1 first.');
-        else if (r)
+        else if (r) {
+          var okAll = (!r.l1 || r.l1.ok) && (!r.l2 || r.l2.ok);
           say(
-            (!r.l1 || r.l1.ok) && (!r.l2 || r.l2.ok)
-              ? 'Backup finished.'
-              : 'Backup finished with a problem. See below.'
+            okAll
+              ? 'Done. Backed up ' +
+                  r.count +
+                  ' record' +
+                  (r.count === 1 ? '' : 's') +
+                  (r.l2 && r.l1 ? ' to both locations' : '') +
+                  '.'
+              : 'Backup finished with a problem. See below: a location marked \u2717 was not saved.'
           );
+        }
       }
     });
   }
@@ -4877,6 +4969,226 @@
       return '';
     }
   }
+  /* ---------- importing or restoring a backup file: look first, then save with progress, then a summary ---------- */
+  function impCount(p, isRes) {
+    var c = { cases: 0, notes: 0, tasks: 0, prot: 0, appts: 0, nb: 0, mk: 0, add: 0, dup: 0 };
+    COLS.forEach(function (col) {
+      (p[col] || []).forEach(function (row) {
+        var id = safeId((row && row.id) || 'x');
+        var here = !!(row && row.id && mem[col][id]);
+        if (here && !isRes) c.dup++;
+        else c.add++;
+        if (col === 'cases') {
+          c.cases++;
+          c.notes += ((row && row.notes) || []).length;
+          c.tasks += ((row && row.tasks) || []).length;
+          c.prot += ((row && row.protection) || []).length;
+        } else if (col === 'appointments') c.appts++;
+        else if (col === 'notebook') c.nb++;
+        else if (col === 'marketing') c.mk += ((row && row.items) || []).length || 1;
+      });
+    });
+    return c;
+  }
+  function importFlow(file, isRes, say) {
+    var old = $('mdImpOv');
+    if (old) old.remove();
+    var ov = document.createElement('div');
+    ov.id = 'mdImpOv';
+    ov.style.cssText =
+      'position:fixed;inset:0;z-index:275;background:rgba(8,14,18,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+    document.body.appendChild(ov);
+    var card = function (inner) {
+      ov.innerHTML =
+        '<div role="dialog" aria-modal="true" aria-label="' +
+        (isRes ? 'Restore' : 'Import') +
+        ' a backup file" style="background:#fff;color:#101C26;width:min(520px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14.5px/1.45 system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
+        inner +
+        '</div>';
+    };
+    var li = function (n, t) {
+      return n ? '<li><b>' + n + '</b> ' + t + '</li>' : '';
+    };
+    var btn = function (id, t, pri) {
+      return (
+        '<button type="button" class="btn' +
+        (pri ? '' : ' ghost') +
+        '" data-i="' +
+        id +
+        '">' +
+        t +
+        '</button>'
+      );
+    };
+    card('<h2 style="margin:0 0 8px;font-size:20px">Reading the file…</h2>');
+    file
+      .text()
+      .then(function (txt) {
+        var p = JSON.parse(txt);
+        if (!p || typeof p !== 'object') throw new Error('no');
+        var c = impCount(p, isRes);
+        if (!c.add && !c.dup) throw new Error('empty');
+        card(
+          '<h2 style="margin:0 0 8px;font-size:20px">' +
+            (isRes ? 'Restore from this file?' : 'Import this file?') +
+            '</h2><p style="margin:0 0 8px;color:#58697A">' +
+            esc(file.name) +
+            ' contains:</p><ul style="margin:0 0 10px;padding-left:20px">' +
+            li(c.cases, 'case' + (c.cases === 1 ? '' : 's') + ' (client numbers kept)') +
+            li(c.notes, 'note' + (c.notes === 1 ? '' : 's')) +
+            li(c.tasks, 'task' + (c.tasks === 1 ? '' : 's')) +
+            li(c.prot, 'protection note' + (c.prot === 1 ? '' : 's')) +
+            li(c.appts, 'appointment' + (c.appts === 1 ? '' : 's')) +
+            li(c.nb, 'notebook page' + (c.nb === 1 ? '' : 's')) +
+            li(c.mk, 'marketing contact' + (c.mk === 1 ? '' : 's')) +
+            '</ul><p style="margin:0 0 12px">' +
+            (isRes
+              ? '<b>' +
+                c.add +
+                '</b> item' +
+                (c.add === 1 ? '' : 's') +
+                ' will be put back, replacing the matching records here with the backup version. Records not in the file are left alone.'
+              : '<b>' +
+                c.add +
+                '</b> new item' +
+                (c.add === 1 ? '' : 's') +
+                ' will be added' +
+                (c.dup ? ' and <b>' + c.dup + '</b> already here will be skipped, not changed' : '') +
+                '. Nothing here is deleted.') +
+            '</p><p style="margin:0 0 14px;color:#58697A;font-size:13px">The file stays on this device. Your records are saved to your ' +
+            esc(SNAME()) +
+            '.</p><div style="display:flex;gap:8px;justify-content:flex-end">' +
+            btn('x', 'Cancel') +
+            btn('go', isRes ? 'Restore' : 'Import', true) +
+            '</div>'
+        );
+        ov.onclick = function (ev) {
+          var b = ev.target.closest && ev.target.closest('[data-i]');
+          if (!b && ev.target === ov) return ov.remove();
+          if (!b) return;
+          var k = b.getAttribute('data-i');
+          if (k === 'x') ov.remove();
+          if (k === 'go') apply(p, c);
+        };
+      })
+      .catch(function () {
+        card(
+          '<h2 style="margin:0 0 8px;font-size:20px">That file could not be used</h2><p style="margin:0 0 14px;color:#58697A">It is not a backup file made by ' +
+            esc(APPN) +
+            ' or the Mortgage Desk. Choose the .json file saved by the Backup button.</p><div style="text-align:right">' +
+            btn('x', 'Close', true) +
+            '</div>'
+        );
+        ov.onclick = function (ev) {
+          if (ev.target === ov || (ev.target.closest && ev.target.closest('[data-i="x"]'))) ov.remove();
+        };
+        say('That file could not be read as a backup.');
+      });
+    async function apply(p, c) {
+      var n = 0,
+        base = pending();
+      card(
+        '<h2 style="margin:0 0 8px;font-size:20px">' +
+          (isRes ? 'Restoring' : 'Importing') +
+          '…</h2><div id="impStep" style="font-weight:600">Adding to this device…</div><div style="height:10px;border-radius:99px;background:#D4E8DE;margin:10px 0;overflow:hidden"><i id="impFill" style="display:block;height:100%;width:3%;background:#0A6B50;border-radius:99px;transition:width .3s"></i></div><div style="color:#58697A;font-size:13px">Please keep this page open until it says Done. If you are offline, the records are kept on this device and upload when you are back online.</div>'
+      );
+      ov.onclick = null;
+      var guard = function (ev) {
+        ev.preventDefault();
+        ev.returnValue = '';
+      };
+      window.addEventListener('beforeunload', guard);
+      var skipped = 0,
+        bad = 0;
+      COLS.forEach(function (col) {
+        (p[col] || []).forEach(function (row) {
+          try {
+            var id = safeId((row && row.id) || genId());
+            if (mem[col][id] && !isRes) {
+              skipped++;
+              return;
+            }
+            var d = clone(row);
+            delete d.id;
+            /* an account with two trades keeps each trade's records apart: records from a file belong to the trade being used now */
+            if (col === 'cases' && !d.tr && (window.TRADES || []).length > 1 && window.T && window.T.id)
+              d.tr = window.T.id;
+            localWrite(col, id, d, 'set');
+            n++;
+          } catch (er) {
+            bad++;
+          }
+        });
+      });
+      var st0 = Date.now();
+      flush();
+      var stp = $('impStep'),
+        fill = $('impFill');
+      /* uploading: show how many of the records have reached the storage */
+      var left = 0,
+        waited = 0;
+      while (!window.CD_TEST && n) {
+        left = Math.max(0, pending() - base);
+        var done = Math.max(0, n - left);
+        if (stp) stp.textContent = 'Saving to ' + SNAME() + ': ' + done + ' of ' + n;
+        if (fill) fill.style.width = Math.max(3, Math.round((done / n) * 100)) + '%';
+        if (!left || st.offline || (st.err && !st.busy) || waited > 600) break;
+        await sleep(500);
+        waited++;
+      }
+      window.removeEventListener('beforeunload', guard);
+      var pend = window.CD_TEST ? 0 : Math.max(0, pending() - base);
+      var upOk = !pend;
+      say(
+        (isRes ? 'Restored ' : 'Imported ') +
+          n +
+          ' item(s)' +
+          (skipped ? ', skipped ' + skipped + ' that already exist' : '') +
+          '.'
+      );
+      card(
+        '<h2 style="margin:0 0 8px;font-size:20px;color:' +
+          (bad || (!upOk && st.err) ? '#A3261F' : '#1b5e20') +
+          '">' +
+          (upOk ? 'Done' : 'Saved on this device') +
+          '</h2><p style="margin:0 0 6px"><b>' +
+          (isRes ? 'Restored ' : 'Imported ') +
+          n +
+          '</b> item' +
+          (n === 1 ? '' : 's') +
+          (skipped ? ', skipped <b>' + skipped + '</b> that were already here' : '') +
+          (bad ? ', <b>' + bad + '</b> could not be read' : '') +
+          '.</p><p style="margin:0 0 14px;color:#58697A">' +
+          (upOk
+            ? 'All of it is now saved to your ' + esc(SNAME()) + '.'
+            : pend +
+              ' item' +
+              (pend === 1 ? ' is' : 's are') +
+              ' still waiting to upload (' +
+              (st.offline ? 'you look to be offline' : st.err ? esc(st.err) : 'this can take a few minutes') +
+              '). They are safe on this device and upload by themselves; keep the app open.') +
+          '</p><div style="display:flex;gap:8px;justify-content:flex-end">' +
+          btn('x', 'Close') +
+          btn('cases', 'Open All cases', true) +
+          '</div>'
+      );
+      ov.onclick = function (ev) {
+        var b = ev.target.closest && ev.target.closest('[data-i]');
+        if (!b) return;
+        var k = b.getAttribute('data-i');
+        ov.remove();
+        if (k === 'cases') {
+          var so = document.querySelector('.cds-ov');
+          if (so) so.remove();
+          var nb2 = document.querySelector(
+            '#nav [data-v="cases"],#nav [data-v="assets"],#nav2 [data-v="cases"]'
+          );
+          if (nb2) nb2.click();
+        }
+      };
+      void st0;
+    }
+  }
   async function openAccount() {
     var ov = document.createElement('div');
     ov.className = 'cds-ov';
@@ -5261,48 +5573,9 @@
       }
       var isRes = e.target.id === 'mdRes';
       if ((e.target.id !== 'mdImp' && !isRes) || !e.target.files[0]) return;
-      if (
-        isRes &&
-        !confirm(
-          'Restore from this backup? Records in the file replace the matching records here with the backup version. Records not in the file are left alone.'
-        )
-      ) {
-        e.target.value = '';
-        return;
-      }
-      try {
-        var p = JSON.parse(await e.target.files[0].text()),
-          n = 0,
-          skipped = 0;
-        COLS.forEach(function (col) {
-          (p[col] || []).forEach(function (row) {
-            var id = safeId(row.id || genId());
-            if (mem[col][id] && !isRes) {
-              skipped++;
-              return;
-            }
-            var d = clone(row);
-            delete d.id;
-            /* an account with two trades keeps each trade's records apart: records from a file belong to the trade being used now */
-            if (col === 'cases' && !d.tr && (window.TRADES || []).length > 1 && window.T && window.T.id)
-              d.tr = window.T.id;
-            localWrite(col, id, d, 'set');
-            n++;
-          });
-        });
-        say(
-          (isRes ? 'Restored ' : 'Imported ') +
-            n +
-            ' item(s)' +
-            (skipped ? ', skipped ' + skipped + ' that already exist' : '') +
-            '. Uploading to ' +
-            SNAME() +
-            '…'
-        );
-        flush();
-      } catch (x) {
-        say('That file could not be read as a backup.');
-      }
+      var impFile = e.target.files[0];
+      e.target.value = '';
+      importFlow(impFile, isRes, say);
     });
     ov.addEventListener('click', async function (e) {
       var a = e.target.closest && e.target.closest('[data-a]');
