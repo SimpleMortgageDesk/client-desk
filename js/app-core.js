@@ -936,6 +936,22 @@ document.addEventListener(
   },
   true
 );
+/* safety net: a link in a record can never run script (javascript:, data: or vbscript: links are ignored) */
+['click', 'auxclick'].forEach(function (ev) {
+  document.addEventListener(
+    ev,
+    function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      if (!a) return;
+      var h = String(a.getAttribute('href') || '').replace(/[\u0000-\u0020]/g, '');
+      if (/^(?:javascript|data|vbscript):/i.test(h)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    true
+  );
+});
 function toast(m, sticky) {
   var t = $('#toast');
   t.textContent = m;
