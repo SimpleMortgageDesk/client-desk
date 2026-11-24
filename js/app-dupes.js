@@ -219,7 +219,7 @@ function dupLine(c) {
   if (c.updatedAt) bits.push('updated ' + new Date(c.updatedAt).toLocaleDateString('en-GB'));
   return bits.join(' · ');
 }
-function dupMerge(keep, others) {
+function dupMerge(keep, others, fill) {
   var m = JSON.parse(JSON.stringify(keep));
   var blank = function (v) {
     return v === '' || v == null || (Array.isArray(v) && !v.length);
@@ -246,12 +246,16 @@ function dupMerge(keep, others) {
       var mine = m.applicants.filter(function (x) {
         return key && dupPerson(x.name) === key;
       })[0];
+      if (!mine && key && typeof docSameName === 'function')
+        mine = m.applicants.filter(function (x) {
+          return docSameName(x.name, a.name);
+        })[0];
       if (!mine && !key) mine = m.applicants[i];
       if (mine)
         Object.keys(a).forEach(function (k) {
           if (!mine[k] && a[k]) mine[k] = a[k];
         });
-      else if (key) m.applicants.push(a);
+      else if (key && (!fill || m.applicants.length < (o.applicants || []).length)) m.applicants.push(a);
     });
     var same = function (arr, f) {
       var seen = {};
@@ -266,7 +270,7 @@ function dupMerge(keep, others) {
       var f =
         k === 'notes'
           ? function (x) {
-              return dupTxt(x.text) + '|' + (x.ts || '');
+              return dupTxt(x.text) + (fill ? '' : '|' + (x.ts || ''));
             }
           : k === 'tasks'
             ? function (x) {

@@ -139,7 +139,8 @@ var imRows = [],
   imMap = [],
   imName = '',
   imSheet = '',
-  imBusy = false;
+  imBusy = false,
+  imFill = false;
 var IM_TRADE = {
   landlord: {
     noun: 'propert',
@@ -290,7 +291,6 @@ IM_TRADE.mortgage = {
         'clientname',
         'clients',
         'clientnames',
-        'applicants',
         'customer',
         'customername',
         'applicant',
@@ -454,10 +454,40 @@ IM_TRADE.mortgage = {
       'Task due date',
       ['taskdue', 'taskduedate', 'duedate', 'nextactiondate', 'followupdate', 'actiondate'],
       '30/11/2026'
+    ],
+    [
+      'apps',
+      'All applicants (names, one after another, split by |)',
+      ['applicants', 'applicantnames', 'allapplicants', 'borrowers'],
+      'MR TEST PERSON1 | MRS TEST PERSON2'
+    ],
+    [
+      'dobs',
+      'Dates of birth (one per applicant, split by |)',
+      ['datesofbirth', 'dobs', 'birthdates', 'datesofbirths'],
+      '01/02/1980 | 03/04/1982'
+    ],
+    [
+      'phones',
+      'Phones (one per applicant, split by |)',
+      ['phones', 'phonenumbers', 'mobiles', 'telephones'],
+      '07000000001 | 07000000002'
+    ],
+    [
+      'emails',
+      'Emails (one per applicant, split by |)',
+      ['emails', 'emailaddresses'],
+      'one@example.com | two@example.com'
+    ],
+    [
+      'addrs',
+      'Home addresses (one per applicant, split by |)',
+      ['addresses', 'homeaddresses', 'applicantaddresses', 'currentaddresses'],
+      '5 Old Street, AB1 2CD | 5 Old Street, AB1 2CD'
     ]
   ],
   req: ['name'],
-  reqL: 'the applicant’s name (or first name and surname)',
+  reqL: 'the applicant’s name (or first name and surname, or a list of applicants)',
   any: 1
 };
 /* turning the words in a column into the app's own values */
@@ -503,7 +533,16 @@ function imRepay(v) {
         : '';
 }
 function imMgRecord(g) {
-  var nm = g('name') || [g('fn'), g('sn')].filter(Boolean).join(' '),
+  var lst = function (v) {
+    return String(v || '')
+      .split(/\s*\|\s*/)
+      .map(function (x) {
+        x = x.trim();
+        return /^[-–—]$/.test(x) ? '' : x;
+      });
+  };
+  var aps = lst(g('apps')).filter(Boolean),
+    nm = aps[0] || g('name') || [g('fn'), g('sn')].filter(Boolean).join(' '),
     co = g('co');
   if (!nm && !co) return null;
   var person = function (n, d, p, e, a) {
@@ -514,18 +553,37 @@ function imMgRecord(g) {
     if (a) o.address = a;
     return o;
   };
-  var ap = [],
-    nm2 = g('name2');
-  if (nm && !nm2) {
-    /* "Mr A Smith & Mrs B Smith" in one cell = two applicants */
-    var sp = nm.split(/\s+(?:&|and|\+)\s+/i);
-    if (sp.length === 2 && sp[0].trim() && sp[1].trim()) {
-      nm = sp[0].trim();
-      nm2 = sp[1].trim();
+  var names = aps.slice();
+  if (!names.length) {
+    var nm2 = g('name2');
+    if (nm && !nm2) {
+      /* "Mr A Smith & Mrs B Smith" in one cell = two applicants */
+      var sp = nm.split(/\s+(?:&|and|\+)\s+/i);
+      if (sp.length === 2 && sp[0].trim() && sp[1].trim()) {
+        nm = sp[0].trim();
+        nm2 = sp[1].trim();
+      }
     }
+    if (nm) names.push(nm);
+    if (nm2) names.push(nm2);
   }
-  if (nm) ap.push(person(nm, g('dob'), g('phone'), g('email'), g('address')));
-  if (nm2) ap.push(person(nm2, g('dob2'), g('phone2'), g('email2'), ''));
+  /* dates of birth, phones, emails and addresses: one per applicant, in order (a list split by |), or the single columns */
+  var dl = lst(g('dobs')),
+    pl = lst(g('phones')),
+    el = lst(g('emails')),
+    al = lst(g('addrs'));
+  var ap = [];
+  names.slice(0, 4).forEach(function (n, i) {
+    ap.push(
+      person(
+        n,
+        dl[i] || (i === 0 ? g('dob') : i === 1 && !aps.length ? g('dob2') : ''),
+        pl[i] || (i === 0 ? g('phone') : i === 1 && !aps.length ? g('phone2') : ''),
+        el[i] || (i === 0 ? g('email') : i === 1 && !aps.length ? g('email2') : ''),
+        al[i] || (i === 0 ? g('address') : '')
+      )
+    );
+  });
   var use = imUse(g('use')),
     d = {
       applicants: ap.length ? ap : [{}],
@@ -1057,9 +1115,10 @@ function imKey(d) {
 function imPlan() {
   var have = {};
   cases.forEach(function (c) {
-    have[imKey(c)] = 1;
+    have[imKey(c)] = c;
   });
   var seen = {},
+    upd = [],
     add = [],
     dup = 0,
     empty = 0,
@@ -1078,6 +1137,17 @@ function imPlan() {
     var k = imKey(d);
     if (have[k] || seen[k]) {
       dup++;
+      /* a client already here: work out what the file could fill in (never replacing anything already there) */
+      if (have[k] && !seen['u' + k] && typeof dupMerge === 'function') {
+        seen['u' + k] = 1;
+        var ex = have[k],
+          m = dupMerge(ex, [d], true),
+          a0 = JSON.parse(JSON.stringify(ex));
+        delete a0.id;
+        delete a0.updatedAt;
+        delete m.updatedAt;
+        if (JSON.stringify(a0) !== JSON.stringify(m)) upd.push({ c: ex, m: m });
+      }
       return;
     }
     seen[k] = 1;
@@ -1085,12 +1155,17 @@ function imPlan() {
   });
   return {
     add: add,
+    upd: upd,
     dup: dup,
     empty: empty,
     missing: def.req.filter(function (x) {
       return (
         imMap.indexOf(x) < 0 &&
-        !(imKind() === 'mortgage' && x === 'name' && imMap.indexOf('fn') > -1 && imMap.indexOf('sn') > -1)
+        !(
+          imKind() === 'mortgage' &&
+          x === 'name' &&
+          ((imMap.indexOf('fn') > -1 && imMap.indexOf('sn') > -1) || imMap.indexOf('apps') > -1)
+        )
       );
     }),
     def: def
@@ -1179,7 +1254,18 @@ function imHtml() {
       (p.empty
         ? ', <b>' + p.empty + '</b> row' + (p.empty === 1 ? '' : 's') + ' with nothing usable (skipped)'
         : '') +
-      '. Existing records are never changed.</p>';
+      '. ' +
+      (imFill ? 'Records already here only get empty boxes filled.' : 'Existing records are never changed.') +
+      '</p>' +
+      (imKind() === 'mortgage' && p.upd.length
+        ? '<label style="display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border:1px solid #F0D58A;background:#FFF6E0;color:#4A3A0A;border-radius:10px;cursor:pointer"><input type="checkbox" id="imFill"' +
+          (imFill ? ' checked' : '') +
+          ' style="margin-top:3px"><span><b>Also fill in missing details on ' +
+          p.upd.length +
+          ' client' +
+          (p.upd.length === 1 ? '' : 's') +
+          ' already here</b><br><span style="font-size:13px">Adds dates of birth, phones, emails, addresses, notes and tasks from this file where they are empty. Anything already filled in is never changed.</span></span></label>'
+        : '');
   return (
     head +
     tbl +
@@ -1188,9 +1274,16 @@ function imHtml() {
       ? '<div id="imProg" style="margin:12px 0;padding:12px 14px;border:1px solid #BFE0D2;border-radius:10px;background:#EEF8F3"><div id="imProgTxt" style="font-weight:600">Saving…</div><div style="height:10px;border-radius:99px;background:#D4E8DE;margin:8px 0;overflow:hidden"><i id="imProgFill" style="display:block;height:100%;width:3%;background:#0A6B50;border-radius:99px;transition:width .3s"></i></div><div class="muted" style="font-size:13px">Please keep this window open until it finishes.</div></div>'
       : '') +
     '<div class="add" style="margin:12px 0 0"><button type="button" class="btn" data-imgo="1"' +
-    (p.missing.length || !p.add.length || imBusy ? ' disabled' : '') +
+    (p.missing.length || (!p.add.length && !(imFill && p.upd.length)) || imBusy ? ' disabled' : '') +
     '>' +
-    (imBusy ? 'Importing…' : 'Import ' + p.add.length + ' ' + imN(p.add.length)) +
+    (imBusy
+      ? 'Importing…'
+      : imFill && p.upd.length
+        ? (p.add.length ? 'Import ' + p.add.length + ' and update ' : 'Update ') +
+          p.upd.length +
+          ' client' +
+          (p.upd.length === 1 ? '' : 's')
+        : 'Import ' + p.add.length + ' ' + imN(p.add.length)) +
     '</button><button type="button" class="btn ghost" data-imagain="1">Choose a different file</button></div><p id="imMsg" role="alert" class="tmmsg"></p>'
   );
 }
@@ -1208,6 +1301,7 @@ function imOpen() {
   imName = '';
   imSheet = '';
   imBusy = false;
+  imFill = false;
   imDraw();
 }
 async function imLoad(file) {
@@ -1273,8 +1367,9 @@ async function imLoad(file) {
 }
 function imRun() {
   if (imBusy || !col) return;
-  var p = imPlan();
-  if (p.missing.length || !p.add.length) return;
+  var p = imPlan(),
+    ups = imFill ? p.upd : [];
+  if (p.missing.length || (!p.add.length && !ups.length)) return;
   imBusy = true;
   imDraw();
   var now = Date.now(),
@@ -1310,7 +1405,7 @@ function imRun() {
       if (!byClient[ck]) byClient[ck] = want;
     });
   }
-  var total = list.length,
+  var total = list.length + ups.length,
     setProg = function () {
       var t = $('#imProgTxt'),
         f = $('#imProgFill');
@@ -1333,12 +1428,30 @@ function imRun() {
       });
     });
   });
+  var nu = 0;
+  ups.forEach(function (u) {
+    chain = chain.then(function () {
+      u.m.updatedAt = Date.now();
+      return write(u.c.id, function () {
+        return col.doc(u.c.id).update(u.m);
+      }).then(function () {
+        nu++;
+        n++;
+        setProg();
+      });
+    });
+  });
+  var added = list.length;
   chain.then(
     function () {
       imBusy = false;
       closeOv('imOv');
       toast(
-        'Imported ' + n + ' ' + imN(n) + '. Open one to check it, and add anything the file did not have.',
+        (added ? 'Imported ' + added + ' ' + imN(added) + '. ' : '') +
+          (nu
+            ? 'Filled in missing details on ' + nu + ' existing client' + (nu === 1 ? '' : 's') + '. '
+            : '') +
+          'Open one to check it.',
         true
       );
       render();
@@ -1495,6 +1608,11 @@ document.addEventListener('change', function (e) {
     var f = t.files && t.files[0];
     t.value = '';
     imLoad(f);
+    return;
+  }
+  if (t.id === 'imFill') {
+    imFill = t.checked;
+    imDraw();
     return;
   }
   if (t.hasAttribute && t.hasAttribute('data-immap')) {
