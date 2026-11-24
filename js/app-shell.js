@@ -107,6 +107,40 @@ function renderNav() {
     tools.todo = 1;
     tools.reminders = 1;
   }
+  /* every other trade: the top menu is just Today, the main list and (where it has one) Appointments;
+     everything else is in the tools menu (the side menu on a computer, the same Menu button on a phone) */
+  if (!T.tenancyMode && !mgNav) {
+    var topKeep = { todo: 1, cases: 1, appointments: 1 },
+      ORD = [
+        'todo',
+        'cases',
+        'appointments',
+        'tasks',
+        'reminders',
+        'clients',
+        'pipeline',
+        'invoices',
+        'calculator',
+        'notebook',
+        'birthdays',
+        'marketing',
+        'assets'
+      ],
+      rank = function (i) {
+        var x = ORD.indexOf(i[0]);
+        return x < 0 ? 99 : x;
+      };
+    items.forEach(function (i) {
+      tools[i[0]] = topKeep[i[0]] ? 0 : 1;
+    });
+    items = items
+      .map(function (i) {
+        return i[0] === 'todo' ? ['todo', 'Today'] : i;
+      })
+      .sort(function (a, b) {
+        return rank(a) - rank(b);
+      });
+  }
   if (T.tenancyMode)
     items = items
       .filter(function (i) {

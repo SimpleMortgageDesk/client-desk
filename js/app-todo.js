@@ -117,7 +117,9 @@ function tdHTML() {
     );
   };
   return (
-    '<div class="pagehead"><h1>To do</h1><span class="muted">' +
+    '<div class="pagehead"><h1>' +
+    (T.tenancyMode ? 'To do' : 'Today') +
+    '</h1><span class="muted">' +
     (open.length ? open.length + ' to do today' : 'Nothing left for today') +
     '</span></div>' +
     '<div class="tdhome"><div class="tdmain"><div class="tdpage"><form id="tdForm" class="tdadd" novalidate><label class="f tdtext">What needs doing?<input id="td-text" maxlength="140" autocomplete="off" placeholder="For example: ' +
