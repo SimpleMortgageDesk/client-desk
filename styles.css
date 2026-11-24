@@ -3,7 +3,7 @@
 /* Layout: sticky top bar with tabs, full-width work area; cases open in a right-hand drawer (full screen on phones). */
 :root{
   --bg:#E6F4EC; --surface:#FFFFFF; --surface2:#F4F7F8; --line:#D4DBDF;
-  --ink:#101C26; --muted:#58697A; --accent:#0A8558; --accent-ink:#FFFFFF; --accent-soft:#D3EFE0;
+  --ink:#101C26; --muted:#58697A; --accent:#087B50; --accent-ink:#FFFFFF; --accent-soft:#D3EFE0;
   --warn:#8A5A00; --warn-soft:#FBEFD2; --bad:#A3261F; --bad-soft:#FADDD9; --ok:#0A6B50;
   --bar:#FFFFFF; --shadow:0 8px 30px rgba(16,28,38,.18);
   --side:#0A8558; --side-hover:#0A724C; --tint:#F0FAF5; --brand:#0A6B50;
@@ -1326,3 +1326,17 @@ body[data-theme-trade="mortgage"] .aptm b{font-size:19px;line-height:1.1;color:#
 .dupbar span{flex:1 1 220px}
 :root[data-theme="dark"] .dupbar{background:#3A3010;border-color:#6B5A1C;color:#F6E7B0}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dupbar{background:#3A3010;border-color:#6B5A1C;color:#F6E7B0}}
+/* contrast fixes (WCAG AA 4.5:1) */
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .agtoday .muted{color:#3d4b59}}
+:root[data-theme="light"] .agtoday .muted{color:#3d4b59}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .agtoday .muted{color:#f2d4d4}}
+:root[data-theme="dark"] .agtoday .muted{color:#f2d4d4}
+.ptag.btl{color:#a63a00}
+.btab.spvt{border-color:#b53a09;color:#b53a09}
+.cds-av{background:rgba(0,0,0,.3)}
+.cds-who .cds-prov{opacity:1;color:#e6f2ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mnubtn{color:#7fe0bc}:root:not([data-theme="light"]) .btab.spvt{border-color:#ff9a6a;color:#ff9a6a}}
+:root[data-theme="dark"] .mnubtn{color:#7fe0bc}:root[data-theme="dark"] .btab.spvt{border-color:#ff9a6a;color:#ff9a6a}
+:root{--link:#0A6B50}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--link:#6fd8b2}}
+:root[data-theme="dark"]{--link:#6fd8b2}

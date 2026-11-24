@@ -136,7 +136,7 @@ function tdHTML() {
     (later.length ? sec('Coming up', later, 'tdH2') : '') +
     (dn.length ? sec('Done', dn, 'tdH3') : '') +
     '</div></div>' +
-    '<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside>' +
+    '<aside class="hp hrem" id="homeRem" aria-label="Upcoming reminders"></aside>' +
     '<section class="hp tdcal" id="homeCal" aria-label="Appointments calendar"></section></div>'
   );
 }

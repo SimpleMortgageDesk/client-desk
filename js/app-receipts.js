@@ -1301,7 +1301,7 @@ function expOpen(caseId, editId) {
       (ed ? '<button type="button" class="btn ghost" data-excancel="1">Cancel edit</button>' : '') +
       '<span class="muted" style="font-size:12px;align-self:center">Do not type bank or card numbers here.</span></div>' +
       (l.length
-        ? '<div class="tw"><table class="extab"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Paid to</th><th>Amount</th><th>Receipt</th><th></th></tr></thead><tbody>' +
+        ? '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table class="extab"><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Paid to</th><th>Amount</th><th>Receipt</th><th></th></tr></thead><tbody>' +
           l
             .map(function (e) {
               return (

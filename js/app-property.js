@@ -431,7 +431,7 @@ function tnCard(tn, isNew, others) {
 }
 /* ---------- property folder and uploaded documents (landlord) ---------- */
 var DZ_BTN =
-    'background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--accent);cursor:pointer;text-align:left',
+    'background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--link,#0A6B50);cursor:pointer;text-align:left',
   pfTried = {},
   pfRun = false,
   dzBusy = false;

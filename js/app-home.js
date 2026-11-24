@@ -1903,7 +1903,7 @@ function invoicesHTML() {
         esc(N1()) +
         ' and use New quote or New invoice. Add your business details and logo first so they appear on every document.<br><button class="btn" data-bizopen="1">Add business details</button></div>') +
     (l.length
-      ? '<div class="tw"><table><thead><tr><th>Number</th><th>Type</th><th>' +
+      ? '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table><thead><tr><th>Number</th><th>Type</th><th>' +
         esc(CL().replace(/s$/, '')) +
         '</th><th>Date</th><th>Due / valid until</th><th>Total</th><th>Status</th></tr></thead><tbody>' +
         l

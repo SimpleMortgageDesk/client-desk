@@ -175,7 +175,7 @@ function mkList() {
     return;
   }
   box.innerHTML =
-    '<div class="tw"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Group</th><th>Message</th><th>Consent</th><th>Notes</th></tr></thead><tbody>' +
+    '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Group</th><th>Message</th><th>Consent</th><th>Notes</th></tr></thead><tbody>' +
     shown
       .map(function (c) {
         var k = c.consent || 'unknown';

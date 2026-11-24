@@ -134,7 +134,7 @@ function clRender() {
     return;
   }
   box.innerHTML =
-    '<div class="tw"><table class="cltab"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>' +
+    '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table class="cltab"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>' +
     esc(T.noun[1]) +
     '</th><th>' +
     esc(T.value.l.replace(/ in progress$/i, '')) +

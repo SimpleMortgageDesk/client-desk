@@ -143,7 +143,7 @@ document.addEventListener('change', function (e) {
 /* the table header, shared by the cases table and the lists below it */
 function caseHeadHTML() {
   return (
-    '<div class="tw"><table><thead><tr><th class="cnoh">No.</th><th>Client</th>' +
+    '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table><thead><tr><th class="cnoh">No.</th><th>Client</th>' +
     T.cols
       .filter(function (x) {
         return colOn(x[0]);
@@ -205,7 +205,7 @@ function resHTML(list) {
       '<div class="muted">No residential details are recorded for these clients yet. Open a case and fill in "Living at this address as" under the applicant.</div></div>'
     );
   h +=
-    '<div class="tw"><table><thead><tr><th class="cnoh">No.</th><th>Client</th><th>Address</th><th>Living as</th><th>Mortgage</th><th>Lender</th><th>Type</th><th>Deal ends</th><th>Rate</th><th>Balance</th><th>Owned by</th></tr></thead><tbody>';
+    '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table><thead><tr><th class="cnoh">No.</th><th>Client</th><th>Address</th><th>Living as</th><th>Mortgage</th><th>Lender</th><th>Type</th><th>Deal ends</th><th>Rate</th><th>Balance</th><th>Owned by</th></tr></thead><tbody>';
   var dash = '<span class="muted">—</span>';
   rows.forEach(function (r) {
     var a = r.a,

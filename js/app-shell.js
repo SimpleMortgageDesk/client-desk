@@ -530,7 +530,7 @@ function render() {
           : '<section class="hp htk" aria-label="Tasks"><div class="pagehead"><h1>Tasks</h1><span class="muted">Due today first, then overdue, then soonest</span></div><div class="tpage">' +
             taskShell() +
             '</div></section>') +
-        '<aside class="hp hrem" id="homeRem" aria-label="Reminders"></aside></div>';
+        '<aside class="hp hrem" id="homeRem" aria-label="Upcoming reminders"></aside></div>';
     }
     var hc = $('#homeCal');
     if (hc && !$('#apOv')) hc.innerHTML = apHome();
@@ -967,7 +967,7 @@ function casesHTML(embed) {
   });
   h +=
     (mg ? stLegendHTML() : '') +
-    '<div class="tw"><table><thead><tr>' +
+    '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table><thead><tr>' +
     (mg ? '<th class="cnoh">No.</th>' : '') +
     '<th>' +
     esc(

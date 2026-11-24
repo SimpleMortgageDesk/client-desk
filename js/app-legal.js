@@ -470,7 +470,7 @@ function rpOpen(caseId, editId) {
       (rpEdit ? '<button type="button" class="btn ghost" data-rpcancel="1">Cancel edit</button>' : '') +
       '</div>' +
       (l.length
-        ? '<div class="tw"><table class="extab"><thead><tr><th>Reported</th><th>Repair</th><th>Tradesperson</th><th>Status</th><th>Cost</th><th></th></tr></thead><tbody>' +
+        ? '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table class="extab"><thead><tr><th>Reported</th><th>Repair</th><th>Tradesperson</th><th>Status</th><th>Cost</th><th></th></tr></thead><tbody>' +
           l
             .map(function (r) {
               var st =
@@ -838,7 +838,7 @@ function stHtml(c, tn) {
     gbp(d.bal) +
     '</b></div></div>' +
     (d.rows.length
-      ? '<div class="tw"><table class="extab"><thead><tr><th>Due</th><th>For</th><th>Rent</th><th>Paid on</th><th>Balance</th></tr></thead><tbody>' +
+      ? '<div class="tw" tabindex="0" role="region" aria-label="Table: scroll sideways to see more"><table class="extab"><thead><tr><th>Due</th><th>For</th><th>Rent</th><th>Paid on</th><th>Balance</th></tr></thead><tbody>' +
         d.rows
           .map(function (r) {
             return (
