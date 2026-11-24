@@ -987,11 +987,7 @@ function renderSide() {
             ['appointments', 'Calendar'],
             ['notebook', 'Notebook'],
             ['birthdays', 'Birthdays'],
-            ['marketing', 'Marketing'],
-            ['todo', 'To do'],
-            ['reminders', 'Reminders'],
-            ['clients', CL()],
-            ['invoices', 'Quotes & invoices']
+            ['marketing', 'Marketing']
           ]
         : [
             ['invoices', 'Quotes & invoices'],
@@ -1031,7 +1027,6 @@ function renderSide() {
         );
       })
       .join('') +
-    (T.id === 'mortgage' ? assetsBtn : '') +
     '<button type="button" class="sbtn acct" data-sideacct="1">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
 }
 function renderRem() {

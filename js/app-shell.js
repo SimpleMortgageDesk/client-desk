@@ -51,11 +51,7 @@ function renderNav() {
       ['appointments', 'Calendar'],
       ['notebook', 'Notebook'],
       ['birthdays', 'Birthdays'],
-      ['marketing', 'Marketing'],
-      ['todo', 'To do'],
-      ['reminders', 'Reminders'],
-      ['clients', CL()],
-      ['invoices', 'Quotes & invoices']
+      ['marketing', 'Marketing']
     ];
   var tdIx = items
       .map(function (i) {
@@ -90,9 +86,7 @@ function renderNav() {
     tdc = allTasks().filter(function (x) {
       return trBucket(x) === 'over';
     }).length;
-  if (!T.tenancyMode)
-    if (mgNav) items.push(['assets', 'My Properties and Cars']);
-    else items.unshift(['assets', 'My Properties and Cars']);
+  if (!T.tenancyMode && !mgNav) items.unshift(['assets', 'My Properties and Cars']);
   var tools = {
     assets: T.tenancyMode ? 0 : 1,
     logout: 1,
@@ -108,12 +102,7 @@ function renderNav() {
     myhome: 1,
     more: 1
   };
-  if (mgNav) {
-    tools.appointments = 1;
-    tools.todo = 1;
-    tools.reminders = 1;
-    tools.clients = 1;
-  }
+  if (mgNav) tools.appointments = 1;
   if (T.calTab) tools.tasks = 1;
   if (T.calTab && tdAnch === 'tasks') {
     tools.todo = 1;
