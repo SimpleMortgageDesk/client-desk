@@ -456,7 +456,18 @@ function dzNoun() {
 function pfName(c, used) {
   /* mortgage adviser: one folder per client (named after the client), shared by all of that client's cases */
   if (T && T.id === 'mortgage' && !T.tenancyMode) {
-    var nm = pfClean(isSpv(c) && c.companyName ? c.companyName : pnames(c).replace(/^Unnamed client$/, ''));
+    var nm = pfClean(
+      isSpv(c) && c.companyName
+        ? c.companyName
+        : (c.applicants || [])
+            .map(function (x) {
+              return String(x.name || '')
+                .replace(/^\s*(?:(?:mr|mrs|miss|ms|mx|dr|prof|professor|sir|lady|lord|rev)\.?\s+)+/i, '')
+                .trim();
+            })
+            .filter(Boolean)
+            .join(' and ')
+    );
     if (nm) {
       var ck = clientKey(c);
       var other =
