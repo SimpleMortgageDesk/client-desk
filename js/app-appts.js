@@ -571,7 +571,6 @@ function apMoveOpen(id, date) {
   if (!a) return;
   apMoveClose();
   var s0 = apMin(a.time),
-    dur = +a.dur || 30,
     lo = Math.min(7 * 60, s0),
     hi = Math.max(21 * 60 + 45, s0);
   var day = appts.filter(function (x) {

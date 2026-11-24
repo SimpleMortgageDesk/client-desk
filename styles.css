@@ -1354,3 +1354,8 @@ body[data-theme-trade="mortgage"] .aptm b{font-size:19px;line-height:1.1;color:#
 .agtoday .apc{border-left-color:#c62828}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .agtoday{background:#5a2323;border-color:#e57373}:root:not([data-theme="light"]) body[data-theme-trade="mortgage"] .aptm b,:root:not([data-theme="light"]) .agtoday .agd b{color:#ff8a80}}
 :root[data-theme="dark"] .agtoday{background:#5a2323;border-color:#e57373}:root[data-theme="dark"] body[data-theme-trade="mortgage"] .aptm b,:root[data-theme="dark"] .agtoday .agd b{color:#ff8a80}
+
+.dupbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#FFF6E0;border:1px solid #F0D58A;color:#4A3A0A;border-radius:10px;padding:10px 14px;margin:0 0 12px}
+.dupbar span{flex:1 1 220px}
+:root[data-theme="dark"] .dupbar{background:#3A3010;border-color:#6B5A1C;color:#F6E7B0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dupbar{background:#3A3010;border-color:#6B5A1C;color:#F6E7B0}}

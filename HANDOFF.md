@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST159)
+# MySimpleDesk – handoff (build LATEST187)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -7,7 +7,7 @@ Static HTML/JS/CSS records-and-reminders app for home owners, landlords and trad
 
 ## Code layout
 - `index.html` (app shell, loads scripts in order), `home.html`, `privacy.html`, `explainer.html`, `admin/index.html`
-- `js/app-*.js` – 19 classic scripts sharing global scope (core, shell, clients, marketing, tools, events, trade, legal, home, agreements, property, rent, receipts, leases, assets, todo, dates, import, start). See `js/README.md`.
+- `js/app-*.js` – 24 classic scripts sharing global scope (core, shell, clients, marketing, tools, events, trade, legal, home, agreements, property, rent, receipts, leases, assets, todo, dates, import, mortgage, lender-pdf, portfolio, appts, dupes, start). See `js/README.md`.
 - `sync.js` (storage, login, Graph/Drive, PIN, lock, diagnostics), `trades.js`, `config.js`, `styles.css`, `sw.js` (offline cache, currently `client-desk-v7`), `manifest.webmanifest`, `lib/` (pdf.js, tesseract)
 - `functions/api/{signup,verify,admin/users}.js`, `functions/admin/_middleware.js`; admin is behind Cloudflare Access plus a 2-hour idle logout
 - `android/` (TWA project, `uk.co.mysimpledesk.app`), `.github/workflows/{android,checks}.yml`
@@ -43,3 +43,10 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - `sw.js` now serves script and style files that carry a `?v=` code straight from its saved copy (no server check), and saves them at install, so repeat opens skip the network for code. This relies on the `?v=` code changing whenever a file changes: the Cloudflare build stamps it from a hash of the content. On a manual (unbuilt) deploy, bump the `?v=` labels or users will keep old files.
 - `index.html` preconnects to graph.microsoft.com and login.microsoftonline.com.
 - Measured: only ~17% of the JS runs on the first screen. Next options: load agreements/receipts/leases/import/legal after first paint (medium risk), split `sync.js`. Test with `swcache.js`-style checks (second visit fetches no js/css).
+
+## Added since LATEST159 (all deployed)
+- **Mortgage adviser trade** (`T.id==='mortgage'`, same behaviour as the owner's Mortgage Desk, no client records shipped): Tasks home, All cases/Pipeline/Tasks, appointments with booking/missed/drag, lender-PDF reader (`app-lender-pdf.js`), portfolio summary (`app-portfolio.js`), SPV/company clients, client numbers + "Tidy client numbers", Outlook event text, optional local-folder copy of records.
+- **Backup/import** (sync.js): `bkRun` with progress steps, previous-backup file, two locations; `importFlow` (.json from MySimpleDesk or Mortgage Desk) with preview and progress. **CSV/Excel import** (`app-import.js`, `IM_TRADE.mortgage`): column matching, joint names split ("Mr A & Mrs B"), client numbers kept.
+- **Duplicate finder** (`app-dupes.js`): same people (title/order ignored) + same address, or same name where one has no address. Banner on All cases (snooze 7 days), "Find duplicates" button, merge fills blanks and brings notes/tasks/protection, one-step undo (`cd.dupUndo`), "These are different" (`cd.dupNo`). A client with different properties is not flagged.
+- Login: one-button sign-in; drive folder named "My Simple Desk - Do not delete"; diagnostics in Settings > Support details; offline/network resilience; build step (`tools/build.mjs`).
+- Landing page simplified; no founder details or video (owner's choice).

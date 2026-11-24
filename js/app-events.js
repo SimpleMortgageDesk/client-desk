@@ -218,6 +218,15 @@ document.addEventListener('click', function (e) {
     docChoose(importPdfs);
     return;
   }
+  if (t.closest('[data-act="dupes"]')) {
+    dupOpen();
+    return;
+  }
+  if (t.closest('[data-act="dupsnooze"]')) {
+    dupLS('cd.dupSnooze', String(Date.now() + 7 * 864e5));
+    render();
+    return;
+  }
   if (t.closest('[data-act="tidyno"]')) {
     openTidyNos();
     return;

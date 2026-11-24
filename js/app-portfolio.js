@@ -163,7 +163,6 @@ function pdfBuildReport(tabs, filters, opts) {
   );
   y -= 16;
   tabs.forEach(function (sec, si) {
-    var n = sec.cols.length;
     // column widths from content
     var want = sec.cols.map(function (h, i) {
       var m = pwid(h, SZ, true) + 2 * PAD;

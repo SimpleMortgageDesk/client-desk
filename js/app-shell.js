@@ -913,7 +913,9 @@ function casesHTML(embed) {
         ')</button>'
       : '') +
     (imKind() ? '<button class="btn ghost" data-act="import">Import</button>' : '') +
+    (cases.length > 1 ? dupBtn() : '') +
     '<button class="btn ghost" data-act="export">Export CSV</button></div>' +
+    dupBar() +
     '<div class="filters">' +
     (imKind() ? '<button type="button" class="btn ghost xpm" data-act="import">Import</button>' : '') +
     '<button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>' +
