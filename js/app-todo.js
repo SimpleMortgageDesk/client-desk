@@ -120,7 +120,13 @@ function tdHTML() {
     '<div class="pagehead"><h1>To do</h1><span class="muted">' +
     (open.length ? open.length + ' to do today' : 'Nothing left for today') +
     '</span></div>' +
-    '<div class="tdhome"><div class="tdmain"><div class="tdpage"><form id="tdForm" class="tdadd" novalidate><label class="f tdtext">What needs doing?<input id="td-text" maxlength="140" autocomplete="off" placeholder="For example: Call the tenant about the boiler"></label>' +
+    '<div class="tdhome"><div class="tdmain"><div class="tdpage"><form id="tdForm" class="tdadd" novalidate><label class="f tdtext">What needs doing?<input id="td-text" maxlength="140" autocomplete="off" placeholder="For example: ' +
+    esc(
+      T.tenancyMode || !T.taskHint
+        ? 'Call the tenant about the boiler'
+        : T.taskHint.charAt(0).toUpperCase() + T.taskHint.slice(1)
+    ) +
+    '"></label>' +
     '<label class="f">Day<input id="td-date" type="date" value="' +
     t +
     '"></label>' +
