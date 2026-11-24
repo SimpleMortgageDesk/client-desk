@@ -1697,7 +1697,7 @@ function dcHtml(d) {
           nl2br(payFor(d)) +
           (T.id === 'mortgage'
             ? payRefName()
-              ? '<br><b class="dpayref">Please type ' + esc(payRefName()) + ' as your payment reference.</b>'
+              ? '<br><b class="dpayref">Payment reference: ' + esc(payRefName()) + '</b>'
               : ''
             : '<br>Please use reference <b>' + esc(d.number) + '</b>.') +
           '</div>'
@@ -1877,15 +1877,7 @@ function dcPdf(d) {
       if (payRefName()) {
         P.y -= 4;
         P.need(14);
-        P.t(
-          40,
-          P.y,
-          'Please type ' + payRefName() + ' as your payment reference.',
-          10,
-          true,
-          'l',
-          [0.7, 0.1, 0.1]
-        );
+        P.t(40, P.y, 'Payment reference: ' + payRefName(), 10, true, 'l', [0.7, 0.1, 0.1]);
         P.y += 16;
       }
     } else sec('How to pay', payFor(d) + '\nPlease use reference ' + d.number + '.');
