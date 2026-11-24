@@ -5148,6 +5148,7 @@
         waited++;
       }
       window.removeEventListener('beforeunload', guard);
+      if (n && window.dupAfterImport) window.dupAfterImport();
       var pend = window.CD_TEST ? 0 : Math.max(0, pending() - base);
       var upOk = !pend;
       say(

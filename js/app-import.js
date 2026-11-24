@@ -1343,6 +1343,7 @@ function imRun() {
       );
       render();
       renderNav();
+      if (n) dupAfterImport();
     },
     function () {
       imBusy = false;

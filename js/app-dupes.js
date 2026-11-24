@@ -38,6 +38,16 @@ function dupNameKey(c) {
   var ks = list.map(dupPerson).filter(Boolean).sort();
   return ks.join('|');
 }
+/* the applicants' dates of birth, sorted; blank if none are known */
+function dupDobKey(c) {
+  return (c.applicants || [])
+    .map(function (x) {
+      return String(x.dob || '').slice(0, 10);
+    })
+    .filter(Boolean)
+    .sort()
+    .join('|');
+}
 function dupAddr(c) {
   var a = String(c.propertyAddress || (typeof paddr === 'function' ? paddr(c) : '') || c.address || '');
   var pc = (a.toUpperCase().match(/\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b/) || [''])[0].replace(/\s+/g, '');
@@ -83,14 +93,55 @@ function dupGroups() {
   var seen = {};
   Object.keys(by).forEach(function (k) {
     if (by[k].length < 2) return;
+    /* same name and address but different dates of birth (for example a parent and child) are different people */
+    var part = {},
+      blank = [];
     by[k].forEach(function (c) {
+      var d = dupDobKey(c);
+      if (d) (part[d] = part[d] || []).push(c);
+      else blank.push(c);
+    });
+    var keys = Object.keys(part);
+    if (!keys.length) part = { '': blank };
+    else if (blank.length) {
+      keys.sort(function (a, b) {
+        return part[b].length - part[a].length;
+      });
+      part[keys[0]] = part[keys[0]].concat(blank);
+    }
+    Object.keys(part).forEach(function (d) {
+      var l = part[d];
+      if (l.length < 2) return;
+      l.forEach(function (c) {
+        seen[c.id] = 1;
+      });
+      out.push({
+        ids: l.map(function (c) {
+          return c.id;
+        }),
+        why:
+          (k.split('#')[1] ? 'Same name and same address' : 'Same name, no address on any of them') +
+          (d ? ' and same date of birth' : '')
+      });
+    });
+  });
+  /* same date of birth and same address but the name is spelled differently */
+  var byDa = {};
+  mine.forEach(function (c) {
+    var d = dupDobKey(c),
+      a = dupAddr(c);
+    if (d && a && !seen[c.id]) (byDa[d + '#' + a] = byDa[d + '#' + a] || []).push(c);
+  });
+  Object.keys(byDa).forEach(function (k) {
+    if (byDa[k].length < 2) return;
+    byDa[k].forEach(function (c) {
       seen[c.id] = 1;
     });
     out.push({
-      ids: by[k].map(function (c) {
+      ids: byDa[k].map(function (c) {
         return c.id;
       }),
-      why: k.split('#')[1] ? 'Same name and same address' : 'Same name, no address on any of them'
+      why: 'Same date of birth and address, name spelled differently'
     });
   });
   /* same name where one has an address and the other has none: probably the same client entered twice */
@@ -389,4 +440,24 @@ function dupOpen() {
     }
   };
   draw();
+}
+
+/* after an import: look again, and offer the review as soon as the import windows are closed */
+function dupAfterImport() {
+  dupLS('cd.dupSnooze', null);
+  dupMemo.sig = '';
+  var tries = 0,
+    h = setInterval(function () {
+      tries++;
+      if (tries > 120) return clearInterval(h);
+      if ($('#imOv') || $('#mdImpOv') || $('#dupOv')) return;
+      clearInterval(h);
+      dupMemo.sig = '';
+      var n = dupGroups().length;
+      render();
+      if (n) {
+        toast(n + ' possible duplicate' + (n === 1 ? '' : 's') + ' found among your records.');
+        dupOpen();
+      }
+    }, 1000);
 }

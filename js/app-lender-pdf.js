@@ -663,7 +663,46 @@ function docRead(files) {
         toast('The case was closed, so nothing was changed');
         return;
       }
-      docReview(docExtract(text), files);
+      var res = docExtract(text),
+        here = currentCase(),
+        mine = docCandidates(res.applicants, '').filter(function (k) {
+          return here && k.c.id === here.id;
+        }).length,
+        other = docCandidates(res.applicants, '').filter(function (k) {
+          return !here || k.c.id !== here.id;
+        })[0];
+      /* the document names someone else (name and date of birth) and nobody on this case */
+      if (!mine && other && other.dobHit && res.applicants.length) {
+        var oc = other.c;
+        docAsk(
+          'This looks like a different client',
+          "The document's name and date of birth match <b>" +
+            esc(names(oc)) +
+            (oc.clientNo ? ' (' + esc(oc.clientNo) + ')' : '') +
+            '</b>, not the case you have open.',
+          [
+            {
+              pri: true,
+              label: '<b>Open ' + esc(names(oc)) + ' and use the document there</b>',
+              go: function () {
+                openDrawer(oc.id);
+                setTimeout(function () {
+                  docReview(res, files);
+                }, 350);
+              }
+            },
+            {
+              label: '<b>Use it on this case anyway</b>',
+              go: function () {
+                docReview(res, files);
+              }
+            },
+            { label: 'Cancel', go: null }
+          ]
+        );
+        return;
+      }
+      docReview(res, files);
     })
     .catch(function (e) {
       toast((e && e.message) || 'Could not read the document', false);
@@ -715,14 +754,173 @@ function importPdfs(files) {
         }
       ];
       $('#toast').hidden = true;
-      openDrawer(null, d);
-      newBase = '';
-      setTimeout(autoSave, 300);
-      toast('Case created from the document and saved. Check every detail before relying on it.');
+      var cands = docCandidates(d.applicants, d.propertyAddress);
+      if (!cands.length) return docCreate(d);
+      docChooseClient(d, cands, files, r);
     })
     .catch(function (e) {
       toast((e && e.message) || 'Could not read the PDFs', false);
     });
+}
+
+/* ---------- does the document belong to someone who is already here? (name, date of birth, address) ---------- */
+function docCandidates(aps, propAddr) {
+  var out = [];
+  cases.forEach(function (c) {
+    if (trOf(c) !== T.id) return;
+    var hit = 0,
+      conflict = false,
+      dobHit = false,
+      addrHit = false;
+    (aps || []).forEach(function (ap) {
+      if (!ap || !ap.name) return;
+      (c.applicants || []).forEach(function (x) {
+        if (!docSameName(x.name, ap.name)) return;
+        var d1 = String(ap.dob || '').slice(0, 10),
+          d2 = String(x.dob || '').slice(0, 10);
+        if (d1 && d2 && d1 !== d2) {
+          conflict = true;
+          return;
+        }
+        hit++;
+        if (d1 && d1 === d2) dobHit = true;
+        if (
+          ap.address &&
+          x.address &&
+          dupAddr({ propertyAddress: ap.address }) === dupAddr({ propertyAddress: x.address })
+        )
+          addrHit = true;
+      });
+    });
+    if (!hit || (conflict && !dobHit)) return;
+    var sameProp = !!(propAddr && c.propertyAddress && dupAddr({ propertyAddress: propAddr }) === dupAddr(c));
+    out.push({
+      c: c,
+      score: hit * 2 + (dobHit ? 3 : 0) + (addrHit ? 2 : 0) + (sameProp ? 4 : 0),
+      sameProp: sameProp,
+      dobHit: dobHit
+    });
+  });
+  return out
+    .sort(function (a, b) {
+      return b.score - a.score;
+    })
+    .slice(0, 4);
+}
+function docAsk(title, body, buttons) {
+  var old = document.getElementById('docAsk');
+  if (old) old.remove();
+  var ov = document.createElement('div');
+  ov.id = 'docAsk';
+  ov.style.cssText =
+    'position:fixed;inset:0;z-index:295;background:rgba(8,14,18,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML =
+    '<div role="dialog" aria-modal="true" style="background:var(--surface,#fff);color:var(--ink,#101C26);width:min(560px,100%);max-height:88vh;overflow:auto;border-radius:12px;padding:20px 22px;box-shadow:0 8px 30px rgba(0,0,0,.3);font:14px/1.45 system-ui,sans-serif"><h2 style="margin:0 0 8px;font-size:20px">' +
+    esc(title) +
+    '</h2><div style="margin:0 0 14px">' +
+    body +
+    '</div><div style="display:flex;flex-direction:column;gap:8px">' +
+    buttons
+      .map(function (b, i) {
+        return (
+          '<button type="button" class="btn' +
+          (b.pri ? '' : ' ghost') +
+          '" data-dk="' +
+          i +
+          '" style="text-align:left;white-space:normal">' +
+          b.label +
+          '</button>'
+        );
+      })
+      .join('') +
+    '</div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-dk]');
+    if (!b) {
+      if (e.target === ov) ov.remove();
+      return;
+    }
+    ov.remove();
+    var f = buttons[+b.getAttribute('data-dk')].go;
+    if (f) f();
+  });
+}
+function docCreate(d) {
+  openDrawer(null, d);
+  newBase = '';
+  setTimeout(autoSave, 300);
+  toast('Case created from the document and saved. Check every detail before relying on it.');
+}
+/* the document matches someone already here: update them, add a second property, or really make a new client */
+function docChooseClient(d, cands, files, r) {
+  var btns = [];
+  cands.forEach(function (k) {
+    var c = k.c,
+      who = esc(names(c)) + (c.clientNo ? ' (' + esc(c.clientNo) + ')' : '');
+    var why =
+      (k.dobHit ? 'name and date of birth match' : 'name matches') +
+      (k.sameProp ? ', same property' : c.propertyAddress ? ', property: ' + esc(c.propertyAddress) : '');
+    btns.push({
+      pri: btns.length === 0,
+      label:
+        '<b>Add to ' +
+        who +
+        '</b><br><span style="font-size:12.5px;opacity:.8">' +
+        why +
+        '. The details found are listed for you to tick.</span>',
+      go: function () {
+        openDrawer(c.id);
+        setTimeout(function () {
+          docReview(r, files);
+        }, 350);
+      }
+    });
+    if (!k.sameProp)
+      btns.push({
+        label:
+          '<b>New case for ' +
+          who +
+          '</b><br><span style="font-size:12.5px;opacity:.8">A second property for the same client: keeps their details and client number.</span>',
+        go: function () {
+          var nd = JSON.parse(JSON.stringify(d));
+          nd.applicants = (c.applicants || []).map(function (x) {
+            var m = (d.applicants || []).filter(function (a) {
+              return docSameName(a.name, x.name);
+            })[0];
+            return Object.assign(
+              {},
+              x,
+              m ? { dob: x.dob || m.dob, phone: x.phone || m.phone, email: x.email || m.email } : {}
+            );
+          });
+          (d.applicants || []).forEach(function (a) {
+            if (
+              a.name &&
+              !nd.applicants.some(function (x) {
+                return docSameName(x.name, a.name);
+              })
+            )
+              nd.applicants.push(a);
+          });
+          if (c.clientNo) nd.clientNo = c.clientNo;
+          docCreate(nd);
+        }
+      });
+  });
+  btns.push({
+    label:
+      '<b>Create a new client anyway</b><br><span style="font-size:12.5px;opacity:.8">This is a different person.</span>',
+    go: function () {
+      docCreate(d);
+    }
+  });
+  btns.push({ label: 'Cancel', go: null });
+  docAsk(
+    'This client may already be here',
+    'The document names someone who matches a client you already have. Choose what to do, so you do not end up with the same client twice.',
+    btns
+  );
 }
 
 function docNorm(n) {
