@@ -288,6 +288,9 @@ IM_TRADE.mortgage = {
         'fullname',
         'client',
         'clientname',
+        'clients',
+        'clientnames',
+        'applicants',
         'customer',
         'customername',
         'applicant',
@@ -511,9 +514,18 @@ function imMgRecord(g) {
     if (a) o.address = a;
     return o;
   };
-  var ap = [];
+  var ap = [],
+    nm2 = g('name2');
+  if (nm && !nm2) {
+    /* "Mr A Smith & Mrs B Smith" in one cell = two applicants */
+    var sp = nm.split(/\s+(?:&|and|\+)\s+/i);
+    if (sp.length === 2 && sp[0].trim() && sp[1].trim()) {
+      nm = sp[0].trim();
+      nm2 = sp[1].trim();
+    }
+  }
   if (nm) ap.push(person(nm, g('dob'), g('phone'), g('email'), g('address')));
-  if (g('name2')) ap.push(person(g('name2'), g('dob2'), g('phone2'), g('email2'), ''));
+  if (nm2) ap.push(person(nm2, g('dob2'), g('phone2'), g('email2'), ''));
   var use = imUse(g('use')),
     d = {
       applicants: ap.length ? ap : [{}],
