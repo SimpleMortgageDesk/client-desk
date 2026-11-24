@@ -1191,6 +1191,85 @@ function dcNewNumber(kind) {
     ? (BIZ.quotePrefix != null ? BIZ.quotePrefix : 'Q-') + (BIZ.nextQuote || 1001)
     : (BIZ.invPrefix != null ? BIZ.invPrefix : 'INV-') + (BIZ.nextInv || 1001);
 }
+/* ---------- mortgage adviser: Advice fee and invoices ---------- */
+var FEE_WHEN = [
+  ['', 'Choose…'],
+  ['application', 'On application'],
+  ['offer', 'On offer'],
+  ['completion', 'On completion'],
+  ['other', 'Other / agreed date']
+];
+var FEE_STATUS = [
+  ['', 'Not invoiced'],
+  ['invoiced', 'Invoiced, awaiting payment'],
+  ['paid', 'Paid'],
+  ['waived', 'Waived']
+];
+function feesFs(c) {
+  var fee = c.feeMode === 'fee',
+    ds = docsOf(c)
+      .filter(function (d) {
+        return d.kind === 'invoice';
+      })
+      .sort(function (a, b) {
+        return (b.createdAt || 0) - (a.createdAt || 0);
+      });
+  return (
+    '<fieldset class="feefs"><legend>Advice fee and invoices</legend><div class="grid">' +
+    sel('feeMode', 'Advice fee for this case', c.feeMode || '', [
+      ['', 'Not decided yet'],
+      ['none', 'No fee'],
+      ['fee', 'Fee charged']
+    ]) +
+    '</div><div class="feebox"' +
+    (fee ? '' : ' hidden') +
+    '><div class="grid">' +
+    fld('feeAmount', 'Fee amount (£)', c.feeAmount, 'number') +
+    fld('feeDesc', 'Description on the invoice', c.feeDesc || 'Broker fee') +
+    sel('feeWhen', 'Payable', c.feeWhen || '', FEE_WHEN) +
+    sel('feeStatus', 'Fee status', c.feeStatus || '', FEE_STATUS) +
+    fld('feePaidDate', 'Paid on', c.feePaidDate, 'date') +
+    '</div>' +
+    (ds.length
+      ? '<div style="margin:8px 0">' +
+        ds
+          .map(function (d) {
+            var t = dcTotals(d);
+            return (
+              '<button type="button" class="clrec" data-dcopen="' +
+              esc(c.id) +
+              '|' +
+              esc(d.id) +
+              '"><b>Invoice ' +
+              esc(d.number || '') +
+              '</b> ' +
+              dcChip(d) +
+              '<span class="muted"> · ' +
+              fd(d.date) +
+              '</span><span class="num" style="margin-left:auto">' +
+              gbp(t.total) +
+              '</span></button>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '') +
+    (c.id
+      ? '<div class="add"><button type="button" class="btn" data-dcnew="invoice">Create invoice</button><span class="muted" style="font-size:12px">Opens a form you can amend before the PDF is made. Bank details come from Settings → Invoices.</span></div>' +
+        (bizName()
+          ? ''
+          : '<p><button type="button" class="btn ghost sm" data-bizopen="1">Add your business details and logo first</button></p>')
+      : '<p class="muted" style="font-size:12px">Save the case first, then you can create an invoice.</p>') +
+    '</div></fieldset>'
+  );
+}
+document.addEventListener('change', function (e) {
+  var x = e.target;
+  if (x && x.id === 'f-feeMode') {
+    var bx = x.closest('fieldset') && x.closest('fieldset').querySelector('.feebox');
+    if (bx) bx.hidden = x.value !== 'fee';
+  }
+});
 function docsFs(c) {
   var ds = docsOf(c)
     .slice()
@@ -1244,7 +1323,15 @@ function dcOpen(caseId, docId, kind, from) {
         return x.id === docId;
       })[0]
     : null;
-  if (!d && kind === 'invoice' && T.id === 'mortgage' && c.feeNone && !dcNoFeeOk) {
+  if (
+    !d &&
+    kind === 'invoice' &&
+    T.id === 'mortgage' &&
+    (openId === caseId && document.getElementById('f-feeMode')
+      ? document.getElementById('f-feeMode').value
+      : c.feeMode) === 'none' &&
+    !dcNoFeeOk
+  ) {
     docAsk(
       'No fee for this client',
       'This client is marked <b>No fee</b>, so there is normally nothing to invoice. Make an invoice anyway?',
@@ -1271,6 +1358,12 @@ function dcOpen(caseId, docId, kind, from) {
       job = fv(c, T.addr) || '',
       today = iso(TODAY),
       mg = T.id === 'mortgage' && !T.tenancyMode,
+      live = function (k) {
+        var e = openId === caseId ? document.getElementById('f-' + k) : null;
+        return e ? e.value : c[k];
+      },
+      feeAmt = +live('feeAmount') || 0,
+      feeDesc0 = String(live('feeDesc') || 'Broker fee'),
       mgWhat = [c.type, c.lender].filter(Boolean).join(', '),
       mgProp = String(c.propertyAddress || '').replace(/\s*\n+\s*/g, ', ');
     dcDoc = {
@@ -1301,10 +1394,12 @@ function dcOpen(caseId, docId, kind, from) {
       lines: [
         {
           d: mg
-            ? 'Broker fee' + (c.type ? ' - ' + c.type : '') + (mgProp ? ', ' + mgProp : '')
+            ? feeDesc0 === 'Broker fee'
+              ? 'Broker fee' + (c.type ? ' - ' + c.type : '') + (mgProp ? ', ' + mgProp : '')
+              : feeDesc0
             : c.type || '',
           q: 1,
-          p: mg && !c.feeNone && +c.fee > 0 ? +c.fee : '',
+          p: mg && feeAmt > 0 && live('feeMode') !== 'none' ? feeAmt : '',
           v: vatOn() ? (BIZ.vatRate != null ? BIZ.vatRate : 20) : 0
         }
       ],
@@ -1842,6 +1937,24 @@ function dcSave(quiet) {
     }
   }
   if (d.kind === 'quote' && T.byKey.quote && d.status !== 'declined') o.quote = t.total;
+  if (T.id === 'mortgage' && d.kind === 'invoice') {
+    var live2 = list.filter(function (x) {
+      return x.kind === 'invoice' && x.status !== 'cancelled';
+    });
+    if (c.feeStatus !== 'waived') {
+      if (
+        live2.length &&
+        live2.every(function (x) {
+          return x.status === 'paid';
+        })
+      ) {
+        o.feeStatus = 'paid';
+        o.feePaidDate = d.paidDate || c.feePaidDate || iso(TODAY);
+      } else if (c.feeStatus !== 'paid' || d.status !== 'paid') o.feeStatus = 'invoiced';
+    }
+    if (!c.feeAmount) o.feeAmount = t.total;
+    if (c.feeMode !== 'fee') o.feeMode = 'fee';
+  }
   patch(c.id, o);
   if (openId === c.id && $('#caseForm')) {
     Object.keys(o).forEach(function (k) {

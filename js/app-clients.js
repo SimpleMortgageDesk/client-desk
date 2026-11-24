@@ -435,6 +435,11 @@ function openDrawer(id, draft) {
           })
             ? '<button type="button" class="btn ghost" id="pfBtn" title="Fill in the Personal Portfolio Summary from this client\'s buy to let cases">Portfolio summary</button>'
             : '') +
+          (T.id === 'mortgage' && c.folder && /^https?:\/\//i.test(c.folder.url || '')
+            ? '<a class="btn ghost" id="fldLink" href="' +
+              esc(c.folder.url) +
+              '" target="_blank" rel="noopener" title="Open this client\'s folder in your OneDrive">Open client folder</a>'
+            : '') +
           '<button type="button" class="btn" id="bookBtn">Book appointment</button>'
       : '') +
     (id && !T.tenancyMode && N1() !== 'client'
@@ -444,7 +449,9 @@ function openDrawer(id, draft) {
         esc(N1()) +
         ' for this client</button>'
       : '') +
-    '<button type="button" class="btn" id="saveCloseBtn">Done</button></div></div>' +
+    '<button type="button" class="btn" id="saveCloseBtn">' +
+    (T.id === 'mortgage' ? 'Save' : 'Done') +
+    '</button></div></div>' +
     '<form id="caseForm" class="db" autocomplete="off">' +
     (T.tenancyMode
       ? llBody(c)
@@ -469,13 +476,15 @@ function openDrawer(id, draft) {
     '<div id="live"></div>' +
     (T.tenancyMode
       ? ''
-      : T.jobDocs
-        ? dzSide(c)
-        : '<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="' +
-          esc(c.oneDriveLink) +
-          '"><span class="pl" id="odl">' +
-          odLink(c.oneDriveLink) +
-          '</span></label></fieldset>') +
+      : T.id === 'mortgage'
+        ? ''
+        : T.jobDocs
+          ? dzSide(c)
+          : '<fieldset class="odfs"><legend>OneDrive folder</legend><label class="f">OneDrive folder link<input id="f-oneDriveLink" data-f="oneDriveLink" type="url" placeholder="Paste the OneDrive folder link for this client" value="' +
+            esc(c.oneDriveLink) +
+            '"><span class="pl" id="odl">' +
+            odLink(c.oneDriveLink) +
+            '</span></label></fieldset>') +
     '</form>' +
     '<div class="df"><div>' +
     (id ? '<button type="button" class="btn danger" id="delBtn">Delete ' + esc(N1()) + '</button>' : '') +

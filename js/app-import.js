@@ -604,7 +604,10 @@ function imMgRecord(g) {
   if (g('lender')) d.lender = g('lender');
   var m;
   if ((m = imNum(g('loan')))) d.loanAmount = +m;
-  if ((m = imNum(g('fee')))) d.fee = +m;
+  if ((m = imNum(g('fee')))) {
+    d.feeAmount = +m;
+    d.feeMode = 'fee';
+  }
   if ((m = imNum(g('value')))) d.propertyValue = +m;
   if ((m = imNum(g('price')))) d.purchasePrice = +m;
   if ((m = imNum(g('rate')))) d.rate = +m;

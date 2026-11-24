@@ -405,7 +405,8 @@ function renderLive() {
         esc(T.taskHint) +
         '" aria-label="New task"><input type="date" id="tkDue" aria-label="Due date"><input type="time" id="tkTime" aria-label="Time"><label class="prichk"><input type="checkbox" id="tkPri"> High priority</label><button type="button" class="btn ghost" id="tkAdd">Add task</button><button type="button" class="btn" id="tkBook">Book appointment</button></div></fieldset>';
   box.innerHTML =
-    (T.extraLog || (c.protection || []).length ? protFs(c) : '') + (T.tenancyMode ? '' : docsFs(c));
+    (T.extraLog || (c.protection || []).length ? protFs(c) : '') +
+    (T.tenancyMode ? '' : T.id === 'mortgage' ? feesFs(c) : docsFs(c));
   var nb = $('#liveNotes');
   if (nb)
     nb.innerHTML =
