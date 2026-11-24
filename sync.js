@@ -5024,8 +5024,13 @@
     file
       .text()
       .then(function (txt) {
-        var p = JSON.parse(txt);
-        if (!p || typeof p !== 'object') throw new Error('no');
+        var p;
+        try {
+          p = JSON.parse(txt);
+        } catch (x) {
+          throw new Error('notjson');
+        }
+        if (!p || typeof p !== 'object') throw new Error('notjson');
         var c = impCount(p, isRes);
         if (!c.add && !c.dup) throw new Error('empty');
         card(
@@ -5071,11 +5076,17 @@
           if (k === 'go') apply(p, c);
         };
       })
-      .catch(function () {
+      .catch(function (err) {
+        var why =
+          err && err.message === 'empty'
+            ? 'The file is a .json file, but it has no cases, appointments or notes in a form this app knows. Choose the .json file saved by the Backup button (or the Mortgage Desk save-to-file).'
+            : 'It is not a .json backup file (' +
+              esc(file.name) +
+              '). A spreadsheet (.csv or .xlsx) goes in a different place: close this, open <b>All cases</b> and press <b>Import</b>. A backup .json is saved by the Backup button.';
         card(
-          '<h2 style="margin:0 0 8px;font-size:20px">That file could not be used</h2><p style="margin:0 0 14px;color:#58697A">It is not a backup file made by ' +
-            esc(APPN) +
-            ' or the Mortgage Desk. Choose the .json file saved by the Backup button.</p><div style="text-align:right">' +
+          '<h2 style="margin:0 0 8px;font-size:20px">That file could not be used</h2><p style="margin:0 0 14px;color:#58697A">' +
+            why +
+            '</p><div style="text-align:right">' +
             btn('x', 'Close', true) +
             '</div>'
         );
