@@ -885,6 +885,9 @@ function casesHTML(embed) {
     (embed ? 'Investment properties' : T.tenancyMode ? 'Buy to let properties' : 'All ' + NS()) +
     '</h1>' +
     llSum +
+    (T.id === 'mortgage'
+      ? '<button class="btn ghost" data-act="pdfnew" title="Make a new case from a lender document (decision in principle or mortgage offer)">New client from a PDF</button>'
+      : '') +
     (T.id === 'mortgage' && planNos().length
       ? '<button class="btn ghost" data-act="tidyno" title="Some clients have more than one number, or two clients share a number">Tidy client numbers (' +
         planNos().length +
