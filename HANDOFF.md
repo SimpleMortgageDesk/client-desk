@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST206)
+# MySimpleDesk – handoff (build LATEST207)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -59,3 +59,4 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - **Mortgage invoices:** new invoice fills Regarding (property) = address (case type, lender), description 'Broker fee - type, address', amount from the case's Broker fee, client name/address/number; Client and Regarding show at the top of the invoice and PDF. Case has a 'Broker fee' section (fee amount, 'No fee'); a No-fee client asks before an invoice is made. CSV import reads a fee column.
 - **Mortgage client page:** 'Advice fee and invoices' section (fee mode None/Fee, amount, description, payable, status, paid on, Create invoice; invoice list; saving/paying an invoice updates Fee status); no Documents section (Read a document button kept); the Done button is called Save. Client numbers still exist on cases but the Tidy tool and the Client folders tool (app-folders.js) were removed completely.
 - **Mortgage review reminders:** one per case (review date = deal end minus 4 months, editable) for every stage except Lost, plus one per extra Security address (own deal end / review date, key `sec:<id>`, address in the label).
+- **Lender PDF reader:** if the document does not say 'initial rate period ends...', the deal end date is taken from the early repayment charge section (latest 'until/ends/to' date, or completion date + N years); the ERC field lists stepped charges (5% / 4% / 3%).

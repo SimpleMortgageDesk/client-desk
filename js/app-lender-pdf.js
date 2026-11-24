@@ -289,8 +289,83 @@ function docExtract(text) {
       var seg = lines[i] + ' ' + (lines[i + 1] || ''),
         pc = seg.match(/\d{1,2}(?:\.\d+)?\s?%(?:[^\n%]{0,25}\d{1,2}(?:\.\d+)?\s?%){0,5}/);
       if (pc) {
-        add('erc', pc[0].replace(/\s+/g, ' ').trim(), lines[i]);
+        /* stepped charges (5% then 4% then 3%) are listed on the lines that follow */
+        var steps = [];
+        lines.slice(i, i + 9).forEach(function (ln) {
+          if (
+            /rate|svr|variable|reversion|apr|interest|fee of|£/i.test(
+              ln.replace(/early repayment charges?/gi, '')
+            )
+          )
+            return;
+          (ln.match(/\b\d{1,2}(?:\.\d)?\s?%/g) || []).forEach(function (x) {
+            x = x.replace(/\s+/g, '');
+            if (steps.indexOf(x) < 0) steps.push(x);
+          });
+        });
+        add(
+          'erc',
+          steps.length > 1 && !/%[^%]+%/.test(pc[0]) ? steps.join(' / ') : pc[0].replace(/\s+/g, ' ').trim(),
+          lines[i]
+        );
         break;
+      }
+    }
+  }
+  // deal end date from the early repayment charge section, when the document does not say it in so many words.
+  // The charge normally runs to the end of the deal, so "charges apply until 31 March 2029" is the deal end date.
+  if (
+    !out.some(function (o) {
+      return o.k === 'fixedUntil';
+    })
+  ) {
+    var ei = -1;
+    for (i = 0; i < lines.length; i++)
+      if (/early repayment (?:charge|fee)s?|\bERC\b/i.test(lines[i])) {
+        ei = i;
+        break;
+      }
+    if (ei > -1) {
+      var win = lines.slice(ei, ei + 12).join('\n'),
+        dre =
+          /(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+\d{4}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/gi,
+        dm,
+        best = null,
+        dts = [];
+      while ((dm = dre.exec(win))) {
+        var dd = docDate(dm[0]);
+        if (!dd) continue;
+        var before = win.slice(Math.max(0, dm.index - 45), dm.index);
+        var ls0 = win.lastIndexOf('\n', dm.index) + 1,
+          le0 = win.indexOf('\n', dm.index),
+          ctx = win.slice(ls0, le0 < 0 ? win.length : le0);
+        if (!/charge|\bERC\b|repay|%|appl(?:y|ies)|period|rate|fixed|deal|product/i.test(ctx)) continue;
+        if (/offer|valid until|decision|date of|issued/i.test(ctx) && !/charge|\bERC\b|repay/i.test(ctx))
+          continue;
+        dts.push({ d: dd, s: ctx });
+        if (
+          /(?:until|up to|to|ends?|ending|expires?|expiry|finish(?:es)?|before|prior to|period of|lasts? until|[-–—])\s*(?:and including\s*)?(?:on\s*)?(?:the\s*)?[:\-]?\s*$/i.test(
+            before
+          )
+        )
+          if (!best || dd > best.d) best = { d: dd, s: ctx };
+      }
+      if (!best && dts.length === 1 && /charge|erc|repay|applies|apply|period/i.test(dts[0].s)) best = dts[0];
+      if (best) add('fixedUntil', best.d, 'Early repayment charge section: ' + best.s.replace(/\s+/g, ' '));
+      else {
+        // "for the first 5 years" with a known completion date
+        var yrs = win.match(
+          /(?:for|during|over) the (?:first |initial )?(\d{1,2}) years?|(\d{1,2})[- ]year (?:early repayment|ERC|fixed|term|period)/i
+        );
+        var comp = out.filter(function (o) {
+          return o.k === 'completionDate';
+        })[0];
+        if (yrs && comp && /^\d{4}-\d{2}-\d{2}$/.test(comp.v))
+          add(
+            'fixedUntil',
+            addMonths(comp.v, 12 * +(yrs[1] || yrs[2])),
+            'Worked out: ' + (yrs[1] || yrs[2]) + ' years from the completion date (' + yrs[0] + ')'
+          );
       }
     }
   }
