@@ -1318,3 +1318,30 @@ tr.cg td{background:var(--bg);border-top:2px solid var(--line);padding:8px 12px;
 .pfhd{display:grid;grid-template-columns:2fr 2fr 1.4fr;gap:10px}@media(max-width:800px){.pfhd{grid-template-columns:1fr}}
 .pftab{border-collapse:collapse;min-width:1500px;width:100%;font-size:12px}.pftab th{background:var(--surface2,#F1F5F6);text-align:left;padding:6px 6px;font-size:11px;vertical-align:bottom;border:1px solid var(--line,#D4DBDF)}.pftab td{border:1px solid var(--line,#D4DBDF);padding:0}.pftab td input:not([type=checkbox]){width:100%;box-sizing:border-box;border:0;padding:7px 6px;background:transparent;color:inherit;font:inherit;min-width:70px}.pftab td input.pfman{background:rgba(255,214,102,.18)}.pftab input[data-pf$='.addr']{min-width:230px}.pftab input[data-pf$='.owners']{min-width:170px}.pftab input[data-pf$='.lender']{min-width:140px}.pftab input[data-pf$='.mdate']{min-width:95px}
 .pftab tr.pfoff td{opacity:.5}.pftab tr.pftot td{padding:7px 6px;background:var(--surface2,#F1F5F6)}.pftab td:first-child{text-align:center;padding:0 6px}
+
+/* mortgage adviser: appointments (late, missed, drag to move), residence block, note suggestions */
+.apdsel select{padding:9px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:inherit;font:inherit;font-size:14px;width:100%}
+.apst.late{background:#fde7c2;color:#7a4b00}
+.apchip.late{outline:1px dashed #c58a1d;background:#fbe9c4}
+.apchip.miss{text-decoration:line-through;opacity:.7}
+.apcell.today.sel,.apdd.today.sel{outline-color:#c62828}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .apcell.today,:root:not([data-theme="light"]) .apdd.today{background:#5a2323;border-color:#e57373}}
+:root[data-theme="dark"] .apcell.today,:root[data-theme="dark"] .apdd.today{background:#5a2323;border-color:#e57373}
+[data-apdrag]{cursor:grab;touch-action:none}
+body.apdragging,body.apdragging *{cursor:grabbing!important;user-select:none!important}
+.apghost{position:fixed;z-index:120;pointer-events:none;background:var(--accent);color:#fff;font-size:13px;padding:5px 9px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:nowrap}
+.apcell.drop,.apcell.today.drop{outline:3px solid var(--accent);outline-offset:-2px;background:var(--accent-soft,rgba(21,101,192,.14))}
+#apMvOv{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.apmv{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:420px;width:100%;padding:16px 18px}
+.apmv h2{margin:0 0 4px;font-size:18px}.apmvwho{font-weight:700;margin-bottom:10px}
+.apmvrow{display:flex;gap:10px;align-items:baseline;margin:3px 0}.apmvrow span{min-width:42px}
+.apmv .apdsel{display:block;margin-top:10px}.apmv select{display:block;width:100%;margin-top:4px;padding:8px;font-size:15px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+.apmvbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.resm{margin-top:8px;padding:10px 12px;border:1px dashed var(--line);border-radius:8px;background:var(--bg)}
+.resm[hidden]{display:none}
+.ntsug{margin:6px 0 10px;padding:10px 12px;border:1px solid #c8a200;border-radius:8px;background:#fff8dc}
+.ntsug .sgh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.ntsug .sgh .btn{margin-left:auto}
+.ntsug .sgi{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:6px 0;border-top:1px dashed #e0cf86;flex-wrap:wrap}
+.ntsug .sgb{display:flex;gap:6px}.sgk{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;background:#1565c0;color:#fff;border-radius:4px;padding:1px 6px;margin-right:4px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ntsug{background:#3d3410;border-color:#8a7200}:root:not([data-theme="light"]) .ntsug .sgi{border-top-color:#6b5a1a}}
+:root[data-theme="dark"] .ntsug{background:#3d3410;border-color:#8a7200}:root[data-theme="dark"] .ntsug .sgi{border-top-color:#6b5a1a}

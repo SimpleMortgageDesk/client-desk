@@ -376,6 +376,7 @@ function openDrawer(id, draft) {
   editTk = null;
   ntTable = null;
   prTable = null;
+  noteSug = null;
   pendingNotes = (draft && draft.notes) || [];
   var c = id
     ? cases.filter(function (x) {
@@ -599,7 +600,14 @@ function apTodayN() {
 }
 function apCard(a, showDate) {
   var st = a.status || 'booked',
-    end = apHM(apMin(a.time) + (+a.dur || 30));
+    end = apHM(apMin(a.time) + (+a.dur || 30)),
+    mg = T.id === 'mortgage',
+    past =
+      mg &&
+      st === 'booked' &&
+      (a.date < iso(TODAY) ||
+        (a.date === iso(TODAY) &&
+          apMin(a.time) + (+a.dur || 30) < new Date().getHours() * 60 + new Date().getMinutes()));
   var dl = showDate
     ? '<span class="muted" style="font-size:12px">' +
       new Date(a.date + 'T00:00:00').toLocaleDateString('en-GB', {
@@ -613,7 +621,9 @@ function apCard(a, showDate) {
   return (
     '<div class="apc st-' +
     st +
-    '"><div class="aptm"><b>' +
+    '"><div class="aptm"' +
+    (mg ? ' data-apdrag="' + a.id + '" title="Drag onto a day in the calendar to move it"' : '') +
+    '><b>' +
     esc(a.time || '') +
     '</b>to ' +
     end +
@@ -621,6 +631,7 @@ function apCard(a, showDate) {
     dl +
     apWhoHtml(a) +
     (st !== 'booked' ? '<span class="apst">' + AP_STATUS[st] + '</span>' : '') +
+    (past ? '<span class="apst late">Past, still marked Booked</span>' : '') +
     '</div>' +
     (meta ? '<div class="muted" style="font-size:12px">' + meta + '</div>' : '') +
     (a.notes
@@ -628,13 +639,28 @@ function apCard(a, showDate) {
         esc(String(a.notes).slice(0, 220)) +
         '</div>'
       : '') +
-    '</div><div class="apact"><button type="button" class="btn ghost sm" data-apedit="' +
+    '</div><div class="apact">' +
+    (mg && st === 'booked'
+      ? '<button type="button" class="btn ghost sm" data-apwa="' +
+        a.id +
+        '" title="Send the client a WhatsApp reminder">WhatsApp</button>'
+      : '') +
+    '<button type="button" class="btn ghost sm" data-apedit="' +
     a.id +
     '">Edit</button><button type="button" class="btn ghost sm" data-apdone="' +
     a.id +
     '">' +
     (st === 'done' ? 'Reopen' : 'Mark done') +
-    '</button></div></div>'
+    '</button>' +
+    (past
+      ? '<button type="button" class="btn ghost sm" data-apmiss="' +
+        a.id +
+        '">Missed</button>' +
+        (a.caseId ? '<button type="button" class="btn sm" data-aprebook="' + a.id + '">Rebook</button>' : '')
+      : mg && st === 'noshow' && a.caseId
+        ? '<button type="button" class="btn sm" data-aprebook="' + a.id + '">Rebook</button>'
+        : '') +
+    '</div></div>'
   );
 }
 function apHTML(home) {
@@ -754,9 +780,12 @@ function apHTML(home) {
       l
         .slice(0, 3)
         .map(function (a) {
+          var late = T.id === 'mortgage' && (a.status || 'booked') === 'booked' && di < tIso;
           return (
             '<span class="apchip' +
             (a.status === 'done' ? ' done' : '') +
+            (T.id === 'mortgage' && a.status === 'noshow' ? ' miss' : '') +
+            (late ? ' late' : '') +
             '">' +
             esc(a.time) +
             ' ' +
@@ -1174,6 +1203,12 @@ function apSave() {
   var was = apEditId;
   apClose();
   toast(was ? 'Appointment updated' : 'Appointment booked');
+  if (T.id === 'mortgage' && !was && c && d.status === 'booked' && d.date >= iso(TODAY)) {
+    var wa0 = Object.assign({ id: id }, d);
+    setTimeout(function () {
+      waOpen(wa0, 'confirm');
+    }, 350);
+  }
   setTimeout(function () {
     if (view === 'appointments' || view === 'tasks') render();
     renderNav();

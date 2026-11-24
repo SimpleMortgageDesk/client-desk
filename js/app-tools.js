@@ -424,6 +424,7 @@ function renderLive() {
           '</div><div id="ntTblBox">' +
           pendHtml('nt') +
           '</div><div class="add"><button type="button" class="btn ghost" id="ntStamp">Insert date and time</button><button type="button" class="btn ghost" id="ntAdd">Add note</button></div>' +
+          sugHtml() +
           (notesAll ? ns : ns.slice(0, 1))
             .map(function (n) {
               return noteItem(n, 'notes', notesAll || ns.length < 2 ? '' : ' (latest)', paras);

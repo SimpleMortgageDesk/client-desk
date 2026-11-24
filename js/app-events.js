@@ -999,6 +999,7 @@ document.addEventListener('click', function (e) {
       nn.table = { rows: ntTable.rows };
       ntTable = null;
     }
+    noteSug = T.id === 'mortgage' && nt ? noteSuggest(nt, c4) : null;
     patch(openId, { notes: (c4.notes || []).concat([nn]), noteDraft: '' });
     return;
   }

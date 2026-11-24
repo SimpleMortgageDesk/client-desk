@@ -8040,6 +8040,15 @@
           { name: 'E. Partner', dob: '1977-02-02' }
         ]
       });
+      put('appointments', 'a2', {
+        caseId: 'm1',
+        date: D(-1),
+        time: '15:00',
+        dur: 30,
+        type: 'Mortgage review',
+        who: 'A. Sample',
+        status: 'booked'
+      });
       put('appointments', 'a1', {
         caseId: 'm3',
         date: D(2),
