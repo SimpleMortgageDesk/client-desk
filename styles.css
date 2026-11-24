@@ -897,33 +897,6 @@ header.top .in{padding-block:12px}}
 #sideTools .sbtn.logout{margin-top:8px!important;margin-bottom:6px}
 
 /* a colour theme for each trade (the logo, login and register screens keep the brand green) */
-body[data-theme-trade="gas"]{--accent:#A8532B;--accent-soft:#F0DDD2;--side:#3F454B;--side-hover:#525960;--tint:#F7F4F1}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="gas"]{--accent:#E39A6E;--accent-ink:#1A0B04;--accent-soft:#33241B;--side:#3F454B;--side-hover:#525960;--bg:#17171A;--tint:#221E1B}}
-:root[data-theme="dark"] body[data-theme-trade="gas"]{--accent:#E39A6E;--accent-ink:#1A0B04;--accent-soft:#33241B;--side:#3F454B;--side-hover:#525960;--bg:#17171A;--tint:#221E1B}
-body[data-theme-trade="accountant"]{--accent:#1565D8;--accent-soft:#D3E3FA;--side:#1565D8;--side-hover:#0F52B0;--tint:#F0F6FE}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="accountant"]{--accent:#7DB3EE;--accent-ink:#07121F;--accent-soft:#14283F;--side:#1D5FA8;--side-hover:#2A74C6;--bg:#0C1624;--tint:#111D2C}}
-:root[data-theme="dark"] body[data-theme-trade="accountant"]{--accent:#7DB3EE;--accent-ink:#07121F;--accent-soft:#14283F;--side:#1D5FA8;--side-hover:#2A74C6;--bg:#0C1624;--tint:#111D2C}
-body[data-theme-trade="plumber"]{--accent:#0A7F99;--accent-soft:#CDEFF6;--side:#0A7F99;--side-hover:#08677D;--tint:#EEFAFD}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="plumber"]{--accent:#5CC3DB;--accent-ink:#04161B;--accent-soft:#0F2F38;--side:#1F4A57;--side-hover:#2C6071;--tint:#102228}}
-:root[data-theme="dark"] body[data-theme-trade="plumber"]{--accent:#5CC3DB;--accent-ink:#04161B;--accent-soft:#0F2F38;--side:#1F4A57;--side-hover:#2C6071;--tint:#102228}
-body[data-theme-trade="electrician"]{--accent:#9A6600;--accent-soft:#FFEFB8;--side:#9A6600;--side-hover:#7E5400;--tint:#FFFAE8}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="electrician"]{--accent:#F0C24A;--accent-ink:#1F1600;--accent-soft:#382B0A;--side:#4F4013;--side-hover:#665319;--tint:#241C08}}
-:root[data-theme="dark"] body[data-theme-trade="electrician"]{--accent:#F0C24A;--accent-ink:#1F1600;--accent-soft:#382B0A;--side:#4F4013;--side-hover:#665319;--tint:#241C08}
-body[data-theme-trade="builder"]{--accent:#8A5A2B;--accent-soft:#F0E1D2;--side:#8A5A2B;--side-hover:#704A22;--tint:#FAF5EF}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="builder"]{--accent:#C9B6A4;--accent-ink:#17110C;--accent-soft:#2E251E;--side:#433830;--side-hover:#574A40;--tint:#1E1814}}
-:root[data-theme="dark"] body[data-theme-trade="builder"]{--accent:#C9B6A4;--accent-ink:#17110C;--accent-soft:#2E251E;--side:#433830;--side-hover:#574A40;--tint:#1E1814}
-body[data-theme-trade="beauty"]{--accent:#D6187A;--accent-soft:#FFD6EA;--side:#D6187A;--side-hover:#B51266;--tint:#FFF1F8}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="beauty"]{--accent:#F27BB0;--accent-ink:#1F0511;--accent-soft:#3A1428;--side:#5B2641;--side-hover:#733452;--tint:#261019}}
-:root[data-theme="dark"] body[data-theme-trade="beauty"]{--accent:#F27BB0;--accent-ink:#1F0511;--accent-soft:#3A1428;--side:#5B2641;--side-hover:#733452;--tint:#261019}
-body[data-theme-trade="architect"]{--accent:#7C3AED;--accent-soft:#E7DAFE;--side:#7C3AED;--side-hover:#6529CC;--tint:#F7F2FF}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="architect"]{--accent:#B79CF0;--accent-ink:#12091F;--accent-soft:#2A1D45;--side:#3B2A5E;--side-hover:#4C3A75;--tint:#1B1429}}
-:root[data-theme="dark"] body[data-theme-trade="architect"]{--accent:#B79CF0;--accent-ink:#12091F;--accent-soft:#2A1D45;--side:#3B2A5E;--side-hover:#4C3A75;--tint:#1B1429}
-body[data-theme-trade="solicitor"]{--accent:#0F2C7A;--accent-soft:#D5DEF6;--side:#0F2C7A;--side-hover:#0B2262;--tint:#F0F3FC}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="solicitor"]{--accent:#8DA7F0;--accent-ink:#070D1F;--accent-soft:#16213F;--side:#1F2F5C;--side-hover:#2D437A;--tint:#10172B}}
-:root[data-theme="dark"] body[data-theme-trade="solicitor"]{--accent:#8DA7F0;--accent-ink:#070D1F;--accent-soft:#16213F;--side:#1F2F5C;--side-hover:#2D437A;--tint:#10172B}
-body[data-theme-trade="mortgage"]{--accent:#4338CA;--accent-soft:#E0DEFA;--side:#4338CA;--side-hover:#352CA8;--tint:#F3F2FE}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="mortgage"]{--accent:#9F9FF2;--accent-ink:#0A0A20;--accent-soft:#1D1D45;--side:#2D2D63;--side-hover:#3E3E7D;--tint:#14142B}}
-:root[data-theme="dark"] body[data-theme-trade="mortgage"]{--accent:#9F9FF2;--accent-ink:#0A0A20;--accent-soft:#1D1D45;--side:#2D2D63;--side-hover:#3E3E7D;--tint:#14142B}
 
 /* a bold stripe in the trade colour along the top */
 header.top{border-top:4px solid var(--accent)}
@@ -948,9 +921,6 @@ header.top{border-top:4px solid var(--accent)}
 @media (min-width:1100px){.homesplit.nocal{display:flex;grid-template-areas:none;height:auto}.homesplit.nocal .hrem{height:auto}}
 @media (max-width:700px){.homesplit.nocal #homeCal .apcell{min-height:56px}}
 @media (max-width:759px){.homesplit.nocal #homeRem{display:block}}
-body[data-theme-trade="general"]{--accent:#52667A;--accent-soft:#E2E8EE;--side:#52667A;--side-hover:#415364;--tint:#F3F5F7}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="general"]{--accent:#A9BCCF;--accent-ink:#0B121A;--accent-soft:#1F2A36;--side:#415364;--side-hover:#52667A;--bg:#10151A;--tint:#161D25}}
-:root[data-theme="dark"] body[data-theme-trade="general"]{--accent:#A9BCCF;--accent-ink:#0B121A;--accent-soft:#1F2A36;--side:#415364;--side-hover:#52667A;--bg:#10151A;--tint:#161D25}
 
 /* lighter look: soft tinted buttons and pages instead of solid blocks of colour */
 body{--side-soft:color-mix(in srgb,var(--accent) 13%,#fff);--side-softh:color-mix(in srgb,var(--accent) 23%,#fff);--side-ink:color-mix(in srgb,var(--accent) 82%,#000)}
@@ -970,9 +940,6 @@ header.top .in:has(.trsw){flex-wrap:wrap}
 .trsw .trl{align-self:center;color:var(--side-ink)}
 .trsw button{flex:1 1 0;text-align:center;color:var(--side-ink);border-radius:9px}
 .trsw button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#fff)}
-body[data-theme-trade="driving"]{--accent:#C62828;--accent-soft:#FBD9D9;--side:#C62828;--side-hover:#A81F1F;--tint:#FFF3F3}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body[data-theme-trade="driving"]{--accent:#F28B82;--accent-ink:#1F0705;--accent-soft:#3A1614;--side:#7A2420;--side-hover:#8F2D28;--tint:#261110}}
-:root[data-theme="dark"] body[data-theme-trade="driving"]{--accent:#F28B82;--accent-ink:#1F0705;--accent-soft:#3A1614;--side:#7A2420;--side-hover:#8F2D28;--tint:#261110}
 
 /* the Logged in as bar has its own colour, the same for every trade, so it never blends into the theme */
 .trsw{background:#1F2D3D}
