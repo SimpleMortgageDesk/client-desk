@@ -209,8 +209,8 @@ function snPeople(c, d) {
 function snMsg(d, p) {
   var f = bdFirst((p && p.name) || ''),
     pay =
-      BIZ.payDetails && d.status !== 'paid'
-        ? '\n\nHow to pay:\n' + BIZ.payDetails + '\nPlease use reference ' + d.number + '.'
+      payFor(d) && d.status !== 'paid'
+        ? '\n\nHow to pay:\n' + payFor(d) + '\nPlease use reference ' + d.number + '.'
         : '';
   return (
     'Hello' +

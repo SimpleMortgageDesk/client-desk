@@ -5338,6 +5338,11 @@
               'Name, address, logo, VAT and payment details shown on your documents.',
               btn('biz', 'Edit')
             ) +
+            row(
+              'Invoices',
+              esc((window.CD_invSummary && window.CD_invSummary()) || 'Bank accounts and invoice numbers.'),
+              btn('inv', 'Edit invoice details')
+            ) +
             (TR().tenancyMode
               ? row(
                   'Your accountant',
@@ -5654,6 +5659,9 @@
       } else if (a === 'biz') {
         ov.remove();
         if (window.CD_openBiz) window.CD_openBiz();
+      } else if (a === 'inv') {
+        ov.remove();
+        if (window.CD_openInv) window.CD_openInv();
       } else if (a === 'acc') {
         ov.remove();
         if (window.CD_openAcc) window.CD_openAcc();
@@ -8510,6 +8518,7 @@
     else if (ro === 'backup') openBackup();
     else if (ro === 'pin') openPin();
     else if (ro === 'biz' && window.CD_openBiz) window.CD_openBiz();
+    else if (ro === 'inv' && window.CD_openInv) window.CD_openInv();
   }
   /* Google accounts confirm sensitive changes with the app password (Google cannot be asked to re-check the account password). */
   function pwGate(next) {

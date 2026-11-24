@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST192)
+# MySimpleDesk – handoff (build LATEST193)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -52,3 +52,4 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - Landing page simplified; no founder details or video (owner's choice).
 - **Documents vs existing clients** (`app-lender-pdf.js`): `docCandidates` matches a document's applicants to cases by name + date of birth (+ address, property). New client from a PDF asks: add to existing / new case for the same client (keeps client number) / new client. A document opened on the wrong case offers the right client. Duplicate review also opens itself after any backup or CSV import (`dupAfterImport`), and the finder uses date of birth (same name+address+different DOB is not a duplicate; same DOB+address with a different spelling is).
 - **Client folders** (`app-folders.js`): mortgage adviser documents now go to <records folder> > Clients > <client name> (one folder per client, shared by that client's cases; `docRoot: 'Clients'`). 'Client folders (N)' button on All cases makes them all; 'Create the folder now' in a client's documents. Needs the app-folder permission only (cannot make folders elsewhere in OneDrive).
+- **Invoice details** (Settings > Your details > Invoices > Edit invoice details, `openInv` in app-home.js): up to two bank accounts (`BIZ.payDetails/payLabel`, `payDetails2/payLabel2`), invoice prefix, next number, payment days. New invoices ask which account (`d.payAcc`); `payFor(d)` picks the text for invoice, PDF and WhatsApp/email. All trades.

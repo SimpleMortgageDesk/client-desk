@@ -938,12 +938,12 @@ function stPdf(c, tn) {
     P.y += 13;
     P.line(40, P.y - 2, 555);
   });
-  if (BIZ.payDetails && d.bal > 0) {
+  if (payFor() && d.bal > 0) {
     P.y += 10;
     P.need(30);
     P.t(40, P.y, 'How to pay', 10, true);
     P.y += 13;
-    wrapT(BIZ.payDetails, 515, 9).forEach(function (l) {
+    wrapT(payFor(), 515, 9).forEach(function (l) {
       P.t(40, P.y, l, 9);
       P.y += 11;
     });

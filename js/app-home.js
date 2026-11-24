@@ -639,6 +639,126 @@ function logoLoad(file, cb) {
   };
   fr.readAsDataURL(file);
 }
+/* ---------- payment accounts (up to two) shown on invoices ---------- */
+function payAccs() {
+  var o = [];
+  if (String(BIZ.payDetails || '').trim())
+    o.push({ n: 1, label: BIZ.payLabel || 'Account 1', text: BIZ.payDetails });
+  if (String(BIZ.payDetails2 || '').trim())
+    o.push({ n: 2, label: BIZ.payLabel2 || 'Account 2', text: BIZ.payDetails2 });
+  return o;
+}
+function payFor(d) {
+  var a = payAccs();
+  if (!a.length) return '';
+  var pick =
+    a.filter(function (x) {
+      return d && x.n === +d.payAcc;
+    })[0] || a[0];
+  return pick.text;
+}
+/* "Edit invoice details" in Settings: up to two payment accounts, invoice numbering and payment terms */
+function openInv() {
+  if (BIZ.savedAt && window.CD_reGate && !window.CD_reGate('inv')) return;
+  var b = BIZ,
+    f = function (id, l, v, ph, type) {
+      return (
+        '<label class="f">' +
+        l +
+        '<input id="iv-' +
+        id +
+        '" type="' +
+        (type || 'text') +
+        '" value="' +
+        esc(v == null ? '' : v) +
+        '" placeholder="' +
+        esc(ph || '') +
+        '"></label>'
+      );
+    },
+    a = function (id, l, v, ph) {
+      return (
+        '<label class="f wide">' +
+        l +
+        '<textarea id="iv-' +
+        id +
+        '" rows="3" placeholder="' +
+        esc(ph || '') +
+        '">' +
+        esc(v || '') +
+        '</textarea></label>'
+      );
+    };
+  overlay(
+    'ivOv',
+    '<div class="dhd"><h2>Invoice details</h2><button type="button" class="btn ghost" data-ivclose="1">Close</button></div>' +
+      '<p class="muted" style="margin:6px 0 12px">Add up to two bank accounts. When you make an invoice you choose which one it shows. Only add your own business account details, never a customer\'s.</p>' +
+      '<div class="grid">' +
+      f('label', 'Account 1 name (for you)', b.payLabel, 'For example: Business account') +
+      a(
+        'pay',
+        'Account 1 details shown on invoices',
+        b.payDetails,
+        'For example: Bank transfer to Example Ltd, sort code 00-00-00, account 00000000'
+      ) +
+      f('label2', 'Account 2 name (for you)', b.payLabel2, 'For example: Client account') +
+      a('pay2', 'Account 2 details shown on invoices (optional)', b.payDetails2, '') +
+      f('prefix', 'Invoice number starts with', b.invPrefix != null ? b.invPrefix : 'INV-') +
+      f('next', 'Next invoice number', b.nextInv || 1001, '', 'number') +
+      f('terms', 'Payment due after (days)', b.payTerms != null ? b.payTerms : 14, '', 'number') +
+      '</div><div class="mkact"><button type="button" class="btn" data-ivsave="1">Save invoice details</button><button type="button" class="btn ghost" data-ivclose="1">Cancel</button></div><p id="ivMsg" class="muted" style="min-height:18px"></p>',
+    true
+  );
+}
+window.CD_openInv = openInv;
+function ivSummary() {
+  var n = payAccs().length;
+  return (
+    n +
+    ' bank account' +
+    (n === 1 ? '' : 's') +
+    ' saved, next invoice number ' +
+    esc((BIZ.invPrefix != null ? BIZ.invPrefix : 'INV-') + (BIZ.nextInv || 1001)) +
+    '.'
+  );
+}
+window.CD_invSummary = ivSummary;
+document.addEventListener('click', function (e) {
+  var t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest('[data-ivclose]')) return closeOv('ivOv');
+  if (!t.closest('[data-ivsave]')) return;
+  var g = function (k) {
+      var x = $('#iv-' + k);
+      return x ? x.value.trim() : '';
+    },
+    n = function (k, d) {
+      var v = parseFloat(g(k));
+      return isNaN(v) ? d : v;
+    };
+  if (!g('pay') && g('pay2')) {
+    $('#ivMsg').textContent = 'Put your main account in Account 1. Account 2 is the spare.';
+    return;
+  }
+  var d = Object.assign({}, BIZ, {
+    payLabel: g('label'),
+    payDetails: g('pay'),
+    payLabel2: g('label2'),
+    payDetails2: g('pay2'),
+    invPrefix: g('prefix'),
+    nextInv: Math.max(1, Math.round(n('next', 1001))),
+    payTerms: Math.max(0, Math.round(n('terms', 14))),
+    savedAt: Date.now()
+  });
+  BIZ = d;
+  write('set-biz', function () {
+    return setCol.doc('business').set(d);
+  });
+  closeOv('ivOv');
+  toast('Invoice details saved');
+  if ($('#dcOv')) dcRender();
+  if (view === 'invoices') render();
+});
 function bizSave() {
   if (BIZ.savedAt && window.CD_reGate && !window.CD_reGate('biz')) return;
   var g = function (k) {
@@ -1155,6 +1275,32 @@ function dcOpen(caseId, docId, kind, from) {
       dcDoc.toAddr = from.toAddr;
       dcDoc.job = from.job;
     }
+    /* two bank accounts saved: ask which one this invoice should show */
+    if (kind === 'invoice' && payAccs().length > 1) {
+      var accs = payAccs();
+      docAsk(
+        'Which bank account for this invoice?',
+        'You have two accounts saved. Choose the one this invoice should show. You can change it later on the invoice.',
+        accs
+          .map(function (x, i) {
+            return {
+              pri: i === 0,
+              label:
+                '<b>' +
+                esc(x.label) +
+                '</b><br><span style="font-size:12.5px;opacity:.8">' +
+                esc(String(x.text).split('\n')[0]) +
+                '</span>',
+              go: function () {
+                dcDoc.payAcc = x.n;
+                dcRender();
+              }
+            };
+          })
+          .concat([{ label: 'Cancel', go: null }])
+      );
+      return;
+    }
   }
   dcRender();
 }
@@ -1228,6 +1374,23 @@ function dcRender() {
           esc(d.paidDate || '') +
           '"></label>'
         : '') +
+      (!isQ && payAccs().length > 1
+        ? '<label class="f">Pay into<select id="dc-payAcc">' +
+          payAccs()
+            .map(function (x) {
+              return (
+                '<option value="' +
+                x.n +
+                '"' +
+                (+d.payAcc === x.n || (!d.payAcc && x.n === 1) ? ' selected' : '') +
+                '>' +
+                esc(x.label) +
+                '</option>'
+              );
+            })
+            .join('') +
+          '</select></label>'
+        : '') +
       '<label class="f wide">' +
       (isQ ? 'Quote for' : 'Bill to') +
       '<input id="dc-toName" value="' +
@@ -1280,6 +1443,8 @@ function dcRead() {
   });
   var pv = g('paid');
   if (pv != null) d.paidDate = pv;
+  var pa = g('payAcc');
+  if (pa != null) d.payAcc = +pa;
   d.lines = [];
   document.querySelectorAll('#dcLines tr').forEach(function (tr) {
     var l = {};
@@ -1372,9 +1537,9 @@ function dcHtml(d) {
     (d.notes ? '<div class="dsec"><div class="dlab">Notes</div>' + nl2br(d.notes) + '</div>' : '') +
     (isQ
       ? '<div class="dsec">This quote is valid until ' + fd(d.due) + '.</div>'
-      : BIZ.payDetails && d.status !== 'paid'
+      : payFor(d) && d.status !== 'paid'
         ? '<div class="dsec"><div class="dlab">How to pay</div>' +
-          nl2br(BIZ.payDetails) +
+          nl2br(payFor(d)) +
           '<br>Please use reference <b>' +
           esc(d.number) +
           '</b>.</div>'
@@ -1528,8 +1693,8 @@ function dcPdf(d) {
   };
   sec('Notes', d.notes);
   if (isQ) sec('', 'This quote is valid until ' + fd(d.due) + '.');
-  else if (BIZ.payDetails && d.status !== 'paid')
-    sec('How to pay', BIZ.payDetails + '\nPlease use reference ' + d.number + '.');
+  else if (payFor(d) && d.status !== 'paid')
+    sec('How to pay', payFor(d) + '\nPlease use reference ' + d.number + '.');
   sec('', BIZ.terms);
   return P.bytes(bizFooter());
 }
