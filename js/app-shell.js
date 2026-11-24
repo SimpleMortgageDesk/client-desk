@@ -750,6 +750,18 @@ function revSelHTML() {
     ' date</option></select>'
   );
 }
+/* colour key for the stage colours on the rows, and the red and amber edge for a review or rate end that is close */
+function stLegendHTML() {
+  return (
+    '<div class="stlegend" aria-label="Colour key">' +
+    STAGES.concat([{ id: 'lost', label: 'Closed lost' }])
+      .map(function (x) {
+        return '<span class="stl st-' + x.id + '">' + esc(x.label) + '</span>';
+      })
+      .join('') +
+    '<span class="stlnote"><i class="rbar red"></i> review or rate end within 30 days <i class="rbar amb"></i> within 90 days</span></div>'
+  );
+}
 function casesHTML(embed) {
   var CASE_COLS = T.cols,
     list = sortList(visible());
@@ -835,12 +847,16 @@ function casesHTML(embed) {
       : '') +
     '</div>';
   h = '<div class="caseswrap">' + h;
-  if (!cases.length) return h + emptyHTML() + mtdCard() + '</div>';
+  var mg = T.id === 'mortgage';
+  if (!cases.length) return h + emptyHTML() + (mg ? '' : mtdCard()) + '</div>';
   var shown = CASE_COLS.filter(function (x) {
     return colOn(x[0]);
   });
   h +=
-    '<div class="tw"><table><thead><tr><th>' +
+    (mg ? stLegendHTML() : '') +
+    '<div class="tw"><table><thead><tr>' +
+    (mg ? '<th class="cnoh">No.</th>' : '') +
+    '<th>' +
     esc(
       T.tenancyMode
         ? 'Property'
@@ -857,17 +873,31 @@ function casesHTML(embed) {
     '</tr></thead><tbody>';
   if (!list.length)
     h += '<tr><td colspan="' + (shown.length + 1) + '" class="muted">No ' + NS() + ' match.</td></tr>';
-  list.forEach(function (c) {
+  var rowOf = function (c, ing) {
     var ad = T.tenancyMode
       ? [c.type, c.bedrooms ? c.bedrooms + ' bed' : ''].filter(Boolean).join(' · ')
       : short(fv(c, T.addr)) || short(((c.applicants || [])[0] || {}).address);
+    var rv0 = mg ? reviewOf(c) : '',
+      rd0 = rv0 ? diff(rv0) : 9999;
     h +=
-      '<tr class="click" data-open="' +
+      '<tr class="click' +
+      (mg
+        ? ' stc st-' +
+          esc(stageOf(c) || 'enquiry') +
+          (rd0 <= 30 ? ' rend-red' : rd0 <= 90 ? ' rend-amb' : '') +
+          (ing ? ' ing' : '')
+        : '') +
+      '" data-open="' +
       c.id +
-      '"><td><b>' +
+      '">' +
+      (mg ? '<td class="cnocol">' + esc(c.clientNo || '') + '</td>' : '') +
+      '<td><b>' +
       esc(names(c)) +
       '</b>' +
-      cno(c) +
+      (mg ? propTag(c) : cno(c)) +
+      (mg && isSpv(c) && pnames(c) !== 'Unnamed client'
+        ? '<div class="muted" style="font-size:12px">Directors: ' + esc(pnames(c)) + '</div>'
+        : '') +
       '<div class="muted" style="font-size:12px">' +
       esc(ad) +
       '</div></td>' +
@@ -915,8 +945,39 @@ function casesHTML(embed) {
         })
         .join('') +
       '</tr>';
-  });
-  return h + '</tbody></table></div>' + mtdCard() + '</div>';
+  };
+  if (mg) {
+    var grp = {},
+      done = {};
+    list.forEach(function (c) {
+      var k = clientKey(c);
+      (grp[k] = grp[k] || []).push(c);
+    });
+    list.forEach(function (c0) {
+      var k0 = clientKey(c0),
+        g = grp[k0];
+      if (done[k0]) return;
+      done[k0] = 1;
+      if (g.length > 1)
+        h +=
+          '<tr class="cg"><td colspan="' +
+          (shown.length + 2) +
+          '"><b>' +
+          esc(names(c0)) +
+          '</b> <span class="muted">' +
+          (isSpv(c0) && c0.companyNumber ? '· Company no. ' + esc(c0.companyNumber) + ' ' : '') +
+          '· ' +
+          g.length +
+          ' properties</span></td></tr>';
+      g.forEach(function (c) {
+        rowOf(c, g.length > 1);
+      });
+    });
+  } else
+    list.forEach(function (c) {
+      rowOf(c, false);
+    });
+  return h + '</tbody></table></div>' + (mg ? '' : mtdCard()) + '</div>';
 }
 
 /* ---------- reminders ---------- */
@@ -1306,7 +1367,7 @@ function appRow(a, i) {
     '<div class="app" data-app="' +
     i +
     '"><div class="top2"><span>' +
-    esc(T.person[0]) +
+    esc(T.id === 'mortgage' && dirMode ? 'Director' : T.person[0]) +
     ' ' +
     (i + 1) +
     '</span><button type="button" class="btn ghost sm" data-rmapp="' +

@@ -310,6 +310,7 @@ function decorateSecs() {
       .replace(/\(\d+\)/, '')
       .trim()
       .toLowerCase();
+    if (x.hasAttribute('data-nocol')) continue;
     if (x.id === 'peopleFs' || t.indexOf('applicants') === 0) {
       x.setAttribute('data-col', 'applicants');
       continue;

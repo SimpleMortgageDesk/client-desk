@@ -337,7 +337,68 @@ function names(c) {
     var pa = short(paddr(c));
     return pa || 'Unnamed property';
   }
+  if (isSpv(c) && String(c.companyName || '').trim()) return String(c.companyName).trim();
   return pnames(c);
+}
+/* ---------- mortgage adviser: one client can hold several properties, or borrow through a company (SPV) ---------- */
+var dirMode = false;
+function isSpv(c) {
+  return c.borrowerType === 'spv';
+}
+function coNo(c) {
+  return String(c.companyNumber || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+var PROP_TYPES = [
+  ['', 'Not set'],
+  ['main', 'Main residence'],
+  ['btl', 'Buy to let'],
+  ['second', 'Second home'],
+  ['holiday', 'Holiday home']
+];
+function propLabel(v) {
+  var o = PROP_TYPES.filter(function (q) {
+    return q[0] === v;
+  })[0];
+  return o && o[0] ? o[1] : '';
+}
+function spvTag(c) {
+  return isSpv(c)
+    ? ' <span class="ptag spv" title="' + esc(c.companyName || 'Limited company (SPV)') + '">SPV</span>'
+    : '';
+}
+function propTag(c) {
+  var l = propLabel(c.propUse);
+  return spvTag(c) + (l ? ' <span class="ptag ' + esc(c.propUse) + '">' + esc(l) + '</span>' : '');
+}
+/* Same client = same applicant names and dates of birth, in any order. A joint case with a different second person is a different client.
+   For a company, every case with the same company number (or name) is one client. */
+function clientKey(c) {
+  if (isSpv(c)) {
+    var cn = coNo(c);
+    if (cn) return 'co:' + cn;
+    var nm = String(c.companyName || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ' ');
+    if (nm) return 'coname:' + nm;
+  }
+  var a = (c.applicants || [])
+    .map(function (x) {
+      return (
+        String(x.name || '')
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, ' ') +
+        '|' +
+        (x.dob || '')
+      );
+    })
+    .filter(function (v) {
+      return v !== '|';
+    });
+  return a.length ? a.sort().join('||') : '#' + c.id;
 }
 function pnames(c) {
   var a = (c.applicants || [])
@@ -971,7 +1032,7 @@ function visible() {
       if (revFilter === 'none' ? !!rv : rv.slice(0, 7) !== revFilter) return false;
     }
     if (!q) return true;
-    var hay = [names(c), c.clientNo, c.type]
+    var hay = [names(c), c.clientNo, c.type, c.companyName, c.companyNumber, coNo(c)]
       .concat(
         T.fields
           .filter(function (f) {

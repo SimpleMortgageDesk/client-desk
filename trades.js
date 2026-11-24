@@ -144,6 +144,18 @@
         id: 'lender',
         title: 'Lender',
         fields: [
+          {
+            k: 'propUse',
+            l: 'Property type',
+            t: 'sel',
+            o: [
+              ['', 'Not set'],
+              ['main', 'Main residence'],
+              ['btl', 'Buy to let'],
+              ['second', 'Second home'],
+              ['holiday', 'Holiday home']
+            ]
+          },
           { k: 'lender', l: 'Lender name', t: 'text' },
           {
             k: 'repayment',

@@ -7918,7 +7918,14 @@
       });
     }
     var KT = ((window.CD_TRADES || {}).all || {})[kind];
-    if (KT && kind !== 'landlord' && kind !== 'gas' && kind !== 'accountant' && kind !== 'both') {
+    if (
+      KT &&
+      kind !== 'landlord' &&
+      kind !== 'gas' &&
+      kind !== 'accountant' &&
+      kind !== 'both' &&
+      kind !== 'mortgage'
+    ) {
       put('cases', 'k1', {
         clientNo: 'C001',
         type: (KT.types || [''])[0] || '',
@@ -7931,6 +7938,90 @@
         dur: 60,
         type: 'Visit',
         who: 'A. Sample',
+        status: 'booked'
+      });
+    }
+    /* invented sample cases only: one person with two properties, a joint case, a limited company */
+    if (kind === 'mortgage') {
+      var mk = function (id, o) {
+        o.tasks = o.tasks || [];
+        o.notes = o.notes || [];
+        o.repayment = o.repayment || 'repayment';
+        put('cases', id, o);
+      };
+      mk('m1', {
+        clientNo: 'C001',
+        type: 'Purchase',
+        stage: 'completed',
+        propUse: 'main',
+        propertyAddress: '1 Example Road, AB1 2CD',
+        lender: 'Sample Building Society',
+        lenderRef: 'REF-0001',
+        loanAmount: 180000,
+        propertyValue: 240000,
+        fixedUntil: D(40),
+        reviewDate: D(25),
+        applicants: [
+          { name: 'A. Sample', dob: '1985-04-12', phone: '07700900111', email: 'a.sample@example.com' }
+        ]
+      });
+      mk('m2', {
+        clientNo: 'C001',
+        type: 'Buy to let',
+        stage: 'offer',
+        propUse: 'btl',
+        propertyAddress: '2 Sample Street, AB3 4EF',
+        lender: 'Demo Bank',
+        loanAmount: 120000,
+        propertyValue: 170000,
+        applicants: [
+          { name: 'A. Sample', dob: '1985-04-12', phone: '07700900111', email: 'a.sample@example.com' }
+        ]
+      });
+      mk('m3', {
+        clientNo: 'C002',
+        type: 'Remortgage',
+        stage: 'dip',
+        propUse: 'main',
+        propertyAddress: '3 Demo Lane, AB5 6GH',
+        lender: 'Sample Building Society',
+        loanAmount: 150000,
+        fixedUntil: D(150),
+        reviewDate: D(80),
+        applicants: [
+          { name: 'B. Test', dob: '1979-09-03', phone: '07700900222' },
+          { name: 'C. Demo', dob: '1981-01-20' }
+        ]
+      });
+      mk('m4', {
+        clientNo: 'C003',
+        type: 'Buy to let',
+        stage: 'factfind',
+        propUse: 'btl',
+        borrowerType: 'spv',
+        companyName: 'Sample Holdings Ltd',
+        companyNumber: '01234567',
+        propertyAddress: '4 Example Court, AB7 8IJ',
+        applicants: [{ name: 'D. Director', dob: '1975-06-30' }]
+      });
+      mk('m5', {
+        clientNo: 'C003',
+        type: 'Buy to let',
+        stage: 'enquiry',
+        propUse: 'btl',
+        borrowerType: 'spv',
+        companyName: 'Sample Holdings Ltd',
+        companyNumber: '01234567',
+        propertyAddress: '5 Demo Mews, AB9 0KL',
+        applicants: [{ name: 'D. Director', dob: '1975-06-30' }]
+      });
+      put('appointments', 'a1', {
+        caseId: 'm3',
+        date: D(2),
+        time: '10:00',
+        dur: 60,
+        type: 'Fact-find',
+        who: 'B. Test & C. Demo',
         status: 'booked'
       });
     }

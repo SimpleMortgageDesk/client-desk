@@ -309,6 +309,63 @@ function startFrom(src) {
   closeDrawer();
   openDrawer(null, d);
 }
+/* ---------- mortgage adviser: Applying as (a person or a limited company) ---------- */
+function relabelDirs() {
+  var f = document.getElementById('f-borrowerType');
+  if (!f) return;
+  dirMode = f.value === 'spv';
+  var lg = document.getElementById('dirLegend');
+  if (lg) lg.textContent = dirMode ? 'Directors and residential address' : T.peopleTitle;
+  var ad = document.getElementById('addApp');
+  if (ad) ad.textContent = 'Add ' + (dirMode ? 'director' : T.person[0].toLowerCase());
+  document.querySelectorAll('#apps .app .top2 span').forEach(function (s, i) {
+    s.textContent = (dirMode ? 'Director ' : T.person[0] + ' ') + (i + 1);
+  });
+}
+function borrowerFs(c) {
+  var spv = isSpv(c);
+  dirMode = spv;
+  return (
+    '<fieldset data-nocol="1"><legend>Applying as</legend><div class="grid"><div class="f wide"><span>Borrower</span>' +
+    '<div class="btabs" role="tablist" aria-label="Applying as">' +
+    '<button type="button" role="tab" class="btab pers" data-btab="personal" aria-selected="' +
+    !spv +
+    '">Personal name</button>' +
+    '<button type="button" role="tab" class="btab spvt" data-btab="spv" aria-selected="' +
+    spv +
+    '">Limited company (SPV)</button></div>' +
+    '<span style="display:none">' +
+    sel('borrowerType', 'Borrower', spv ? 'spv' : 'personal', [
+      ['personal', 'Personal name'],
+      ['spv', 'Limited company (SPV)']
+    ]) +
+    '</span></div><span class="spvf" style="display:contents"' +
+    (spv ? '' : ' hidden') +
+    '>' +
+    fld('companyName', 'Company name', c.companyName) +
+    fld('companyNumber', 'Company number', c.companyNumber) +
+    '</span></div></fieldset>'
+  );
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-btab]');
+  if (!b) return;
+  var s = document.getElementById('f-borrowerType');
+  if (!s) return;
+  s.value = b.getAttribute('data-btab');
+  s.dispatchEvent(new Event('change', { bubbles: true }));
+});
+document.addEventListener('change', function (e) {
+  var x = e.target;
+  if (!x || x.id !== 'f-borrowerType') return;
+  document.querySelectorAll('[data-btab]').forEach(function (b) {
+    b.setAttribute('aria-selected', String(b.getAttribute('data-btab') === x.value));
+  });
+  relabelDirs();
+  document.querySelectorAll('#caseForm .spvf').forEach(function (z) {
+    z.hidden = x.value !== 'spv';
+  });
+});
 function openDrawer(id, draft) {
   openId = id;
   ntDraft = '';
@@ -381,12 +438,13 @@ function openDrawer(id, draft) {
     (T.tenancyMode
       ? llBody(c)
       : (!id && !draft ? pickClient() : '') +
-        '<fieldset id="peopleFs"><legend>' +
-        esc(T.peopleTitle) +
+        (T.id === 'mortgage' ? borrowerFs(c) : '') +
+        '<fieldset id="peopleFs"><legend id="dirLegend">' +
+        esc(T.id === 'mortgage' && isSpv(c) ? 'Directors and residential address' : T.peopleTitle) +
         '</legend><div class="appsplit"><div class="appleft"><div id="apps">' +
         (c.applicants && c.applicants.length ? c.applicants : [{}]).map(appRow).join('') +
         '</div><button type="button" class="btn ghost sm" id="addApp">Add ' +
-        esc(T.person[0].toLowerCase()) +
+        esc(T.id === 'mortgage' && isSpv(c) ? 'director' : T.person[0].toLowerCase()) +
         '</button><div class="grid" style="margin-top:10px">' +
         fld('clientNo', 'Client number', c.clientNo) +
         '</div></div><aside class="lkpane"><div class="lkt" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span id="lkTitle">Connected clients (0)</span><button type="button" class="btn ghost sm secbtn" id="lkToggle">Show</button></div><div id="linksBox" style="display:none"></div></aside></div></fieldset>' +
