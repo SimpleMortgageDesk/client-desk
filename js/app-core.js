@@ -342,6 +342,15 @@ function names(c) {
 }
 /* ---------- mortgage adviser: one client can hold several properties, or borrow through a company (SPV) ---------- */
 var dirMode = false;
+/* the applicants' names joined with &, or nothing when none are typed */
+function people(c) {
+  var a = (c.applicants || [])
+    .map(function (x) {
+      return x.name;
+    })
+    .filter(Boolean);
+  return a.length ? a.join(' & ') : '';
+}
 function isSpv(c) {
   return c.borrowerType === 'spv';
 }

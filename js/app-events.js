@@ -206,6 +206,10 @@ document.addEventListener('click', function (e) {
     else openDrawer(null);
     return;
   }
+  if (t.closest('[data-act="portfolio"]')) {
+    openPortfolio();
+    return;
+  }
   if (t.closest('[data-act="pdfnew"]')) {
     docChoose(importPdfs);
     return;

@@ -886,6 +886,9 @@ function casesHTML(embed) {
     '</h1>' +
     llSum +
     (T.id === 'mortgage'
+      ? '<button class="btn ghost" data-act="portfolio" title="Fill in the Personal Portfolio Summary from a client\'s buy to let cases">Portfolio summary</button>'
+      : '') +
+    (T.id === 'mortgage'
       ? '<button class="btn ghost" data-act="pdfnew" title="Make a new case from a lender document (decision in principle or mortgage offer)">New client from a PDF</button>'
       : '') +
     (T.id === 'mortgage' && planNos().length
