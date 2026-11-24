@@ -42,10 +42,9 @@ function renderNav() {
     });
   var mgNav = T.id === 'mortgage';
   if (mgNav)
-    /* the mortgage adviser's menu: All cases, Pipeline, Tasks across the top; the tools down the side */
+    /* the mortgage adviser's menu: All cases and Tasks across the top; the tools down the side */
     items = [
       ['cases', 'All ' + NS()],
-      ['pipeline', 'Pipeline'],
       ['tasks', 'Tasks'],
       ['calculator', 'Mortgage Calculator'],
       ['appointments', 'Calendar'],
@@ -515,6 +514,7 @@ function render() {
   }
   if ((view === 'calculator' && !T.calculator) || (view === 'birthdays' && !T.dob)) view = 'tasks';
   if (T.hideTabs && T.hideTabs.indexOf(view) > -1) view = T.landing || 'tasks';
+  if (T.id === 'mortgage' && view === 'pipeline') view = 'cases';
   if (T.tenancyMode && (view === 'invoices' || view === 'marketing')) view = 'cases';
   if (!T.tenancyMode && view === 'tradesmen') view = T.landing || 'tasks';
   if (T.tenancyMode && view === 'cases') view = 'assets';
