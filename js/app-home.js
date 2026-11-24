@@ -648,6 +648,11 @@ function payAccs() {
     o.push({ n: 2, label: BIZ.payLabel2 || 'Account 2', text: BIZ.payDetails2 });
   return o;
 }
+/* mortgage adviser: the payment reference is the adviser's own name, nothing else */
+function payRefName() {
+  var p = typeof profA === 'function' ? profA() : {};
+  return String((BIZ.owner != null ? BIZ.owner : p && p.name) || BIZ.name || '').trim();
+}
 function payFor(d) {
   var a = payAccs();
   if (!a.length) return '';
@@ -1595,9 +1600,12 @@ function dcHtml(d) {
       : payFor(d) && d.status !== 'paid'
         ? '<div class="dsec"><div class="dlab">How to pay</div>' +
           nl2br(payFor(d)) +
-          '<br>Please use reference <b>' +
-          esc(d.number) +
-          '</b>.</div>'
+          (T.id === 'mortgage'
+            ? payRefName()
+              ? '<br><b class="dpayref">Please type ' + esc(payRefName()) + ' as your payment reference.</b>'
+              : ''
+            : '<br>Please use reference <b>' + esc(d.number) + '</b>.') +
+          '</div>'
         : '') +
     (BIZ.terms ? '<div class="dsec muted">' + nl2br(BIZ.terms) + '</div>' : '') +
     '<div class="dfoot">' +
@@ -1769,7 +1777,23 @@ function dcPdf(d) {
   sec('Notes', d.notes);
   if (isQ) sec('', 'This quote is valid until ' + fd(d.due) + '.');
   else if (payFor(d) && d.status !== 'paid')
-    sec('How to pay', payFor(d) + '\nPlease use reference ' + d.number + '.');
+    if (T.id === 'mortgage') {
+      sec('How to pay', payFor(d));
+      if (payRefName()) {
+        P.y -= 4;
+        P.need(14);
+        P.t(
+          40,
+          P.y,
+          'Please type ' + payRefName() + ' as your payment reference.',
+          10,
+          true,
+          'l',
+          [0.7, 0.1, 0.1]
+        );
+        P.y += 16;
+      }
+    } else sec('How to pay', payFor(d) + '\nPlease use reference ' + d.number + '.');
   sec('', BIZ.terms);
   return P.bytes(bizFooter());
 }
