@@ -268,6 +268,296 @@ var IM_TRADE = {
     any: 1
   }
 };
+/* the mortgage adviser's import: the columns other mortgage apps and spreadsheets usually have (the fourth item is the example in the sample file) */
+IM_TRADE.mortgage = {
+  noun: 'case',
+  one: 'case',
+  many: 'cases',
+  fields: [
+    [
+      'cno',
+      'Client number',
+      ['clientno', 'clientnumber', 'clientid', 'caseno', 'casenumber', 'accountno'],
+      'C101'
+    ],
+    [
+      'name',
+      'Applicant 1 name',
+      [
+        'name',
+        'fullname',
+        'client',
+        'clientname',
+        'customer',
+        'customername',
+        'applicant',
+        'applicant1',
+        'applicant1name',
+        'borrower',
+        'borrowername',
+        'firstapplicant'
+      ],
+      'MR TEST PERSON1'
+    ],
+    ['fn', 'First name (if separate)', ['firstname', 'forename', 'forenames', 'givenname'], ''],
+    ['sn', 'Surname (if separate)', ['surname', 'lastname', 'familyname'], ''],
+    ['dob', 'Applicant 1 date of birth', ['dob', 'dateofbirth', 'birthdate', 'applicant1dob'], '01/02/1980'],
+    [
+      'phone',
+      'Applicant 1 phone',
+      ['phone', 'mobile', 'telephone', 'tel', 'phonenumber', 'mobilenumber', 'applicant1phone'],
+      '07000000001'
+    ],
+    ['email', 'Applicant 1 email', ['email', 'emailaddress', 'applicant1email'], 'test.person1@example.com'],
+    [
+      'address',
+      'Applicant 1 current address',
+      ['address', 'homeaddress', 'currentaddress', 'residentialaddress', 'correspondenceaddress'],
+      '5 Old Street, AB1 2CD'
+    ],
+    [
+      'name2',
+      'Applicant 2 name',
+      [
+        'applicant2',
+        'applicant2name',
+        'secondapplicant',
+        'jointapplicant',
+        'jointname',
+        'partner',
+        'partnername',
+        'coapplicant',
+        'name2',
+        'secondname'
+      ],
+      ''
+    ],
+    [
+      'dob2',
+      'Applicant 2 date of birth',
+      [
+        'partnerdob',
+        'partnerdateofbirth',
+        'applicant2dateofbirth',
+        'coapplicantdob',
+        'jointdob',
+        'dob2',
+        'applicant2dob',
+        'secondapplicantdob'
+      ],
+      ''
+    ],
+    [
+      'phone2',
+      'Applicant 2 phone',
+      ['partnerphone', 'partnermobile', 'phone2', 'applicant2phone', 'mobile2'],
+      ''
+    ],
+    ['email2', 'Applicant 2 email', ['partneremail', 'email2', 'applicant2email'], ''],
+    [
+      'addr',
+      'Property address (the security)',
+      [
+        'propertyaddress',
+        'securityaddress',
+        'security',
+        'securityproperty',
+        'mortgagedproperty',
+        'purchaseaddress',
+        'newaddress',
+        'property'
+      ],
+      '22 Demo Lane, AB3 4EF'
+    ],
+    ['lender', 'Lender', ['lender', 'lendername', 'mortgagelender', 'bank', 'provider'], 'Nationwide'],
+    [
+      'loan',
+      'Loan amount',
+      ['loan', 'loanamount', 'mortgageamount', 'borrowing', 'advance', 'amountborrowed'],
+      '200000'
+    ],
+    ['value', 'Property value', ['propertyvalue', 'valuation', 'estimatedvalue', 'value'], '250000'],
+    ['price', 'Purchase price', ['purchaseprice', 'price'], ''],
+    ['rate', 'Initial rate (%)', ['rate', 'initialrate', 'interestrate', 'productrate', 'fixedrate'], '4.29'],
+    ['term', 'Term (years)', ['term', 'termyears', 'mortgageterm', 'termofloan'], '25'],
+    ['pay', 'Monthly payment', ['monthlypayment', 'payment', 'paymentpermonth'], ''],
+    [
+      'fixed',
+      'Initial deal ends',
+      [
+        'fixeduntil',
+        'fixedend',
+        'dealends',
+        'dealend',
+        'rateends',
+        'rateend',
+        'productends',
+        'productend',
+        'initialrateends',
+        'fixedrateend',
+        'expiry',
+        'expirydate',
+        'endofdeal'
+      ],
+      '31/03/2029'
+    ],
+    ['review', 'Review date', ['reviewdate', 'nextreview', 'mortgagereview', 'reviewon'], ''],
+    ['stage', 'Stage', ['stage', 'status', 'casestatus', 'pipelinestage', 'progress'], 'Offered'],
+    [
+      'type',
+      'Case type',
+      ['casetype', 'mortgagetype', 'purpose', 'type', 'typeofmortgage', 'purposeofmortgage'],
+      'Purchase'
+    ],
+    ['use', 'Property use', ['propertyuse', 'use', 'propertytype', 'btl'], 'Buy to let'],
+    ['repay', 'Repayment method', ['repayment', 'repaymenttype', 'repaymentmethod'], 'Repayment'],
+    [
+      'lref',
+      'Lender reference',
+      [
+        'lenderref',
+        'lenderreference',
+        'mortgageref',
+        'mortgagereference',
+        'rollnumber',
+        'accountnumber',
+        'reference',
+        'ref'
+      ],
+      ''
+    ],
+    ['product', 'Product code', ['product', 'productcode', 'productname'], ''],
+    [
+      'co',
+      'Company name (limited company)',
+      ['company', 'companyname', 'spv', 'limitedcompany', 'borrowercompany'],
+      ''
+    ],
+    ['cono', 'Company number', ['companynumber', 'companyno', 'companyreg', 'crn', 'registrationnumber'], ''],
+    [
+      'note',
+      'Notes',
+      ['notes', 'note', 'comments', 'comment', 'remarks', 'history', 'casenotes'],
+      'Spoke to client. Documents received.'
+    ],
+    [
+      'task',
+      'Task or next action',
+      ['task', 'nexttask', 'nextaction', 'action', 'todo', 'followup'],
+      'Chase the valuation'
+    ],
+    [
+      'taskdue',
+      'Task due date',
+      ['taskdue', 'taskduedate', 'duedate', 'nextactiondate', 'followupdate', 'actiondate'],
+      '30/11/2026'
+    ]
+  ],
+  req: ['name'],
+  reqL: 'the applicant’s name (or first name and surname)',
+  any: 1
+};
+/* turning the words in a column into the app's own values */
+function imStage(v) {
+  var s = String(v || '').toLowerCase();
+  if (!s) return 'enquiry';
+  return /lost|declin|dead|cancel|withdr|abandon|not proceed/.test(s)
+    ? 'lost'
+    : /complet|drawn|done|paid out|released/.test(s)
+      ? 'completed'
+      : /offer/.test(s)
+        ? 'offer'
+        : /fma|full mortgage|application|submitted|applied/.test(s)
+          ? 'application'
+          : /dip|aip|principle/.test(s)
+            ? 'dip'
+            : /fact/.test(s)
+              ? 'factfind'
+              : 'enquiry';
+}
+function imUse(v) {
+  var s = String(v || '').toLowerCase();
+  return !s
+    ? ''
+    : /btl|buy.?to.?let|let\b|investment|rental/.test(s)
+      ? 'btl'
+      : /holiday/.test(s)
+        ? 'holiday'
+        : /second/.test(s)
+          ? 'second'
+          : /main|resid|home|owner|live/.test(s)
+            ? 'main'
+            : '';
+}
+function imRepay(v) {
+  var s = String(v || '').toLowerCase();
+  return /part/.test(s)
+    ? 'part-and-part'
+    : /interest.?only|\bio\b/.test(s)
+      ? 'interest-only'
+      : /repay|capital/.test(s)
+        ? 'repayment'
+        : '';
+}
+function imMgRecord(g) {
+  var nm = g('name') || [g('fn'), g('sn')].filter(Boolean).join(' '),
+    co = g('co');
+  if (!nm && !co) return null;
+  var person = function (n, d, p, e, a) {
+    var o = { name: n };
+    if (d) o.dob = imDate(d);
+    if (p) o.phone = imPhone(p);
+    if (e) o.email = e;
+    if (a) o.address = a;
+    return o;
+  };
+  var ap = [];
+  if (nm) ap.push(person(nm, g('dob'), g('phone'), g('email'), g('address')));
+  if (g('name2')) ap.push(person(g('name2'), g('dob2'), g('phone2'), g('email2'), ''));
+  var use = imUse(g('use')),
+    d = {
+      applicants: ap.length ? ap : [{}],
+      stage: imStage(g('stage')),
+      type: imType(g('type')) || (use === 'btl' ? 'Buy to let' : T.types[0]),
+      repayment: imRepay(g('repay')) || 'repayment',
+      tasks: [],
+      notes: []
+    };
+  if (g('cno')) d.clientNo = g('cno');
+  if (g('addr')) d.propertyAddress = g('addr');
+  if (g('lender')) d.lender = g('lender');
+  var m;
+  if ((m = imNum(g('loan')))) d.loanAmount = +m;
+  if ((m = imNum(g('value')))) d.propertyValue = +m;
+  if ((m = imNum(g('price')))) d.purchasePrice = +m;
+  if ((m = imNum(g('rate')))) d.rate = +m;
+  if ((m = imNum(g('term')))) d.termYears = +m;
+  if ((m = imNum(g('pay')))) d.monthlyPayment = +m;
+  if ((m = imDate(g('fixed')))) d.fixedUntil = m;
+  if ((m = imDate(g('review')))) d.reviewDate = m;
+  if (use) d.propUse = use;
+  if (g('lref')) d.lenderRef = g('lref');
+  if (g('product')) d.product = g('product');
+  if (co) {
+    d.borrowerType = 'spv';
+    d.companyName = co;
+    if (g('cono')) d.companyNumber = g('cono');
+  }
+  var now = Date.now();
+  if (g('note')) d.notes.push({ ts: now, text: g('note') });
+  if (g('task'))
+    d.tasks.push({
+      id: uid(),
+      text: g('task'),
+      due: imDate(g('taskdue')),
+      time: '',
+      done: false,
+      created: now,
+      pri: false,
+      from: 'import'
+    });
+  return d;
+}
 function imKind() {
   return T.tenancyMode
     ? 'landlord'
@@ -580,7 +870,7 @@ function imAuto(h) {
   if (!n || !def) return '';
   var hit = '';
   def.fields.forEach(function (f) {
-    if (!hit && f[2].indexOf(n) > -1) hit = f[0];
+    if (!hit && (f[2].indexOf(n) > -1 || imNorm(f[1]) === n)) hit = f[0];
   });
   return hit;
 }
@@ -590,6 +880,7 @@ function imRecord(row) {
       var i = imMap.indexOf(key);
       return i < 0 ? '' : String(row[i] == null ? '' : row[i]).trim();
     };
+  if (k === 'mortgage') return imMgRecord(g);
   var d;
   if (k === 'landlord') {
     var addr = g('addr');
@@ -785,7 +1076,10 @@ function imPlan() {
     dup: dup,
     empty: empty,
     missing: def.req.filter(function (x) {
-      return imMap.indexOf(x) < 0;
+      return (
+        imMap.indexOf(x) < 0 &&
+        !(imKind() === 'mortgage' && x === 'name' && imMap.indexOf('fn') > -1 && imMap.indexOf('sn') > -1)
+      );
     }),
     def: def
   };
@@ -878,6 +1172,9 @@ function imHtml() {
     head +
     tbl +
     msg +
+    (imBusy
+      ? '<div id="imProg" style="margin:12px 0;padding:12px 14px;border:1px solid #BFE0D2;border-radius:10px;background:#EEF8F3"><div id="imProgTxt" style="font-weight:600">Saving…</div><div style="height:10px;border-radius:99px;background:#D4E8DE;margin:8px 0;overflow:hidden"><i id="imProgFill" style="display:block;height:100%;width:3%;background:#0A6B50;border-radius:99px;transition:width .3s"></i></div><div class="muted" style="font-size:13px">Please keep this window open until it finishes.</div></div>'
+      : '') +
     '<div class="add" style="margin:12px 0 0"><button type="button" class="btn" data-imgo="1"' +
     (p.missing.length || !p.add.length || imBusy ? ' disabled' : '') +
     '>' +
@@ -973,18 +1270,54 @@ function imRun() {
     chain = Promise.resolve(),
     list = p.add,
     base = +nextClientNo().slice(1);
+  /* the mortgage adviser keeps the client numbers in the file, and gives a client's other properties the same number;
+     a number already used by a different client is replaced by the next free one */
+  if (imKind() === 'mortgage') {
+    var maxN = base - 1,
+      used = {},
+      byClient = {};
+    casesAll.forEach(function (c) {
+      if (!c.clientNo) return;
+      used[c.clientNo] = clientKey(c);
+      if (!byClient[clientKey(c)]) byClient[clientKey(c)] = c.clientNo;
+    });
+    list.forEach(function (d) {
+      var ck = clientKey(d),
+        want = d.clientNo ? String(d.clientNo).trim() : '';
+      if (!want || (used[want] && used[want] !== ck)) {
+        if (byClient[ck]) want = byClient[ck];
+        else {
+          do {
+            maxN++;
+            want = 'C' + String(maxN).padStart(3, '0');
+          } while (used[want]);
+        }
+      }
+      d.clientNo = want;
+      used[want] = ck;
+      if (!byClient[ck]) byClient[ck] = want;
+    });
+  }
+  var total = list.length,
+    setProg = function () {
+      var t = $('#imProgTxt'),
+        f = $('#imProgFill');
+      if (t) t.textContent = 'Saving ' + n + ' of ' + total + '…';
+      if (f) f.style.width = Math.max(3, Math.round((n / total) * 100)) + '%';
+    };
   /* numbers are given here, one after another, from the highest in use; the list updates itself as each record is saved */
   list.forEach(function (d, i) {
     chain = chain.then(function () {
       tagTr(d);
       var ref = col.doc();
-      d.clientNo = 'C' + String(base + i).padStart(3, '0');
+      if (imKind() !== 'mortgage') d.clientNo = 'C' + String(base + i).padStart(3, '0');
       d.createdAt = now;
       d.updatedAt = now;
       return write(ref.id, function () {
         return ref.set(d);
       }).then(function () {
         n++;
+        setProg();
       });
     });
   });
@@ -1016,67 +1349,71 @@ function imTemplate() {
       return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
     };
   var ex =
-    imKind() === 'accountant'
-      ? [
-          'A. Sample',
-          '07700 900123',
-          'a.sample@example.com',
-          'Sample Plumbing',
-          'Sole trader',
-          'Self Assessment',
-          '480',
-          'Annually',
-          '05/04/2026',
-          '31/01/2027',
-          'Plumbing and heating',
-          '01/06/2019',
-          'Cash basis',
-          '62000',
-          'No',
-          ''
-        ]
-      : imKind() === 'landlord'
+    imKind() === 'mortgage'
+      ? def.fields.map(function (f) {
+          return f[3] || '';
+        })
+      : imKind() === 'accountant'
         ? [
-            '1 Example Road',
-            'AB1 2CD',
-            'House',
-            '3',
             'A. Sample',
             '07700 900123',
             'a.sample@example.com',
-            '1150',
-            'Monthly',
-            '1',
-            '01/03/2025',
-            '1150',
-            '01/06/2026',
-            '15/02/2022',
-            'C',
-            '10/05/2020',
-            '20/09/2026'
+            'Sample Plumbing',
+            'Sole trader',
+            'Self Assessment',
+            '480',
+            'Annually',
+            '05/04/2026',
+            '31/01/2027',
+            'Plumbing and heating',
+            '01/06/2019',
+            'Cash basis',
+            '62000',
+            'No',
+            ''
           ]
-        : imKind() === 'gas'
+        : imKind() === 'landlord'
           ? [
-              'A. Sample',
-              '07700 900123',
-              'a.sample@example.com',
-              '14 Example Road',
+              '1 Example Road',
               'AB1 2CD',
-              'Boiler service',
-              'Worcester Greenstar 30i',
-              '14/11/2025',
-              '14/11/2026',
-              '',
-              '95'
-            ]
-          : [
+              'House',
+              '3',
               'A. Sample',
               '07700 900123',
               'a.sample@example.com',
-              '14 Example Road',
-              (T.types || [''])[0],
-              '95'
-            ];
+              '1150',
+              'Monthly',
+              '1',
+              '01/03/2025',
+              '1150',
+              '01/06/2026',
+              '15/02/2022',
+              'C',
+              '10/05/2020',
+              '20/09/2026'
+            ]
+          : imKind() === 'gas'
+            ? [
+                'A. Sample',
+                '07700 900123',
+                'a.sample@example.com',
+                '14 Example Road',
+                'AB1 2CD',
+                'Boiler service',
+                'Worcester Greenstar 30i',
+                '14/11/2025',
+                '14/11/2026',
+                '',
+                '95'
+              ]
+            : [
+                'A. Sample',
+                '07700 900123',
+                'a.sample@example.com',
+                '14 Example Road',
+                (T.types || [''])[0],
+                '95'
+              ];
   var heads =
     imKind() === 'landlord'
       ? [
