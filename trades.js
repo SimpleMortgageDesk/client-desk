@@ -112,6 +112,7 @@
     short: 'Mortgage adviser',
     flatPrice: '£1.99',
     jobDocs: true,
+    noExp: true,
     docRoot: 'Clients',
     docHint:
       'Upload or photograph ID, fact finds, offers and other case papers. Photos are saved as one PDF.',
