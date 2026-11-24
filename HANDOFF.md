@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST198)
+# MySimpleDesk – handoff (build LATEST199)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -54,3 +54,4 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - **Client folders** (`app-folders.js`): mortgage adviser documents now go to <records folder> > Clients > <client name> (one folder per client, shared by that client's cases; `docRoot: 'Clients'`). 'Client folders (N)' button on All cases makes them all; 'Create the folder now' in a client's documents. Needs the app-folder permission only (cannot make folders elsewhere in OneDrive).
 - **Invoice details** (Settings > Your details > Invoices > Edit invoice details, `openInv` in app-home.js): up to two bank accounts (`BIZ.payDetails/payLabel`, `payDetails2/payLabel2`), invoice prefix, next number, payment days. New invoices ask which account (`d.payAcc`); `payFor(d)` picks the text for invoice, PDF and WhatsApp/email. All trades.
 - **Security headers:** the build (`tools/build.mjs`, step 3) replaces `'unsafe-inline'` in `script-src` with the sha256 of each of our own inline scripts, so injected inline script cannot run. Source `_headers` keeps `unsafe-inline` (no effect locally). Sign-in tokens stay in localStorage by design (no server; app-folder scope only; shared-computer mode uses sessionStorage).
+- **PDF reader upgraded** to PDF.js 6.5.438 (legacy build) in `lib/pdfjs/` (was 3.11.174, which had CVE-2024-4367). Loaded as a module via `lib/pdfjs/load.mjs` (`dxLoad(src, true)`); the three image decoders are in `lib/pdfjs/wasm/` (`PDFJS_WASM`). Re-copy from `pdfjs-dist/legacy/build` to update.

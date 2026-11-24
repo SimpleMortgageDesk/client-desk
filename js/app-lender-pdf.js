@@ -568,15 +568,13 @@ function docShow(k, v) {
 
 /* ---------- reading the PDF text (one line per row of the page) ---------- */
 function docLoadPdfjs() {
-  return dxLoad('/lib/pdf.min.js').then(function () {
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/lib/pdf.worker.min.js';
-  });
+  return dxLoad('/lib/pdfjs/load.mjs', true);
 }
 function pdfText(file) {
   return file
     .arrayBuffer()
     .then(function (buf) {
-      return window.pdfjsLib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise;
+      return window.pdfjsLib.getDocument({ data: new Uint8Array(buf), wasmUrl: PDFJS_WASM }).promise;
     })
     .then(function (pdf) {
       var out = '',

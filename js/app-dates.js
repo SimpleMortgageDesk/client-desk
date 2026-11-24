@@ -144,11 +144,13 @@ function dxFind(text, kind) {
   return { best: all.length && all[0].score >= 3 ? all[0] : null, all: all.slice(0, 4) };
 }
 var dxLib = {};
-function dxLoad(src) {
+var PDFJS_WASM = '/lib/pdfjs/wasm/';
+function dxLoad(src, asModule) {
   return (
     dxLib[src] ||
     (dxLib[src] = new Promise(function (res, rej) {
       var s = document.createElement('script');
+      if (asModule) s.type = 'module';
       s.src = src;
       s.onload = res;
       s.onerror = function () {
@@ -160,13 +162,12 @@ function dxLoad(src) {
   );
 }
 function dxPdf(blob) {
-  return dxLoad('/lib/pdf.min.js')
+  return dxLoad('/lib/pdfjs/load.mjs', true)
     .then(function () {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/lib/pdf.worker.min.js';
       return blob.arrayBuffer();
     })
     .then(function (buf) {
-      return window.pdfjsLib.getDocument({ data: buf, isEvalSupported: false }).promise;
+      return window.pdfjsLib.getDocument({ data: buf, wasmUrl: PDFJS_WASM }).promise;
     })
     .then(function (doc) {
       var n = Math.min(doc.numPages, 4),
