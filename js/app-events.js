@@ -218,6 +218,14 @@ document.addEventListener('click', function (e) {
     docChoose(importPdfs);
     return;
   }
+  if (t.id === 'cfMake') {
+    cfDrawer();
+    return;
+  }
+  if (t.closest('[data-act="cfolders"]')) {
+    cfBulk();
+    return;
+  }
   if (t.closest('[data-act="dupes"]')) {
     dupOpen();
     return;

@@ -454,6 +454,24 @@ function dzNoun() {
   return T && T.tenancyMode ? 'property' : N1().toLowerCase();
 }
 function pfName(c, used) {
+  /* mortgage adviser: one folder per client (named after the client), shared by all of that client's cases */
+  if (T && T.id === 'mortgage' && !T.tenancyMode) {
+    var nm = pfClean(isSpv(c) && c.companyName ? c.companyName : pnames(c).replace(/^Unnamed client$/, ''));
+    if (nm) {
+      var ck = clientKey(c);
+      var other =
+        (used && used[nm.toLowerCase()] && used[nm.toLowerCase()] !== ck) ||
+        cases.some(function (x) {
+          return (
+            x.id !== c.id &&
+            clientKey(x) !== ck &&
+            x.folder &&
+            String(x.folder.name || '').toLowerCase() === nm.toLowerCase()
+          );
+        });
+      return other ? nm + ' (' + (c.clientNo || String(c.id || '').slice(0, 4)) + ')' : nm;
+    }
+  }
   var a =
     T && T.tenancyMode
       ? pfClean(String(c.propertyAddress || '').split(/[\n,]/)[0]) || 'Property ' + (c.clientNo || '')
@@ -586,8 +604,12 @@ function dzFolderHtml(c) {
         dzNoun() +
         ' is made in your ' +
         esc(w) +
-        ' when you save the first photo or document. It is named after the customer and the address.') +
-    '</p>'
+        ' when you save the first photo or document. It is named after the ' +
+        (T.id === 'mortgage' ? 'client.' : 'customer and the address.')) +
+    '</p>' +
+    (!T.tenancyMode && c && c.id
+      ? '<p style="margin:0 0 10px"><button type="button" class="btn ghost" id="cfMake">Create the folder now</button> <span class="muted" id="cfMsg" role="status" style="font-size:12.5px"></span></p>'
+      : '')
   );
 }
 function dzSide(c) {

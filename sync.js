@@ -7816,6 +7816,12 @@
         !!tok() && navigator.onLine !== false && (PROV !== 'google' || !!ls('cd.gfid')) && FOLDER() !== null
       );
     },
+    /* makes <records folder> > Clients > <client name> if it is not there yet; returns {name, id, url} */
+    clientFolder: async function (name, root) {
+      if (window.CD_DEMO || window.CD_TEST)
+        return { name: name, id: 'demo', url: 'https://example.com/clients/' + encodeURIComponent(name) };
+      return propDir(name, true, root || 'Clients');
+    },
     /* makes the property folder if it is not there yet; returns {name, id, url} */
     folder: async function (name, root) {
       if (window.CD_DEMO) return { name: name, id: 'demo', url: '', rc: 1 };

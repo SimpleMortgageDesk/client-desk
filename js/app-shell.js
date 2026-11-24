@@ -914,6 +914,11 @@ function casesHTML(embed) {
       : '') +
     (imKind() ? '<button class="btn ghost" data-act="import">Import</button>' : '') +
     (cases.length > 1 ? dupBtn() : '') +
+    (!T.tenancyMode && T.jobDocs && cases.length && cfWanted().length
+      ? '<button class="btn ghost" data-act="cfolders" title="Make a Clients folder in your OneDrive with one folder per client">Client folders (' +
+        cfWanted().length +
+        ')</button>'
+      : '') +
     '<button class="btn ghost" data-act="export">Export CSV</button></div>' +
     dupBar() +
     '<div class="filters">' +
