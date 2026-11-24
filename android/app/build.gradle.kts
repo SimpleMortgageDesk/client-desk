@@ -13,12 +13,12 @@ val versionProps = Properties().apply {
 
 android {
     namespace = "uk.co.mysimpledesk.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "uk.co.mysimpledesk.app"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = (versionProps.getProperty("versionCode") ?: "1").toInt()
         versionName = versionProps.getProperty("versionName") ?: "1.0.0"
     }
