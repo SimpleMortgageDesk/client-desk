@@ -1500,8 +1500,40 @@
   function setCalDel(a) {
     lset('cd.caldel', JSON.stringify(a));
   }
+  /* mortgage adviser: the event in the adviser's own Outlook starts "Auto Booked Appointment", then the appointment notes and the client's dated notes */
+  function calText(a) {
+    var L = ['Auto Booked Appointment', '', [a.type, a.mode].filter(Boolean).join(' · ')];
+    if (a.notes) L.push('', 'Appointment notes:', a.notes);
+    var cr = a.caseId && mem.cases[a.caseId],
+      cd = cr && cr.data,
+      ns = (cd && cd.notes) || [];
+    if (ns.length) {
+      L.push('', 'Client notes from ' + APPN + ':');
+      ns.slice()
+        .sort(function (x, y) {
+          return (x.ts || 0) - (y.ts || 0);
+        })
+        .forEach(function (n) {
+          var d = n.ts ? new Date(n.ts) : null,
+            ds = d
+              ? ('0' + d.getDate()).slice(-2) +
+                '/' +
+                ('0' + (d.getMonth() + 1)).slice(-2) +
+                '/' +
+                d.getFullYear()
+              : '';
+          L.push((ds ? ds + ': ' : '- ') + String(n.text || ''));
+        });
+    }
+    return L.join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .slice(0, 30000);
+  }
+  function calMg() {
+    return TR().id === 'mortgage';
+  }
   function calHash(a) {
-    return JSON.stringify([a.who, a.type, a.date, a.time, a.dur, a.mode, a.where]);
+    return JSON.stringify([a.who, a.type, a.date, a.time, a.dur, a.mode, a.where, calMg() ? calText(a) : '']);
   }
   function calWall(date, time, plusMin) {
     var d = date.split('-'),
@@ -1516,7 +1548,10 @@
       start: { dateTime: calWall(a.date, a.time, 0), timeZone: 'Europe/London' },
       end: { dateTime: calWall(a.date, a.time, +a.dur || 30), timeZone: 'Europe/London' },
       location: { displayName: a.where || '' },
-      body: { contentType: 'text', content: [a.type, a.mode].filter(Boolean).join(' · ') },
+      body: {
+        contentType: 'text',
+        content: calMg() ? calText(a) : [a.type, a.mode].filter(Boolean).join(' · ')
+      },
       isReminderOn: true,
       reminderMinutesBeforeStart: CAL_MIN,
       showAs: 'busy'
