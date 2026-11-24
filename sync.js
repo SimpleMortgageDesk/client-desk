@@ -315,21 +315,41 @@
       );
   }
   async function tokenRequest(params) {
-    var r = await fetch(AUTH + 'token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form(
-        Object.assign(
-          {
-            client_id: CFG.clientId,
-            scope:
-              scopes() +
-              (params.grant_type === 'authorization_code' && ls('cd.oidc') !== '1' && !noOidc() ? OIDC : '')
-          },
-          params
+    /* Microsoft gets 45 seconds to answer; after that the person is told, instead of watching a blank screen */
+    var ac = typeof AbortController === 'function' ? new AbortController() : null,
+      tm = ac
+        ? setTimeout(
+            function () {
+              ac.abort();
+            },
+            Math.max(1, +(CFG.authTimeoutSeconds || 45)) * 1000
+          )
+        : 0,
+      r;
+    try {
+      r = await fetch(AUTH + 'token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        signal: ac ? ac.signal : undefined,
+        body: form(
+          Object.assign(
+            {
+              client_id: CFG.clientId,
+              scope:
+                scopes() +
+                (params.grant_type === 'authorization_code' && ls('cd.oidc') !== '1' && !noOidc() ? OIDC : '')
+            },
+            params
+          )
         )
-      )
-    });
+      });
+    } catch (fe) {
+      if (fe && fe.name === 'AbortError')
+        throw new TypeError('NetworkError: Microsoft did not answer in time');
+      throw fe;
+    } finally {
+      if (tm) clearTimeout(tm);
+    }
     var j = await r.json().catch(function () {
       return {};
     });
@@ -653,8 +673,17 @@
 
   /* ---------- local cache (IndexedDB) ---------- */
   var idb = null;
+  /* the device store is allowed 4 seconds: a browser that never answers must not hold up the whole start-up */
   function openIdb() {
-    return new Promise(function (res) {
+    return new Promise(function (res0) {
+      var done = false,
+        res = function () {
+          if (!done) {
+            done = true;
+            res0();
+          }
+        };
+      setTimeout(res, 4000);
       try {
         var q = indexedDB.open('client-desk', 1);
         q.onupgradeneeded = function () {
@@ -663,6 +692,12 @@
           d.createObjectStore('dirty', { keyPath: 'k' });
         };
         q.onsuccess = function () {
+          if (done) {
+            try {
+              q.result.close();
+            } catch (e) {}
+            return;
+          }
           idb = q.result;
           res();
         };
@@ -2844,7 +2879,8 @@
     });
   }
   var bkDirMem = {};
-  var BK_FILE = APPF + '-Backup.zip';
+  var BK_FILE = APPF + '-Backup.zip',
+    BK_PREV = APPF + '-Backup-Previous.zip';
   async function bkGetDir(slot) {
     if (bkDirMem[slot]) return bkDirMem[slot];
     var d = await bkIdb();
@@ -2910,11 +2946,35 @@
     if (!g || g.none) return null;
     if (!g.ok) return g;
     try {
+      /* keep the one before: when the existing latest file is 20+ hours old (or there is no Previous yet), copy it to Previous before it is overwritten */
+      var kept = false;
+      try {
+        var oldFh = await g.h.getFileHandle(BK_FILE),
+          oldF = await oldFh.getFile(),
+          prevExists = true;
+        try {
+          await g.h.getFileHandle(BK_PREV);
+        } catch (e0) {
+          prevExists = false;
+        }
+        if (oldF.size > 0 && (!prevExists || Date.now() - oldF.lastModified >= 20 * 3600 * 1000)) {
+          var pfh = await g.h.getFileHandle(BK_PREV, { create: true }),
+            pw2 = await pfh.createWritable();
+          await pw2.write(await oldF.arrayBuffer());
+          await pw2.close();
+          kept = true;
+        }
+      } catch (e1) {
+        /* no earlier backup yet */
+      }
       var fh = await g.h.getFileHandle(BK_FILE, { create: true });
       var w = await fh.createWritable();
       await w.write(blob);
       await w.close();
-      return { ok: true, msg: 'Saved in ' + g.h.name };
+      return {
+        ok: true,
+        msg: 'Saved in ' + g.h.name + (kept ? ' (the earlier backup was kept as Previous)' : '')
+      };
     } catch (e) {
       return { ok: false, msg: 'Could not write to the folder (' + ((e && e.name) || 'error') + ').' };
     }
@@ -3413,7 +3473,7 @@
       ov.innerHTML =
         '<div style="background:#fff;color:#101C26;width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:22px 24px;font:14px system-ui,sans-serif;box-shadow:0 8px 30px rgba(16,28,38,.3)">' +
         '<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">PDF/CSV Case Backup</h2><button class="btn ghost" data-b="close">Close</button></div>' +
-        '<p style="margin:12px 0;color:#58697A">Saves every record as a PDF and a CSV inside one password-protected ZIP file. Each new backup replaces the previous one.</p>' +
+        '<p style="margin:12px 0;color:#58697A">Saves every record as a PDF and a CSV inside one password-protected ZIP file. Two files are kept in each folder: the latest, and the one before it (named Previous), so a bad backup never replaces your only good one.</p>' +
         '<h3 style="margin:14px 0 4px;font-size:15px">1. Where to save</h3>' +
         (pick
           ? loc('dir', 'Location 1', false) + loc('dir2', 'Location 2', true)
@@ -3707,6 +3767,42 @@
           '</span>'
       : esc(n);
   }
+  /* ---------- open without signing in: the copy kept on this device, behind the app PIN ---------- */
+  function offlineChoices() {
+    return { dev: !!pinData() && Object.keys(mem.cases).length > 0 };
+  }
+  function offlineHtml() {
+    if (!offlineChoices().dev) return '';
+    return (
+      '<div style="margin-top:16px;border-top:1px solid #E1E7EA;padding-top:14px"><button id="lgOff" type="button" style="width:100%;padding:11px;border:1px solid #0A6B50;border-radius:8px;background:#fff;color:#0A6B50;font:600 14px system-ui;cursor:pointer">Open without logging in</button>' +
+      '<p style="color:#58697A;margin:8px 0 0;font-size:12.5px;line-height:1.4">Microsoft or OneDrive not answering? This opens the copy kept on this device, behind your app PIN. Your changes are kept and uploaded the next time you log in.</p></div>'
+    );
+  }
+  function offlineBar() {
+    if ($('mdOffBar')) return;
+    var b = document.createElement('div');
+    b.id = 'mdOffBar';
+    b.style.cssText =
+      'position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:180;background:#FFF6DD;color:#5a4300;border:1px solid #E8D28A;border-radius:10px;padding:8px 12px;font:13px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.18);display:flex;gap:10px;align-items:center;max-width:94vw';
+    b.innerHTML =
+      '<span>Not logged in. Working from the copy on this device; changes upload after you log in.</span><button type="button" id="mdOffIn" style="border:0;border-radius:6px;background:#0A6B50;color:#fff;padding:6px 12px;font:600 13px system-ui;cursor:pointer;white-space:nowrap">Log in</button>';
+    document.body.appendChild(b);
+    $('mdOffIn').onclick = function () {
+      startLogin(false, '');
+    };
+  }
+  async function startOffline() {
+    if (!offlineChoices().dev) return false;
+    lset('cd.locked', '1');
+    var o = $('mdSign');
+    if (o) o.remove();
+    bootOk = true;
+    readyRes({ collection: collection });
+    setState();
+    startLockWatch();
+    offlineBar();
+    return true;
+  }
   function showSignIn(msg, page, passive) {
     if (!msg) {
       try {
@@ -3851,6 +3947,7 @@
         sub('You type your password on ' + (ok.g ? 'their' : "Microsoft's") + ' own page', 1) +
         '</button></div>' +
         '<p id="lgLock" role="alert" style="display:none;margin:12px 0 0;padding:10px 12px;background:#FDECEA;color:#A3261F;border-radius:8px;font-size:13.5px;font-weight:600"></p>' +
+        offlineHtml() +
         '<p style="margin:18px 0 0;font-size:14px"><a href="#" data-sp="forgot" style="color:#0A6B50;font-weight:600">Forgot your password or user ID?</a></p>' +
         '<p style="margin:26px 0 0;font-size:14px">New here? <a href="#" data-sp="register" style="color:#0A6B50;font-weight:600">Start your free year</a></p>' +
         '<p style="margin:14px 0 0;font-size:12.5px"><a href="#" id="lgDiag" style="color:#58697A">Having trouble staying logged in? Show details</a></p><pre id="lgDiagBox" hidden style="margin:8px 0 0;padding:8px 10px;background:#F3F2EE;border:1px solid #D4DBDF;border-radius:8px;font:11.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto"></pre>' +
@@ -4095,6 +4192,11 @@
           startLogin(false);
         }
       };
+      var qo = o.querySelector('#lgOff');
+      if (qo)
+        qo.onclick = function () {
+          startOffline();
+        };
       var q1 = o.querySelector('#lgMs'),
         q2 = o.querySelector('#lgGg'),
         q3 = o.querySelector('#lgQuick'),
@@ -7465,12 +7567,18 @@
     );
     if (!pk || pk.st !== state) throw new Error('Sign-in could not be verified. Please try again.');
     var prevAcc = (tok() || {}).account || {};
-    var tj = await tokenRequest({
-      grant_type: 'authorization_code',
-      code: code,
-      redirect_uri: REDIRECT,
-      code_verifier: pk.v
-    });
+    showLoading('Signing you in… this can take up to a minute on a slow connection.');
+    var tj;
+    try {
+      tj = await tokenRequest({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: REDIRECT,
+        code_verifier: pk.v
+      });
+    } finally {
+      hideLoading();
+    }
     if (ls('cd.mailwant') === '1') {
       lset('cd.mailwant', null);
       if (/mail\.send/i.test(tj.scope || '')) {
@@ -8219,6 +8327,9 @@
     lset('cd.fails', String(n));
     return false;
   }
+  /* start-up safety net: if start-up has neither reached the sign-in decision nor shown a sign-in screen after 12 seconds, show it */
+  var bootOk = false,
+    bootBusy = false;
   async function boot() {
     addSyncBadge();
     if (window.CD_TEST) {
@@ -8245,13 +8356,18 @@
       await openIdb();
       await loadCache();
     }
+    bootBusy = true;
     try {
       await handleRedirect();
     } catch (e) {
+      bootBusy = false;
+      bootOk = true;
       var fb = failBump();
       showSignIn(e.message, fb ? 'forgot' : undefined);
       return;
     }
+    bootBusy = false;
+    bootOk = true;
     if (tok()) {
       lset('cd.fails', null);
       lset('cd.lockUntil', null);
@@ -8531,4 +8647,12 @@
     });
   }
   boot();
+  setTimeout(function () {
+    try {
+      if (!window.CD_TEST && !bootOk && !bootBusy && !$('mdSign'))
+        showSignIn(
+          'Sign-in did not finish. Press Log in to try again. Your changes on this device are kept.'
+        );
+    } catch (e) {}
+  }, 12000);
 })();
