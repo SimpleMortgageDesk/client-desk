@@ -320,7 +320,7 @@ window.addEventListener('resize', mnuClose);
 var NAV_MQ = window.matchMedia ? window.matchMedia('(max-width:759px)') : null;
 if (NAV_MQ) {
   var navMqFn = function () {
-    if (T) renderNav();
+    if (T && appReady) renderNav();
   };
   if (NAV_MQ.addEventListener) NAV_MQ.addEventListener('change', navMqFn);
   else if (NAV_MQ.addListener) NAV_MQ.addListener(navMqFn);

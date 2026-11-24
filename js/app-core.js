@@ -345,6 +345,8 @@ function names(c) {
   return pnames(c);
 }
 /* ---------- mortgage adviser: one client can hold several properties, or borrow through a company (SPV) ---------- */
+/* true once every app file has loaded: a window resize or a screen-size change while the files are still arriving must not draw the menus early */
+var appReady = false;
 var dirMode = false;
 /* the applicants' names joined with &, or nothing when none are typed */
 function people(c) {

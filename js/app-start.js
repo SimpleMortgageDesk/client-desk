@@ -2,6 +2,7 @@
 /* MySimpleDesk app: Start-up: connects to storage and shows the first page.
    All the app-*.js files share one page: they are loaded in this order by index.html and use each other's functions. */
 /* ---------- start ---------- */
+appReady = true;
 render();
 claude.use('db').then(function (d) {
   db = d;

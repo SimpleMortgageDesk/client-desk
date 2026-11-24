@@ -888,9 +888,10 @@ function applySide() {
 }
 if (mqSide.addEventListener)
   mqSide.addEventListener('change', function () {
-    applySide();
+    if (appReady) applySide();
   });
 window.addEventListener('resize', function () {
+  if (!appReady) return;
   renderNav();
   var h = document.querySelector('header.top');
   if (h) document.documentElement.style.setProperty('--hh', h.offsetHeight + 'px');
