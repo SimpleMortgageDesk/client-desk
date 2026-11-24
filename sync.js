@@ -5283,6 +5283,9 @@
             }
             var d = clone(row);
             delete d.id;
+            /* an account with two trades keeps each trade's records apart: records from a file belong to the trade being used now */
+            if (col === 'cases' && !d.tr && (window.TRADES || []).length > 1 && window.T && window.T.id)
+              d.tr = window.T.id;
             localWrite(col, id, d, 'set');
             n++;
           });
