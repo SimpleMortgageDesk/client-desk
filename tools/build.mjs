@@ -112,6 +112,19 @@ for (const p of walk(out).filter((p) => /\.html$/.test(p))) {
     .replace(/window\.MD_BUILD="[^"]*"/, 'window.MD_BUILD="' + stamp + '"');
   writeFileSync(p, t);
 }
+/* 3. security: allow only OUR inline scripts (matched by their hash) instead of any inline script, so injected script cannot run */
+const inlineHashes = new Set();
+for (const p of walk(out).filter((p) => /\.html$/.test(p))) {
+  const t = readFileSync(p, 'utf8');
+  for (const m of t.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi))
+    if (m[1].trim()) inlineHashes.add("'sha256-" + createHash('sha256').update(m[1]).digest('base64') + "'");
+}
+const hdrFile = join(out, '_headers');
+if (existsSync(hdrFile)) {
+  let h = readFileSync(hdrFile, 'utf8');
+  h = h.replace(/(script-src [^;]*?)'unsafe-inline'/, '$1' + [...inlineHashes].join(' '));
+  writeFileSync(hdrFile, h);
+}
 const sw = join(out, 'sw.js');
 writeFileSync(sw, readFileSync(sw, 'utf8').replace(/client-desk-v\d+/, 'client-desk-' + code));
 writeFileSync(join(out, 'version.json'), JSON.stringify({ build: stamp }) + '\n');
