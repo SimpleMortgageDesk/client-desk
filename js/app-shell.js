@@ -3,11 +3,9 @@
    All the app-*.js files share one page: they are loaded in this order by index.html and use each other's functions. */
 /* ---------- render shell ---------- */
 /* landlords: Notebook and Book appointment sit under More, in the top menu (phone) and the side menu (computer) */
-var navMore = false;
 function renderNav() {
   renderSwitch();
   updTrayBtn();
-  if (view === 'notebook') navMore = true;
   var items = toolItems(
     T.calTab
       ? [
@@ -150,16 +148,9 @@ function renderNav() {
         [
           ['tradesmen', 'My tradesmen'],
           ['gendocs', 'Reports and agreements'],
-          ['more', navMore ? 'Less' : 'More']
+          ['notebook', 'Notebook'],
+          ['bookappt', 'Book appointment']
         ]
-          .concat(
-            navMore
-              ? [
-                  ['notebook', 'Notebook'],
-                  ['bookappt', 'Book appointment']
-                ]
-              : []
-          )
           .concat([['acctset', 'Settings']])
           .concat(NAV_MQ && NAV_MQ.matches ? [['logout', 'Log out']] : [])
       );

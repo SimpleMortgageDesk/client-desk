@@ -199,12 +199,6 @@ document.addEventListener('click', function (e) {
     gnOpen();
     return;
   }
-  if (nv && nv.dataset.v === 'more') {
-    navMore = !navMore;
-    renderNav();
-    renderSide();
-    return;
-  }
   if (nv && nv.dataset.v === 'logout') {
     var lb = $('#logoutBtn');
     if (lb) lb.click();

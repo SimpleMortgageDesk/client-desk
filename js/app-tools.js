@@ -957,16 +957,9 @@ function renderSide() {
       (lm ? '<span class="am">Logged in with<br><b>' + esc(lm) + '</b></span>' : '') +
       '</div><button type="button" class="sbtn" data-v="tradesmen"' +
       (view === 'tradesmen' ? ' aria-current="page"' : '') +
-      '>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="more" aria-expanded="' +
-      (navMore || view === 'notebook') +
-      '">More<span aria-hidden="true" style="font-size:10px;margin-left:8px">' +
-      (navMore || view === 'notebook' ? '&#9650;' : '&#9660;') +
-      '</span></button>' +
-      (navMore || view === 'notebook'
-        ? '<button type="button" class="sbtn" data-v="notebook"' +
-          (view === 'notebook' ? ' aria-current="page"' : '') +
-          '>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>'
-        : '') +
+      '>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="notebook"' +
+      (view === 'notebook' ? ' aria-current="page"' : '') +
+      '>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>' +
       '<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
     return;
   }
