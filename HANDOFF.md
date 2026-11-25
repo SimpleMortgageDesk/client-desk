@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST211)
+# MySimpleDesk – handoff (build LATEST212)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -61,3 +61,4 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - **Mortgage review reminders:** one per case (review date = deal end minus 4 months, editable) for every stage except Lost, plus one per extra Security address (own deal end / review date, key `sec:<id>`, address in the label).
 - **Lender PDF reader:** if the document does not say 'initial rate period ends...', the deal end date is taken from the early repayment charge section (latest 'until/ends/to' date, or completion date + N years); the ERC field lists stepped charges (5% / 4% / 3%).
 - **One menu for every trade** (except landlord, which keeps its own, and mortgage, which has All cases + Tasks): top = Today (the old To do page), the main list, and Appointments where the trade has it; everything else (Reminders, Customers/Contacts, Tasks, Pipeline, Calendar, Quotes & invoices, Calculator, Notebook, Birthdays, Marketing, My Properties and Cars) is in the tools menu (side menu on a computer, the Menu button on a phone).
+- **Client page top row** is Book appointment, New <noun> for this client (and, for mortgage, Read a document) and Save; Receipts and expenses / Portfolio summary sit under a More menu. The close button says Save in every trade. Import and Export CSV are in Settings > Backup and restore for every trade (list pages no longer have them); an empty list shows no filter or sort boxes.
