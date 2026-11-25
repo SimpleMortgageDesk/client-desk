@@ -1364,7 +1364,15 @@ function noteItem(n, list, suffix, fmt) {
     list +
     '|' +
     n.ts +
-    '" style="margin-left:8px">Edit</button></small>' +
+    '" style="margin-left:8px">Edit</button>' +
+    (T.id === 'mortgage'
+      ? '<button type="button" class="btn ghost sm danger" data-ndel="' +
+        list +
+        '|' +
+        n.ts +
+        '" style="margin-left:6px">Delete</button>'
+      : '') +
+    '</small>' +
     fmt(n.text) +
     tblBlock(n, list) +
     '</div>'

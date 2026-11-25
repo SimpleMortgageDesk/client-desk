@@ -824,9 +824,19 @@ function paras(t) {
       .split('\n'),
     out = [],
     tbl = [],
+    txt = [],
+    one = !!(T && T.id === 'mortgage'),
     k = 0;
+  /* mortgage adviser: a note you typed over several lines stays ONE block, with your line breaks kept */
+  function flushTxt() {
+    while (txt.length && !txt[0].trim()) txt.shift();
+    while (txt.length && !txt[txt.length - 1].trim()) txt.pop();
+    if (txt.length) out.push('<div class="np np0 one">' + esc(txt.join('\n')) + '</div>');
+    txt = [];
+  }
   function flush() {
     if (!tbl.length) return;
+    flushTxt();
     out.push(
       '<div class="np np' +
         (k++ % 6) +
@@ -841,14 +851,17 @@ function paras(t) {
       var cells = l.split('\t').map(cellTxt);
       while (cells.length && cells[cells.length - 1] === '') cells.pop();
       if (cells.length > 1 || (cells.length === 1 && cells[0])) {
+        if (one) flushTxt();
         tbl.push(cells);
         return;
       }
     }
     flush();
-    if (l.trim()) out.push('<div class="np np' + (k++ % 6) + '">' + esc(l) + '</div>');
+    if (one) txt.push(l);
+    else if (l.trim()) out.push('<div class="np np' + (k++ % 6) + '">' + esc(l) + '</div>');
   });
   flush();
+  if (one) flushTxt();
   return out.join('');
 }
 function nextTask(c) {

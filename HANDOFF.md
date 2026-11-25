@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST214)
+# MySimpleDesk – handoff (build LATEST215)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -64,3 +64,4 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - **Client page top row** is Book appointment, New <noun> for this client (and, for mortgage, Read a document) and Save; Receipts and expenses / Portfolio summary sit under a More menu. The close button says Save in every trade. Import and Export CSV are in Settings > Backup and restore for every trade (list pages no longer have them); an empty list shows no filter or sort boxes.
 - **Phone tap targets:** every button, field, checkbox and link is at least 40px high on a phone (CSS block 'phones: every tap target' at the end of styles.css; text links and link-like buttons get the area as padding balanced by a negative margin).
 - **Birthday messages sign-off:** greeting + name + job title from My profile; a mortgage adviser's title defaults to 'Mortgage and Protection Adviser' and Islamic messages close with 'Wassalamu alaikum,' (mortgage trade only). A signature saved in Edit messages and signature still overrides.
+- **Notes (mortgage adviser):** a multi-line note is shown as one block with its line breaks (paras() in app-core.js; other trades still show a block per line); each note has Edit and Delete (Delete asks Confirm delete first).

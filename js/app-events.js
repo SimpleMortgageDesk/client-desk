@@ -824,6 +824,31 @@ document.addEventListener('click', function (e) {
     toast('Task updated');
     return;
   }
+  /* delete a note (mortgage adviser): press Delete, then Confirm delete */
+  var nd = t.closest && t.closest('[data-ndel]');
+  if (nd) {
+    if (!nd.classList.contains('armed')) {
+      nd.classList.add('armed');
+      nd.textContent = 'Confirm delete';
+      setTimeout(function () {
+        if (document.body.contains(nd)) {
+          nd.classList.remove('armed');
+          nd.textContent = 'Delete';
+        }
+      }, 4000);
+      return;
+    }
+    var dp = nd.getAttribute('data-ndel').split('|'),
+      dc = currentCase();
+    if (!dc) return;
+    var dobj = {};
+    dobj[dp[0]] = (dc[dp[0]] || []).filter(function (x) {
+      return String(x.ts) !== dp[1];
+    });
+    patch(openId, dobj);
+    toast('Note deleted');
+    return;
+  }
   var ne = t.closest && t.closest('[data-nedit]');
   if (ne) {
     var pp = ne.getAttribute('data-nedit').split('|');
