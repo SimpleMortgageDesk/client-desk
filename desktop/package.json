@@ -1,0 +1,45 @@
+{
+  "name": "mysimpledesk-desktop",
+  "productName": "MySimpleDesk",
+  "version": "1.0.0",
+  "description": "MySimpleDesk for Windows and Mac. A window that opens https://mysimpledesk.co.uk",
+  "author": "MySimpleDesk <support@mysimpledesk.co.uk>",
+  "homepage": "https://mysimpledesk.co.uk",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.3.0",
+    "electron-builder": "26.18.1"
+  },
+  "build": {
+    "appId": "uk.co.mysimpledesk.app",
+    "productName": "MySimpleDesk",
+    "copyright": "MySimpleDesk",
+    "directories": { "output": "out", "buildResources": "build" },
+    "files": ["main.js", "offline.html", "package.json"],
+    "afterPack": "./adhoc-sign.js",
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "MySimpleDesk-Setup.${ext}"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "icon": "build/icon.png",
+      "category": "public.app-category.business",
+      "artifactName": "MySimpleDesk-${arch}.${ext}"
+    },
+    "dmg": { "title": "MySimpleDesk" }
+  }
+}

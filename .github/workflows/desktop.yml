@@ -1,0 +1,80 @@
+name: Desktop apps
+
+# Builds the Windows installer and the two Mac installers (Apple chip and Intel) and puts them on a
+# release called "desktop", which the download page on the website links to.
+# It runs when the desktop folder changes, and on demand: GitHub > Actions > "Desktop apps" > Run workflow.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            args: --win
+          - os: macos-latest
+            name: mac
+            args: --mac
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build the installer
+        run: npx electron-builder ${{ matrix.args }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Keep the installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            desktop/out/MySimpleDesk-Setup.exe
+            desktop/out/MySimpleDesk-x64.dmg
+            desktop/out/MySimpleDesk-arm64.dmg
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: List what was built
+        run: ls -la installers
+
+      - name: Publish on the "desktop" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop
+          name: MySimpleDesk for Windows and Mac
+          body: The latest Windows and Mac installers. Download them from https://mysimpledesk.co.uk/download
+          files: installers/*
+          make_latest: 'false'
+          prerelease: false

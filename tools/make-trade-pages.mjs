@@ -6,7 +6,6 @@ const SITE = 'https://mysimpledesk.co.uk';
 const home = readFileSync('home.html', 'utf8');
 const cut = (a, b, from = 0) => { const i = home.indexOf(a, from); const j = home.indexOf(b, i); if (i < 0 || j < 0) throw new Error('missing ' + a); return home.slice(i, j + b.length); };
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-const plain = (s) => s.replace(/<[^>]+>/g, '');
 const style = cut('<style>', '</style>');
 const configTag = home.match(/<script src="config\.js[^>]*><\/script>/)[0].replace('src="config.js', 'src="/config.js');
 const icons = home.match(/<meta name="theme-color"[^\n]*\n/)[0].replace('href="manifest.webmanifest"', 'href="/manifest.webmanifest"').replace('href="apple-touch-icon.png', 'href="/apple-touch-icon.png');

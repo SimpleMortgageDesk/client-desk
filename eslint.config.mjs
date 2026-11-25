@@ -23,7 +23,7 @@ const browser = {
 };
 
 export default [
-  { ignores: ['lib/**', 'android/**', 'admin/**', 'media/**', 'dist/**'] },
+  { ignores: ['lib/**', 'android/**', 'admin/**', 'media/**', 'dist/**', 'desktop/**'] },
   {
     files: ['js/app-*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: { ...browser, ...shared } }
