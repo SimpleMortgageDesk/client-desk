@@ -1363,3 +1363,8 @@ body[data-theme-trade="mortgage"] .aptm b{font-size:19px;line-height:1.1;color:#
 .trsw.many select{border:0;background:#fff;color:var(--ink);font:inherit;font-weight:700;font-size:14px;padding:6px 10px;border-radius:99px;min-height:34px;max-width:55vw}
 #rmBar{margin-top:8px}#rmBar .dupbar{margin:0}
 #calBar{margin-top:8px}#calBar .dupbar{margin:0}
+
+/* the reminder and calendar bars sit above the page in the right-hand column, beside the side panel (they used to push the page down a whole screen) */
+body.side-on #app{grid-template-rows:auto}
+body.side-on #side{grid-row:2 / span 6}
+body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
