@@ -214,6 +214,7 @@ export async function onRequestPost({ request, env }) {
       since = null,
       pay = 'trial',
       tu = null,
+      at = null,
       gate = 'register',
       confirmed = false,
       pending = false;
@@ -260,7 +261,7 @@ export async function onRequestPost({ request, env }) {
       /* the rule: only a registered and confirmed account gets in. Accounts from before confirmation existed are let through; anyone else must register and confirm. */
       gate = confirmed ? 'allow' : legacy || (pending && oldAsk) ? 'allow' : pending ? 'confirm' : 'register';
       const me = await env.DB.prepare(
-        'SELECT user_no, pay, trade_unlock, del_key, ms_sub, COALESCE(signed_up, first_seen) AS since FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND deleted_at IS NULL ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1'
+        'SELECT user_no, pay, trade_unlock, all_trades, del_key, ms_sub, COALESCE(signed_up, first_seen) AS since FROM users WHERE (email IN (?1, ?2) OR lower(account_email) IN (?1, ?2)) AND deleted_at IS NULL ORDER BY COALESCE(signed_up, first_seen) ASC LIMIT 1'
       )
         .bind(email, alt)
         .first();
@@ -272,6 +273,7 @@ export async function onRequestPost({ request, env }) {
         since = me.since;
         pay = me.pay || 'trial';
         tu = me.trade_unlock || null;
+        at = me.all_trades || null;
       }
     } catch (e) {
       return json({ error: 'could not check' }, 503);
@@ -283,7 +285,8 @@ export async function onRequestPost({ request, env }) {
       no,
       since,
       pay,
-      tu
+      tu,
+      at
     });
   }
   if (d.action !== 'start') return json({ error: 'bad request' }, 400);

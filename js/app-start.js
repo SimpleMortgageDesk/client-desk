@@ -71,7 +71,7 @@ claude.use('db').then(function (d) {
       .filter(function (id) {
         return A0[id];
       })
-      .slice(0, 2);
+      .slice(0, Object.keys(A0).length);
     if (!list.length) list = [tid];
     var main = dd.main && A0[dd.main] ? dd.main : list[0],
       sig = list.join('|') + '>' + main,

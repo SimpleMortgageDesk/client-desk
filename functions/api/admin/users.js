@@ -3,6 +3,7 @@
    POST /api/admin/users?email=&restore=1  bring a deleted account back (within 30 days)
    POST /api/admin/users?email=&pay=trial|paid|due  set one person's payment status
    POST /api/admin/users?email=&tradeunlock=1|0  let someone with two trades change them again (they email support to ask)
+   POST /api/admin/users?email=&alltrades=1|0  give one account every trade (for the owner's own master copy), or take it away
    POST /api/admin/users?email=&suspend=1|0  suspend or restore one person (the app then shows them a suspended screen)
    Protected twice: Cloudflare Access must cover /admin* and /api/admin*, and this code checks Access's signed
    token itself. Settings > Variables: ACCESS_TEAM (e.g. yourteam.cloudflareaccess.com) and ACCESS_AUD (the
@@ -171,6 +172,13 @@ export async function onRequest({ request, env }) {
       const at = tul === '1' ? new Date().toISOString() : null;
       await env.DB.prepare('UPDATE users SET trade_unlock = ?2 WHERE email = ?1').bind(email, at).run();
       return json({ email, trade_unlock: at });
+    }
+    /* every trade for this account (the owner's master copy): no limit of two and no lock */
+    const alt = u.searchParams.get('alltrades');
+    if (alt !== null) {
+      const at = alt === '1' ? new Date().toISOString() : null;
+      await env.DB.prepare('UPDATE users SET all_trades = ?2 WHERE email = ?1').bind(email, at).run();
+      return json({ email, all_trades: at });
     }
     await env.DB.prepare('UPDATE users SET suspended = ?2 WHERE email = ?1')
       .bind(email, on ? new Date().toISOString() : null)

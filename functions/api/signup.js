@@ -35,6 +35,7 @@ export async function ensureTable(db) {
     'pay TEXT',
     'ms_sub TEXT',
     'trade_unlock TEXT',
+    'all_trades TEXT',
     'deleted_at TEXT'
   ]) {
     try {

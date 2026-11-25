@@ -117,7 +117,7 @@ document.addEventListener('click', function (e) {
       ix = tpSel.indexOf(tid),
       tm = $('#tpMsg');
     if (ix > -1) tpSel.splice(ix, 1);
-    else if (tpSel.length >= 2) {
+    else if (tpSel.length >= (allTradesOn() ? 99 : 2)) {
       if (tm) tm.textContent = 'You can choose up to two. Take one off first.';
       return;
     } else tpSel.push(tid);
@@ -1080,6 +1080,10 @@ document.addEventListener('click', function (e) {
 });
 document.addEventListener('change', function (e) {
   var t = e.target;
+  if (t.id === 'trSel') {
+    switchTrade(t.value);
+    return;
+  }
   if (t.id === 'mkTpl') {
     mkTplId = t.value;
     mkList();

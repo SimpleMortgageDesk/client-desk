@@ -6952,6 +6952,11 @@
   window.CD_tuAt = function () {
     return tuAt;
   };
+  /* the owner's master copy: the server says this account may have every trade (set on the admin page) */
+  var allAt = null;
+  window.CD_allAt = function () {
+    return allAt;
+  };
   /* the gate: only a registered account with a confirmed email address gets in. A new person who has just registered is sent the confirmation email;
      someone who never registered is shown a Register screen; if the check cannot be made, a device that has never been confirmed stays out. */
   async function vRun() {
@@ -6988,6 +6993,7 @@
       }
       if (r.code === 200) {
         tuAt = r.body.tu || null;
+        allAt = r.body.at || null;
       }
       if (r.code === 200 && r.body.since) {
         planInfo = { no: r.body.no, since: r.body.since, pay: r.body.pay || 'trial' };

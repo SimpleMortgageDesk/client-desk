@@ -3,13 +3,20 @@
    All the app-*.js files share one page: they are loaded in this order by index.html and use each other's functions. */
 /* ---------- trade (chosen once, kept in OneDrive so every device matches) ---------- */
 var setCol = null;
+/* an account the owner has switched to "all trades" has no limit of two and no lock */
+function allTradesOn() {
+  return !!(window.CD_allAt && window.CD_allAt());
+}
 function saveTrades(list) {
-  list = list.slice(0, 2);
+  list = list.slice(0, allTradesOn() ? 99 : 2);
   var tu0 = window.CD_tuAt && window.CD_tuAt();
   if (tu0) USEDTU = tu0;
   var act = list.indexOf(T.id) > -1 ? T.id : list[0];
   if (!MAIN_TRADE || list.indexOf(MAIN_TRADE) < 0) MAIN_TRADE = list[0];
   TRADES = list;
+  try {
+    localStorage.removeItem('cd.tradehint');
+  } catch (e) {}
   window.CD_tradeSet(act);
   var was = openId;
   if (was !== undefined) closeDrawer();
@@ -59,6 +66,31 @@ function renderSwitch() {
   }
   var all = window.CD_TRADES.all;
   el.className = 'trsw' + (TRADES.length === 1 ? ' one' : '');
+  if (TRADES.length > 3) {
+    /* many trades: one drop-down instead of a button for each */
+    el.className = 'trsw many';
+    el.innerHTML =
+      '<span class="trl">Logged in as</span><select id="trSel" aria-label="Switch trade">' +
+      window.CD_TRADES.order
+        .filter(function (id) {
+          return TRADES.indexOf(id) > -1;
+        })
+        .map(function (id) {
+          var x = all[id] || {};
+          return (
+            '<option value="' +
+            esc(id) +
+            '"' +
+            (id === T.id ? ' selected' : '') +
+            '>' +
+            esc(x.short || x.label || id) +
+            '</option>'
+          );
+        })
+        .join('') +
+      '</select>';
+    return;
+  }
   el.innerHTML =
     '<span class="trl">Logged in as</span>' +
     TRADES.slice()
@@ -79,9 +111,17 @@ function renderSwitch() {
       })
       .join('');
 }
+/* an invite link like /?trade=plumber: remember it until the person has chosen */
+(function () {
+  try {
+    var q = new URLSearchParams(location.search).get('trade');
+    if (q && window.CD_TRADES && window.CD_TRADES.all[q]) localStorage.setItem('cd.tradehint', q);
+  } catch (e) {}
+})();
 var tpSel = [];
 /* choosing two trades locks the choice; support unlocks it (admin page) and the unlock is used up when the person next saves their trades */
 function tradesLocked() {
+  if (allTradesOn()) return false;
   var tu = window.CD_tuAt && window.CD_tuAt();
   return TRADES.length >= 2 && !(tu && tu !== USEDTU);
 }
@@ -166,11 +206,25 @@ function openTradePicker(first) {
     o = document.createElement('div');
   o.id = 'tpOv';
   o.className = 'mkov';
-  tpSel = first ? [] : TRADES.length ? TRADES.slice() : [T.id];
+  /* a link like mysimpledesk.co.uk/?trade=plumber has the trade ticked already for a new person */
+  var hint = '';
+  try {
+    hint = localStorage.getItem('cd.tradehint') || '';
+  } catch (e) {}
+  tpSel = first
+    ? hint && A.all[hint] && A.order.indexOf(hint) > -1
+      ? [hint]
+      : []
+    : TRADES.length
+      ? TRADES.slice()
+      : [T.id];
   o.innerHTML =
     '<div class="mkpanel tpick" role="dialog" aria-label="Choose your trades"><h2>' +
     (first ? 'Welcome. I am…' : 'Your trades') +
-    '</h2><p class="muted" style="margin:4px 0 12px">Choose one, or two if you work in both. Each has its own list, menu and reminders, and you switch between them with one tap. There is no extra charge for a second one. Once you have chosen two they are locked, and changing them later means emailing support@mysimpledesk.co.uk.' +
+    '</h2><p class="muted" style="margin:4px 0 12px">' +
+    (allTradesOn()
+      ? 'This account has every trade. Choose as many as you like and switch between them from the drop-down at the top.'
+      : 'Choose one, or two if you work in both. Each has its own list, menu and reminders, and you switch between them with one tap. There is no extra charge for a second one. Once you have chosen two they are locked, and changing them later means emailing support@mysimpledesk.co.uk.') +
     (first
       ? ''
       : ' Your saved records keep all their details. A trade you take off is hidden, not deleted, and comes back if you add it again.') +
