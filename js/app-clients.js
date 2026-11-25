@@ -1192,6 +1192,7 @@ function apSave() {
     id = ref.id;
   var d = {
     caseId: c ? c.id : '',
+    tr: (ex && ex.tr) || (c && c.tr) || (typeof T !== 'undefined' && T.id) || '',
     who: c ? names(c) : wv,
     type: $('#apType').value,
     date: date,

@@ -1578,11 +1578,22 @@
       .replace(/\n{3,}/g, '\n\n')
       .slice(0, 30000);
   }
-  function calMg() {
-    return TR().id === 'mortgage';
+  /* the trade an appointment belongs to: the one it was booked under, else its client's, else (for older ones, when the account has two trades) the main trade, else the one on screen */
+  function calTrade(a) {
+    var all = (window.CD_TRADES && window.CD_TRADES.all) || {},
+      cr = a && a.caseId && mem.cases[a.caseId],
+      id = (a && a.tr) || (cr && cr.data && cr.data.tr) || '';
+    if (!id && (window.TRADES || []).length > 1) id = window.MAIN_TRADE || '';
+    var t = all[id];
+    if (t) return { id: id, subject: t.apptSubject || 'Appointment' };
+    var cur = TR();
+    return { id: cur.id, subject: cur.apptSubject || 'Appointment' };
+  }
+  function calMg(a) {
+    return (a ? calTrade(a).id : TR().id) === 'mortgage';
   }
   function calHash(a) {
-    return JSON.stringify([a.who, a.type, a.date, a.time, a.dur, a.mode, a.where, calMg() ? calText(a) : '']);
+    return JSON.stringify([calTrade(a).subject, a.who, a.type, a.date, a.time, a.dur, a.mode, a.where, calMg(a) ? calText(a) : '']);
   }
   function calWall(date, time, plusMin) {
     var d = date.split('-'),
@@ -1593,13 +1604,13 @@
   }
   function calBody(a) {
     return {
-      subject: (TR().apptSubject || 'Appointment') + ': ' + (a.who || ''),
+      subject: calTrade(a).subject + ': ' + (a.who || ''),
       start: { dateTime: calWall(a.date, a.time, 0), timeZone: 'Europe/London' },
       end: { dateTime: calWall(a.date, a.time, +a.dur || 30), timeZone: 'Europe/London' },
       location: { displayName: a.where || '' },
       body: {
         contentType: 'text',
-        content: calMg() ? calText(a) : [a.type, a.mode].filter(Boolean).join(' · ')
+        content: calMg(a) ? calText(a) : [a.type, a.mode].filter(Boolean).join(' · ')
       },
       isReminderOn: true,
       reminderMinutesBeforeStart: CAL_MIN,
