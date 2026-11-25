@@ -31,5 +31,47 @@
  "categories": [
   "business",
   "productivity"
+ ],
+ "screenshots": [
+  {
+   "src": "screenshots/wide-today.png",
+   "sizes": "1280x720",
+   "type": "image/png",
+   "form_factor": "wide",
+   "label": "Your day: tasks, appointments and reminders on one screen"
+  },
+  {
+   "src": "screenshots/wide-jobs.png",
+   "sizes": "1280x720",
+   "type": "image/png",
+   "form_factor": "wide",
+   "label": "Customers and jobs together"
+  },
+  {
+   "src": "screenshots/wide-notebook.png",
+   "sizes": "1280x720",
+   "type": "image/png",
+   "form_factor": "wide",
+   "label": "A notebook for quick notes"
+  },
+  {
+   "src": "screenshots/narrow-today.png",
+   "sizes": "780x1688",
+   "type": "image/png",
+   "form_factor": "narrow",
+   "label": "Your day on your phone"
+  },
+  {
+   "src": "screenshots/narrow-jobs.png",
+   "sizes": "780x1688",
+   "type": "image/png",
+   "form_factor": "narrow",
+   "label": "Customers and jobs on your phone"
+  }
+ ],
+ "prefer_related_applications": false,
+ "display_override": [
+  "standalone",
+  "minimal-ui"
  ]
 }
