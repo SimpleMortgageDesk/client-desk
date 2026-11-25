@@ -1528,6 +1528,17 @@
   function calOn() {
     return PROV === 'ms' && ls('cd.cal') === '1';
   }
+  /* for the screens: is the Outlook calendar link on, can this account have it, and a way to turn it on (a Microsoft sign-in asks permission) */
+  window.CD_cal = {
+    on: calOn,
+    can: function () {
+      return PROV === 'ms';
+    },
+    enable: function () {
+      lset('cd.calwant', '1');
+      startLogin();
+    }
+  };
   function calDelList() {
     try {
       return JSON.parse(ls('cd.caldel') || '[]');
@@ -5418,7 +5429,9 @@
                     CAL_MIN +
                     '-minute reminder, so your phone alerts you even when the app is closed.',
                   btn(calOn() ? 'caloff' : 'calon', calOn() ? 'Turn off' : 'Turn on', !calOn()),
-                  '<span class="cds-note">Only the name, time, type, method and place go to the calendar, never your notes.</span>'
+                  calMg()
+                    ? '<span class="cds-note">Each event holds the client name, time, type, method and place, the appointment notes and your dated client notes, and goes only to your own Outlook calendar.</span>'
+                    : '<span class="cds-note">Only the name, time, type, method and place go to the calendar, never your notes.</span>'
                 ) +
                 (calOn()
                   ? row(

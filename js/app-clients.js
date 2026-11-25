@@ -1149,6 +1149,15 @@ function apOpen(id, date, preCase) {
     '<label class="full">Notes<textarea id="apNotes" rows="3" placeholder="What to cover, documents to bring">' +
     esc((a && a.notes) || '') +
     '</textarea></label></div>' +
+    (T.id === 'mortgage' && window.CD_cal && window.CD_cal.can()
+      ? '<p id="apCalSt" class="muted" style="font-size:12.5px;margin:8px 0 0">' +
+        (!window.CD_cal.on()
+          ? '📅 Not going to your Outlook calendar yet. Turn on <b>Calendar reminders</b> in Settings.'
+          : a && a.calId
+            ? '📅 In your Outlook calendar.'
+            : '📅 Will be added to your Outlook calendar when you save.') +
+        '</p>'
+      : '') +
     '<p id="apMsg" class="muted" style="min-height:18px;margin:8px 0 0"></p><div class="add" style="margin-top:8px"><button type="button" class="btn" id="apSave">' +
     (a ? 'Save changes' : 'Book it') +
     '</button><button type="button" class="btn ghost" data-apclose="1">Cancel</button>' +

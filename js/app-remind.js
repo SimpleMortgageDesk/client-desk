@@ -32,8 +32,32 @@ function rmWhen(a) {
   var t = iso(TODAY);
   return (a.date === t ? 'today' : 'tomorrow') + ' at ' + (a.time || '');
 }
+/* mortgage adviser: once an appointment has been booked, offer the Outlook calendar link if it is off (not nagging: Not now waits a week) */
+function rmCalBar() {
+  var cb = $('#calBar');
+  if (!cb) return;
+  var show =
+    T.id === 'mortgage' &&
+    window.CD_cal &&
+    window.CD_cal.can() &&
+    !window.CD_cal.on() &&
+    typeof appts !== 'undefined' &&
+    appts.length > 0 &&
+    rmLS('cd.calNever') !== '1' &&
+    !(+(rmLS('cd.calLater') || 0) > Date.now());
+  if (!show) {
+    cb.hidden = true;
+    cb.innerHTML = '';
+    return;
+  }
+  if (!cb.hidden) return;
+  cb.hidden = false;
+  cb.innerHTML =
+    '<div class="dupbar" role="status"><span>📅 Your booked appointments are <b>not</b> going to your Outlook calendar. Turn it on and each one is added automatically, with a 15-minute alert on your phone.</span><button type="button" class="btn" data-calon="1">Turn on</button><button type="button" class="btn ghost" data-callater="1">Not now</button><button type="button" class="btn ghost" data-calnever="1">Do not ask again</button></div>';
+}
 /* the bar under the menu, on every screen */
 function rmRefresh() {
+  rmCalBar();
   var bar = $('#rmBar');
   if (!bar || !loaded) return;
   var l = rmDue(),
@@ -221,6 +245,20 @@ document.addEventListener('click', function (e) {
   if (!t || !t.closest) return;
   if (t.closest('[data-rmopen]')) {
     rmOpen();
+    return;
+  }
+  if (t.closest('[data-calon]')) {
+    if (window.CD_cal) window.CD_cal.enable();
+    return;
+  }
+  if (t.closest('[data-callater]')) {
+    rmLS('cd.calLater', String(Date.now() + 7 * 864e5));
+    rmCalBar();
+    return;
+  }
+  if (t.closest('[data-calnever]')) {
+    rmLS('cd.calNever', '1');
+    rmCalBar();
     return;
   }
   if (t.closest('[data-rmhide]')) {
