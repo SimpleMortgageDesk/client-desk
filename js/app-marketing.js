@@ -828,7 +828,7 @@ var BD_MSGS = [
   "Dear {name}, wishing you a very happy birthday! 🎈 I hope today is full of smiles, good company and a little bit of cake. Here's to a fantastic year ahead!",
   'Happy Birthday {name}! 🥳 Thinking of you today and hoping you have a lovely, relaxing day with the people who matter most to you.',
   'Many happy returns, {name}! 🎁 May your day be as special as you are, and may the coming year bring you everything you wish for.',
-  "Hi {name}, just a quick note to wish you a very happy birthday! 🌟 I hope you're spoiled rotten today. Enjoy every moment!",
+  'Hi {name}, just a quick note to wish you a very happy birthday! 🌟 I hope you are treated to a lovely day. Enjoy every moment!',
   'Happy Birthday {name}! 🎂 Wishing you health, happiness and success in the year ahead. Have a truly wonderful day!',
   'Warmest birthday wishes to you, {name}! 🌸 May this new year of life bring you peace, prosperity and plenty of reasons to celebrate.',
   'Happy Birthday {name}! 🎉 Hope your day is packed with good food, good company and lots of laughter. You deserve it!',
@@ -840,9 +840,15 @@ var BD_MSGS = [
   'Happy Birthday {name}! 🌹 May your day be filled with love and your year with happy moments. Enjoy every minute!',
   'Wishing you the happiest of birthdays, {name}! 🎊 May all your wishes come true today and throughout the year ahead.'
 ];
-function bdDefSig() {
-  var p = profA();
-  return 'Warmest wishes,' + (p.name ? '\n' + p.name : '') + (p.role ? '\n' + p.role : '');
+/* the sign-off: a greeting, your name and your job title from My profile (a mortgage adviser's title is filled in if you have not set one) */
+function bdDefSig(isl) {
+  var p = profA(),
+    role = p.role || (T.id === 'mortgage' ? 'Mortgage and Protection Adviser' : '');
+  return (
+    (isl && T.id === 'mortgage' ? 'Wassalamu alaikum,' : 'Warmest wishes,') +
+    (p.name ? '\n' + p.name : '') +
+    (role ? '\n' + role : '')
+  );
 }
 var bdCfg = { messages: null, signature: null, islamic: null },
   bdShuf = {};
@@ -854,7 +860,7 @@ var BD_ISL = [
   'Dear {name}, Assalamu alaikum and happy birthday! 🎂 May Allah grant you good health, a blessed income and happiness for you and your family. Ameen.',
   'Happy Birthday {name}! Alhamdulillah for another year. May Allah fill it with barakah, good health and good news. Wishing you and your family all the best. 🤍',
   'Assalamu alaikum {name}! 🌸 Wishing you a lovely birthday. May Allah bless you with peace of heart, success and many more healthy years ahead. Ameen.',
-  'Warm birthday wishes {name}! 🌙 May Allah accept your good deeds, guide you, and grant you and your family happiness and ease in the year ahead.',
+  'Warm birthday wishes, {name}! 🌙 May Allah accept your good deeds, guide you, and grant you and your family happiness and ease in the year ahead.',
   'Assalamu alaikum {name}, wishing you a happy birthday! May Allah protect you, bless your family and your home, and make the year ahead full of khayr. Jazakallah khair for being a valued client. 🤲',
   'Happy Birthday {name}! 🎈 Barakallahu fee umrik. May Allah bless your life and give you good health, happiness and success always.'
 ];
@@ -944,8 +950,8 @@ function bdList(p) {
 function bdMsgs() {
   return bdCfg.messages && bdCfg.messages.length ? bdCfg.messages : BD_MSGS;
 }
-function bdSig() {
-  return bdCfg.signature != null ? bdCfg.signature : bdDefSig();
+function bdSig(isl) {
+  return bdCfg.signature != null ? bdCfg.signature : bdDefSig(isl);
 }
 function bdHash(t) {
   var h = 0;
@@ -1044,7 +1050,7 @@ function bdMessage(p) {
     g = isl ? bdGender(p) : '',
     who = g === 'm' ? 'brother' : g === 'f' ? 'sister' : bdFirst(p.name),
     t = bdList(p)[bdPick(p)].replace(/\{name\}/g, who),
-    sg = bdSig().trim();
+    sg = bdSig(isl).trim();
   if (isl && g === 'f') t = t.replace(/\bfeek\b/g, 'feeki');
   return sg ? t + '\n\n' + sg : t;
 }
