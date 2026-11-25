@@ -1347,3 +1347,15 @@ body[data-theme-trade="mortgage"] .aptm b{font-size:19px;line-height:1.1;color:#
 /* phones: 16px fields so iPhone does not zoom in when you tap one */
 @media (max-width:760px){label.f input,label.f select,label.f textarea,.apf input,.apf select,.apf textarea,.lkh select,.lkadd select,.lkadd input,.rhf input,.rhf select,.rtbar select{font-size:16px}}
 .mnmore{position:relative;display:inline-block}.mnmpanel{position:fixed;z-index:300;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);padding:6px;display:flex;flex-direction:column;gap:6px;min-width:210px}.mnmpanel[hidden]{display:none}.mnmpanel .btn{width:100%;text-align:left;justify-content:flex-start}
+/* phones: every tap target at least 40px, so a thumb does not miss (the extra area is padding balanced by a negative margin, so nothing moves) */
+@media (max-width:760px){
+ .btn,.btn.sm,.btn.ghost,.dhb .btn,.dhb .btn.sm{min-height:40px}
+ select,input[type=date],input[type=time],input[type=number],input[type=text],input[type=email],input[type=tel],input[type=url],input[type=password],input[type=search]{min-height:40px}
+ input[type=checkbox],input[type=radio]{width:22px;height:22px}
+ label:has(>input[type=checkbox]),label:has(>input[type=radio]){min-height:40px;display:inline-flex;align-items:center;gap:8px}
+ a:not(.btn):not(.brand):not(.cds-btn){padding:12px 6px;margin:-12px -6px;display:inline-block}
+ .si button.lnk.st,button.lnk,button.sglater,.sg.sglater,#drawer button[data-dzup]{padding-top:12px;padding-bottom:12px;margin-top:-12px;margin-bottom:-12px}
+ .trsw button{min-height:40px}
+ .wkchip,button[data-trf]{min-height:40px}
+ #homeRem .sg.sglater,#side .sg.sglater,.sg.sglater{min-height:40px;display:inline-flex;align-items:center;padding-top:0;padding-bottom:0;margin-top:0;margin-bottom:0}
+}
