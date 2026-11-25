@@ -6,7 +6,11 @@ const style = priv.match(/<style>[\s\S]*?<\/style>/)[0];
 const cfg = priv.match(/<script src="config\.js[^>]*><\/script>/)[0];
 const SITE = 'https://mysimpledesk.co.uk';
 const PAGES = [
-  { file: 'about', title: 'About us', desc: 'Who provides MySimpleDesk, what it is for, and how to contact us.', body: `
+  {
+    file: 'about',
+    title: 'About us',
+    desc: 'Who provides MySimpleDesk, what it is for, and how to contact us.',
+    body: `
     <h1>About us</h1>
     <p class="muted">Last updated: 25 November 2026</p>
     <div class="key"><p><b>MySimpleDesk is a simple diary, to-do list and record keeper for home owners, landlords, the self-employed and small professional practices.</b> It reminds you before a task, an appointment or a renewal is due, and it keeps your records in your own account, not on our computers.</p></div>
@@ -22,8 +26,13 @@ const PAGES = [
     <h2>Who it is for</h2>
     <p>Home owners and families, landlords, mortgage advisers, accountants and bookkeepers, gas engineers, plumbers, electricians, builders, barbers and beauticians, driving instructors, architects, solicitors and other self-employed people. <a href="/home#trades">See it for your trade</a>.</p>
     <h2>Talk to us</h2>
-    <p>Questions, ideas and problems are welcome. See the <a href="/support">support page</a> or email <span data-email></span>.</p>` },
-  { file: 'support', title: 'Support', desc: 'Help with MySimpleDesk: logging in, your records, your phone, importing, and how to contact us.', body: `
+    <p>Questions, ideas and problems are welcome. See the <a href="/support">support page</a> or email <span data-email></span>.</p>`
+  },
+  {
+    file: 'support',
+    title: 'Support',
+    desc: 'Help with MySimpleDesk: logging in, your records, your phone, importing, and how to contact us.',
+    body: `
     <h1>Support</h1>
     <p class="muted">We are happy to help. Email <span data-email></span> and say what you were trying to do. We usually reply within a couple of working days.</p>
     <h2>Before you write: quick answers</h2>
@@ -36,8 +45,13 @@ const PAGES = [
     <h2>Reporting a problem</h2>
     <p>It helps if you tell us: what you did, what you expected, what happened instead, the device and browser you use, and a screenshot. In the app, Settings has a Support details section that shows the app version and your device type. <b>Please do not send client, tenant or customer details by email.</b></p>
     <h2>Contact</h2>
-    <p><span data-email></span></p>` },
-  { file: 'security', title: 'How your data is protected', desc: 'Where MySimpleDesk keeps your records, what we can and cannot see, and how the app is protected.', body: `
+    <p><span data-email></span></p>`
+  },
+  {
+    file: 'security',
+    title: 'How your data is protected',
+    desc: 'Where MySimpleDesk keeps your records, what we can and cannot see, and how the app is protected.',
+    body: `
     <h1>How your data is protected</h1>
     <p class="muted">Last updated: 25 November 2026</p>
     <div class="key"><p><b>The short version.</b> Your records are saved in your own OneDrive, under your own Microsoft account. They do not pass through our computers, so we cannot read, sell or lose them. We keep only a short sign-up list with your own contact details.</p></div>
@@ -72,8 +86,13 @@ const PAGES = [
     </ul>
     <h2>Found a security problem?</h2>
     <p>Please email <span data-email></span> with the details and give us a reasonable time to fix it before telling others. Do not include other people's personal data.</p>
-    <p>The full detail is in the <a href="/privacy">privacy policy</a>.</p>` },
-  { file: 'terms', title: 'Terms of use', desc: 'The terms for using MySimpleDesk, in plain English.', body: `
+    <p>The full detail is in the <a href="/privacy">privacy policy</a>.</p>`
+  },
+  {
+    file: 'terms',
+    title: 'Terms of use',
+    desc: 'The terms for using MySimpleDesk, in plain English.',
+    body: `
     <h1>Terms of use</h1>
     <p class="muted">Last updated: 25 November 2026</p>
     <div class="key"><p>These are the terms for using MySimpleDesk, written in plain English. By registering or using the app you agree to them. Please read them together with the <a href="/privacy">privacy policy</a>.</p></div>
@@ -104,10 +123,40 @@ const PAGES = [
     <h2>11. Law</h2>
     <p>These terms are governed by the law of England and Wales, and the courts of England and Wales can deal with any dispute, unless you live in another part of the UK and the law there gives you the right to use your own courts.</p>
     <h2>12. Contact</h2>
-    <p><span data-email></span></p>` }
+    <p><span data-email></span></p>`
+  },
+  {
+    file: 'download',
+    title: 'Download the app for Windows or Mac',
+    desc: 'Download MySimpleDesk for Windows or Mac. The same simple diary, to-do list and records, in its own window on your computer.',
+    body: `
+    <h1>Download MySimpleDesk</h1>
+    <p class="muted">For Windows and Mac. It is the same app as the website, in its own window on your computer.</p>
+    <div class="dl">
+      <a class="dlb" href="https://github.com/SimpleMortgageDesk/client-desk/releases/download/desktop/MySimpleDesk-Setup.exe"><b>Download for Windows</b><span>Windows 10 or 11 &middot; about 115 MB</span></a>
+      <a class="dlb" href="https://github.com/SimpleMortgageDesk/client-desk/releases/download/desktop/MySimpleDesk-arm64.dmg"><b>Download for Mac (Apple chip)</b><span>M1, M2, M3, M4 or newer &middot; about 113 MB</span></a>
+      <a class="dlb" href="https://github.com/SimpleMortgageDesk/client-desk/releases/download/desktop/MySimpleDesk-x64.dmg"><b>Download for Mac (Intel)</b><span>Macs made before late 2020 &middot; about 120 MB</span></a>
+    </div>
+    <p class="muted"><b>Not sure which Mac you have?</b> Click the Apple menu, then <b>About This Mac</b>. If it says <b>Chip: Apple M&hellip;</b>, choose Apple chip. If it says <b>Processor: Intel</b>, choose Intel.</p>
+    <h2>Installing it</h2>
+    <details open><summary>Windows</summary><p>Open the file you downloaded and follow the steps. Windows may show a blue box saying "Windows protected your PC", because the app is new and not yet widely downloaded. Click <b>More info</b>, then <b>Run anyway</b>. You then find MySimpleDesk on the Start menu and your desktop.</p></details>
+    <details open><summary>Mac</summary><p>Open the downloaded file and drag MySimpleDesk into the Applications folder. The first time, do not double-click it: <b>right-click (or Control-click) it and choose Open</b>, then click <b>Open</b> again. If your Mac still refuses, open System Settings, then Privacy &amp; Security, scroll down and click <b>Open Anyway</b>. You only do this once.</p></details>
+    <h2>Good to know</h2>
+    <ul>
+      <li><b>You need an internet connection</b> to open it, as with the website. Your records are saved in your own OneDrive, and the app keeps a working copy on your computer.</li>
+      <li><b>Updates are automatic.</b> The app opens the live website, so you always have the latest version. You do not need to download it again.</li>
+      <li><b>Log in with the same Microsoft account</b> you use on the website or your phone, and everything is there.</li>
+      <li><b>Links to other sites</b> open in your normal web browser.</li>
+    </ul>
+    <p>Prefer not to install anything? Open <a href="/">mysimpledesk.co.uk</a> in your browser. You can also <a href="/support">ask for help</a>.</p>`
+  }
 ];
-const nav = '<a href="/about">About</a> · <a href="/support">Support</a> · <a href="/security">Data protection</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a>';
-const script = priv.match(/\(function \(\) \{\n  var c = window\.MD_CONFIG[\s\S]*?\n\}\)\(\);/)[0].replace(/\n  document\.title = [^\n]*/, '').replace(/\n  var su = [^\n]*\n[^\n]*data-su[^\n]*\n[^\n]*data-nosu[^\n]*/, '');
+const nav =
+  '<a href="/about">About</a> · <a href="/download">Download</a> · <a href="/support">Support</a> · <a href="/security">Data protection</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a>';
+const script = priv
+  .match(/\(function \(\) \{\n  var c = window\.MD_CONFIG[\s\S]*?\n\}\)\(\);/)[0]
+  .replace(/\n  document\.title = [^\n]*/, '')
+  .replace(/\n  var su = [^\n]*\n[^\n]*data-su[^\n]*\n[^\n]*data-nosu[^\n]*/, '');
 for (const p of PAGES) {
   const html = `<!DOCTYPE html>
 <html lang="en-GB">
@@ -121,7 +170,7 @@ for (const p of PAGES) {
 <meta property="og:description" content="${p.desc}">
 <meta property="og:image" content="${SITE}/icon-512.png">
 <link rel="icon" href="/icon-192.png?v=3">
-${style.replace('</style>', '  details{border-bottom:1px solid var(--line);padding:10px 0}summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0}\n  .foot{margin-top:28px;font-size:15px;color:var(--muted)}\n</style>')}
+${style.replace('</style>', '  details{border-bottom:1px solid var(--line);padding:10px 0}\n  .dl{display:grid;gap:12px;margin:20px 0}.dlb{display:block;padding:16px 20px;border-radius:12px;background:var(--accent);color:#fff;text-decoration:none}.dlb b{display:block;font-size:19px}.dlb span{font-size:14px;opacity:.92}.dlb:hover{filter:brightness(1.1)}.dlb:focus-visible{outline:3px solid #101C26;outline-offset:2px}summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0}\n  .foot{margin-top:28px;font-size:15px;color:var(--muted)}\n</style>')}
 ${cfg.replace('src="config.js', 'src="/config.js')}
 </head>
 <body>

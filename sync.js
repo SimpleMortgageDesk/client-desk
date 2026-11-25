@@ -1593,7 +1593,17 @@
     return (a ? calTrade(a).id : TR().id) === 'mortgage';
   }
   function calHash(a) {
-    return JSON.stringify([calTrade(a).subject, a.who, a.type, a.date, a.time, a.dur, a.mode, a.where, calMg(a) ? calText(a) : '']);
+    return JSON.stringify([
+      calTrade(a).subject,
+      a.who,
+      a.type,
+      a.date,
+      a.time,
+      a.dur,
+      a.mode,
+      a.where,
+      calMg(a) ? calText(a) : ''
+    ]);
   }
   function calWall(date, time, plusMin) {
     var d = date.split('-'),

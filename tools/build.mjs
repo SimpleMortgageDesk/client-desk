@@ -39,6 +39,7 @@ const FILES = [
   'support.html',
   'security.html',
   'terms.html',
+  'download.html',
   '404.html',
   'config.js',
   'trades.js',

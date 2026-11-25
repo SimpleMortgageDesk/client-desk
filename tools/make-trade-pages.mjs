@@ -4,31 +4,112 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { TRADES, COMMON_FAQS } from './trade-content.mjs';
 const SITE = 'https://mysimpledesk.co.uk';
 const home = readFileSync('home.html', 'utf8');
-const cut = (a, b, from = 0) => { const i = home.indexOf(a, from); const j = home.indexOf(b, i); if (i < 0 || j < 0) throw new Error('missing ' + a); return home.slice(i, j + b.length); };
+const cut = (a, b, from = 0) => {
+  const i = home.indexOf(a, from);
+  const j = home.indexOf(b, i);
+  if (i < 0 || j < 0) throw new Error('missing ' + a);
+  return home.slice(i, j + b.length);
+};
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 const style = cut('<style>', '</style>');
-const configTag = home.match(/<script src="config\.js[^>]*><\/script>/)[0].replace('src="config.js', 'src="/config.js');
-const icons = home.match(/<meta name="theme-color"[^\n]*\n/)[0].replace('href="manifest.webmanifest"', 'href="/manifest.webmanifest"').replace('href="apple-touch-icon.png', 'href="/apple-touch-icon.png');
-const header = cut('<header>', '</header>').replace('href="#top"', 'href="/home"').replace(/<nav class="links"[\s\S]*?<\/nav>/, '<nav class="links" aria-label="Page sections"><a href="#help">What it keeps track of</a><a href="/home#privacy">Your data</a><a href="#faq">Questions</a></nav>').replace(/href="\.\/\?p=/g, 'href="/?p=');
-const trust = cut('<div class="trustbar"', '</div>\n</div>').replace('href="#privacy"', 'href="/home#privacy"');
+const configTag = home
+  .match(/<script src="config\.js[^>]*><\/script>/)[0]
+  .replace('src="config.js', 'src="/config.js');
+const icons = home
+  .match(/<meta name="theme-color"[^\n]*\n/)[0]
+  .replace('href="manifest.webmanifest"', 'href="/manifest.webmanifest"')
+  .replace('href="apple-touch-icon.png', 'href="/apple-touch-icon.png');
+const header = cut('<header>', '</header>')
+  .replace('href="#top"', 'href="/home"')
+  .replace(
+    /<nav class="links"[\s\S]*?<\/nav>/,
+    '<nav class="links" aria-label="Page sections"><a href="#help">What it keeps track of</a><a href="/home#privacy">Your data</a><a href="#faq">Questions</a></nav>'
+  )
+  .replace(/href="\.\/\?p=/g, 'href="/?p=');
+const trust = cut('<div class="trustbar"', '</div>\n</div>').replace(
+  'href="#privacy"',
+  'href="/home#privacy"'
+);
 const footer = cut('<footer>', '</footer>').replace('href="privacy.html"', 'href="/privacy"');
-let script = cut('<script>\n(function () {', '})();\n').replace(/\n  document\.title = [^\n]*/, '').replace("a[href^=\"./?p=\"]", 'a[href^="/?p="]').replace("a.href = './'", "a.href = '/'");
-const slideOf = (name) => { const re = new RegExp('<div class="slide[^"]*"[^>]*aria-label="\\d+ of \\d+: ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '"[^>]*>'); const m = re.exec(home); if (!m) throw new Error('slide ' + name); let i = m.index, d = 0, k = i; const tag = /<div\b|<\/div>/g; tag.lastIndex = i; let t; while ((t = tag.exec(home))) { d += t[0] === '</div>' ? -1 : 1; if (!d) { k = tag.lastIndex; break; } } return home.slice(i, k); };
-const faqHtml = (f) => f.map(([q, a]) => `    <details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('\n');
+let script = cut('<script>\n(function () {', '})();\n')
+  .replace(/\n  document\.title = [^\n]*/, '')
+  .replace('a[href^="./?p="]', 'a[href^="/?p="]')
+  .replace("a.href = './'", "a.href = '/'");
+const slideOf = (name) => {
+  const re = new RegExp(
+    '<div class="slide[^"]*"[^>]*aria-label="\\d+ of \\d+: ' +
+      name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
+      '"[^>]*>'
+  );
+  const m = re.exec(home);
+  if (!m) throw new Error('slide ' + name);
+  let i = m.index,
+    d = 0,
+    k = i;
+  const tag = /<div\b|<\/div>/g;
+  tag.lastIndex = i;
+  let t;
+  while ((t = tag.exec(home))) {
+    d += t[0] === '</div>' ? -1 : 1;
+    if (!d) {
+      k = tag.lastIndex;
+      break;
+    }
+  }
+  return home.slice(i, k);
+};
+const faqHtml = (f) =>
+  f.map(([q, a]) => `    <details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('\n');
 const ld = (o) => '<script type="application/ld+json">' + JSON.stringify(o) + '</script>';
-const app = (t) => ({ '@type': 'SoftwareApplication', name: 'MySimpleDesk', applicationCategory: 'BusinessApplication', operatingSystem: 'Web browser, Android', url: SITE + '/for/' + t.slug, description: t.desc, offers: { '@type': 'Offer', price: '0', priceCurrency: 'GBP', description: 'First year free, no card needed' }, audience: { '@type': 'Audience', audienceType: t.name } });
+const app = (t) => ({
+  '@type': 'SoftwareApplication',
+  name: 'MySimpleDesk',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web browser, Android',
+  url: SITE + '/for/' + t.slug,
+  description: t.desc,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'GBP',
+    description: 'First year free, no card needed'
+  },
+  audience: { '@type': 'Audience', audienceType: t.name }
+});
 mkdirSync('for', { recursive: true });
 for (const t of TRADES) {
-  const url = SITE + '/for/' + t.slug, faqs = [...t.faqs, ...COMMON_FAQS];
+  const url = SITE + '/for/' + t.slug,
+    faqs = [...t.faqs, ...COMMON_FAQS];
   const raw = slideOf(t.slide);
-  const slide = raw.replace(/ data-hold="2"/, '').replace(/ aria-hidden="true"/, '').replace(/class="slide[^"]*"/, 'class="slide on"').replace(/aria-label="\d+ of \d+: /, 'aria-label="').replace(' role="group" aria-roledescription="slide"', ' role="group"');
-  const acc = /--acc:(#[0-9A-Fa-f]{6})/.exec(raw)[1], soft = /--soft:(#[0-9A-Fa-f]{6})/.exec(raw)[1];
-  const others = TRADES.filter((x) => x.slug !== t.slug).map((x) => `<a href="/for/${x.slug}">${esc(x.name)}</a>`).join(' · ');
+  const slide = raw
+    .replace(/ data-hold="2"/, '')
+    .replace(/ aria-hidden="true"/, '')
+    .replace(/class="slide[^"]*"/, 'class="slide on"')
+    .replace(/aria-label="\d+ of \d+: /, 'aria-label="')
+    .replace(' role="group" aria-roledescription="slide"', ' role="group"');
+  const acc = /--acc:(#[0-9A-Fa-f]{6})/.exec(raw)[1],
+    soft = /--soft:(#[0-9A-Fa-f]{6})/.exec(raw)[1];
+  const others = TRADES.filter((x) => x.slug !== t.slug)
+    .map((x) => `<a href="/for/${x.slug}">${esc(x.name)}</a>`)
+    .join(' · ');
   const title = t.title + ' | MySimpleDesk';
   const graph = [
     app(t),
-    { '@type': 'FAQPage', mainEntity: faqs.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
-    { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'MySimpleDesk', item: SITE + '/home' }, { '@type': 'ListItem', position: 2, name: 'For ' + t.name, item: url }] }
+    {
+      '@type': 'FAQPage',
+      mainEntity: faqs.map(([q, a]) => ({
+        '@type': 'Question',
+        name: q,
+        acceptedAnswer: { '@type': 'Answer', text: a }
+      }))
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'MySimpleDesk', item: SITE + '/home' },
+        { '@type': 'ListItem', position: 2, name: 'For ' + t.name, item: url }
+      ]
+    }
   ];
   const html = `<!DOCTYPE html>
 <html lang="en-GB">
@@ -121,5 +202,19 @@ ${script}
   console.log('for/' + t.slug + '.html', html.length);
 }
 const today = new Date().toISOString().slice(0, 10);
-const urls = ['/home', ...TRADES.map((t) => '/for/' + t.slug), '/about', '/support', '/security', '/terms', '/privacy'];
-writeFileSync('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.map((u) => `  <url><loc>${SITE}${u}</loc><lastmod>${today}</lastmod></url>`).join('\n') + '\n</urlset>\n');
+const urls = [
+  '/home',
+  ...TRADES.map((t) => '/for/' + t.slug),
+  '/about',
+  '/download',
+  '/support',
+  '/security',
+  '/terms',
+  '/privacy'
+];
+writeFileSync(
+  'sitemap.xml',
+  '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    urls.map((u) => `  <url><loc>${SITE}${u}</loc><lastmod>${today}</lastmod></url>`).join('\n') +
+    '\n</urlset>\n'
+);
