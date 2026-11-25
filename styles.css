@@ -1368,3 +1368,7 @@ body[data-theme-trade="mortgage"] .aptm b{font-size:19px;line-height:1.1;color:#
 body.side-on #app{grid-template-rows:auto}
 body.side-on #side{grid-row:2 / span 6}
 body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
+
+.calcpick{margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.calcopt{text-align:left;font:inherit;padding:11px 12px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface,#fff);color:var(--ink);cursor:pointer}
+.calcopt:hover,.calcopt:focus-visible{border-color:var(--acc,#0A6B50);background:var(--soft,#E8F3EE)}

@@ -1239,19 +1239,6 @@ document.addEventListener('input', function (e) {
     var od = $('#odl');
     if (od) od.innerHTML = odLink(t.value);
   }
-  if (t.id === 'calcCase') {
-    var cc = cases.filter(function (x) {
-      return x.id === t.value;
-    })[0];
-    if (cc) {
-      $('#calcAmt').value = cc.loanAmount || '';
-      var yy = cc.termLeft || cc.termYears || '';
-      $('#calcYrs').value = yy;
-      $('#calcMon').value = '';
-      $('#calcRate').value = cc.rate || '';
-    }
-    calcUpdate();
-  }
   if (
     t.id === 'tcVat' ||
     t.id === 'tcRate' ||

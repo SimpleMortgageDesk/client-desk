@@ -436,24 +436,9 @@ function taxCalcUpdate() {
 }
 function calcShell() {
   if (T.calcKind === 'tax') return taxCalcShell();
-  var list = cases.slice().sort(function (a, b) {
-    return names(a).toLowerCase() < names(b).toLowerCase() ? -1 : 1;
-  });
   return (
     '<div class="pagehead"><h1>Mortgage calculator</h1><span class="muted">Monthly payment, repayment and interest only</span></div><div id="calcMain" class="calc">' +
-    '<div class="calcin"><label class="f">Fill from a case (optional)<select id="calcCase"><option value="">Choose a case, or type the figures below</option>' +
-    list
-      .map(function (x) {
-        return (
-          '<option value="' +
-          esc(x.id) +
-          '">' +
-          esc(names(x) + (x.clientNo ? ' (' + x.clientNo + ')' : '')) +
-          '</option>'
-        );
-      })
-      .join('') +
-    '</select></label>' +
+    '<div class="calcin"><div class="f">Fill from a case (optional)<input id="calcQ" type="search" autocomplete="off" placeholder="Search by name, client number or address" aria-label="Search for a case to fill in the figures"><div id="calcRes" class="calcpick" aria-live="polite"></div></div>' +
     '<div class="grid" style="margin-top:10px"><label class="f">Mortgage amount<span class="ig"><i>£</i><input id="calcAmt" type="number" step="any" inputmode="decimal" placeholder="e.g. 250000"></span></label>' +
     '<label class="f">Term (years)<input id="calcYrs" type="number" step="1" inputmode="numeric" placeholder="e.g. 25"></label>' +
     '<label class="f">Extra months (optional)<input id="calcMon" type="number" step="1" min="0" max="11" inputmode="numeric" placeholder="0"></label>' +
@@ -461,6 +446,93 @@ function calcShell() {
     '<div id="calcOut"></div></div>'
   );
 }
+/* mortgage calculator: search for a case instead of scrolling a long list */
+function calcHay(c) {
+  var p = [names(c), c.clientNo, c.propertyAddress, c.postcode];
+  (c.applicants || []).forEach(function (a) {
+    p.push(a && a.name, a && a.phone, a && a.email);
+  });
+  (c.securities || []).forEach(function (x) {
+    p.push(x && x.address, x && x.propertyAddress, x && x.postcode);
+  });
+  return p.filter(Boolean).join(' ').toLowerCase();
+}
+function calcFind(q) {
+  var box = $('#calcRes');
+  if (!box) return;
+  q = String(q || '')
+    .toLowerCase()
+    .trim();
+  if (!q) {
+    box.innerHTML = '';
+    return;
+  }
+  var words = q.split(/\s+/),
+    hits = cases
+      .filter(function (c) {
+        var h = calcHay(c);
+        return words.every(function (w) {
+          return h.indexOf(w) > -1;
+        });
+      })
+      .sort(function (a, b) {
+        return names(a).toLowerCase() < names(b).toLowerCase() ? -1 : 1;
+      });
+  box.innerHTML = hits.length
+    ? hits
+        .slice(0, 8)
+        .map(function (x) {
+          return (
+            '<button type="button" class="calcopt" data-calcpick="' +
+            esc(x.id) +
+            '"><b>' +
+            esc(names(x)) +
+            '</b>' +
+            (x.clientNo ? ' <span class="muted">(' + esc(x.clientNo) + ')</span>' : '') +
+            '</button>'
+          );
+        })
+        .join('') +
+      (hits.length > 8
+        ? '<p class="muted" style="margin:6px 0 0">' +
+          (hits.length - 8) +
+          ' more. Type a little more to narrow it down.</p>'
+        : '')
+    : '<p class="muted" style="margin:6px 0 0">No case found. You can still type the figures below.</p>';
+}
+function calcPick(id) {
+  var cc = cases.filter(function (x) {
+    return x.id === id;
+  })[0];
+  if (!cc) return;
+  $('#calcAmt').value = cc.loanAmount || '';
+  $('#calcYrs').value = cc.termLeft || cc.termYears || '';
+  $('#calcMon').value = '';
+  $('#calcRate').value = cc.rate || '';
+  $('#calcQ').value = names(cc) + (cc.clientNo ? ' (' + cc.clientNo + ')' : '');
+  $('#calcRes').innerHTML = '';
+  calcUpdate();
+}
+document.addEventListener('input', function (e) {
+  if (e.target && e.target.id === 'calcQ') calcFind(e.target.value);
+});
+document.addEventListener('keydown', function (e) {
+  if (!e.target || e.target.id !== 'calcQ') return;
+  if (e.key === 'Enter') {
+    var f = $('#calcRes [data-calcpick]');
+    if (f) {
+      e.preventDefault();
+      calcPick(f.getAttribute('data-calcpick'));
+    }
+  } else if (e.key === 'Escape') {
+    e.target.value = '';
+    calcFind('');
+  }
+});
+document.addEventListener('click', function (e) {
+  var b = e.target && e.target.closest && e.target.closest('[data-calcpick]');
+  if (b) calcPick(b.getAttribute('data-calcpick'));
+});
 function calcUpdate() {
   if (T.calcKind === 'tax') {
     taxCalcUpdate();
