@@ -1637,3 +1637,4 @@ document.addEventListener('change', function (e) {
 });
 
 window.CD_import = imOpen;
+window.CD_imKind = imKind;

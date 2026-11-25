@@ -5446,11 +5446,15 @@
             'All records in a password-protected ZIP, saved to folders you choose, with an automatic backup every 24 hours.',
             btn('pdfbk', 'Back up')
           ) +
-            (TR().id === 'mortgage' && window.CD_import
+            (window.CD_import
               ? row(
                   'Import or export a spreadsheet',
-                  'Bring in clients from an Excel or CSV file made in another app (the columns are matched for you, and you check them before anything is added), or save all your cases as a CSV.',
-                  btn('imp', 'Import from Excel or CSV') + ' ' + btn('csvx', 'Export CSV')
+                  (window.CD_imKind && window.CD_imKind()
+                    ? 'Bring in a list from an Excel or CSV file made in another app (the columns are matched for you, and you check them before anything is added), or '
+                    : '') + 'save all your records as a CSV.',
+                  (window.CD_imKind && window.CD_imKind()
+                    ? btn('imp', 'Import from Excel or CSV') + ' '
+                    : '') + btn('csvx', 'Export CSV')
                 )
               : '') +
             (TR().id === 'mortgage' && bkCanPick()

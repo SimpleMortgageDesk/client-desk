@@ -26,6 +26,26 @@ document.addEventListener('click', function (e) {
     return;
   }
   var t = e.target;
+  /* the More menu on a client page */
+  var mmb = t.closest('#moreBtn'),
+    mmp = $('#moreMenu');
+  if (mmb && mmp) {
+    mmp.hidden = !mmp.hidden;
+    mmb.setAttribute('aria-expanded', mmp.hidden ? 'false' : 'true');
+    if (!mmp.hidden) {
+      /* placed under the button, kept inside the screen */
+      var br = mmb.getBoundingClientRect(),
+        pw = mmp.offsetWidth;
+      mmp.style.top = br.bottom + 4 + 'px';
+      mmp.style.left = Math.max(8, Math.min(br.right - pw, window.innerWidth - pw - 8)) + 'px';
+    }
+    return;
+  }
+  if (mmp && !mmp.hidden) {
+    mmp.hidden = true;
+    var mb2 = $('#moreBtn');
+    if (mb2) mb2.setAttribute('aria-expanded', 'false');
+  }
   var rdn = t.closest('[data-remdone]');
   if (rdn && rdn.getAttribute('data-remdone').indexOf('__car:') === 0) {
     e.stopPropagation();

@@ -632,11 +632,9 @@ function emptyHTML() {
     '<br><button class="btn" data-act="new">Add your first ' +
     N1() +
     '</button>' +
-    (T.id === 'mortgage'
+    (imKind()
       ? '<p class="muted" style="font-size:12.5px;margin:10px 0 0">Bringing in an existing list? Use Settings › Backup and restore › Import.</p>'
-      : imKind()
-        ? ' <button class="btn ghost" data-act="import">Import from Excel or CSV</button>'
-        : '') +
+      : '') +
     '</div>'
   );
 }
@@ -939,18 +937,9 @@ function casesHTML(embed) {
     (embed ? 'Investment properties' : T.tenancyMode ? 'Buy to let properties' : 'All ' + NS()) +
     '</h1>' +
     llSum +
-    (T.id !== 'mortgage' && imKind() ? '<button class="btn ghost" data-act="import">Import</button>' : '') +
-    (T.id !== 'mortgage' && cases.length > 1 ? dupBtn() : '') +
-    (T.id !== 'mortgage' ? '<button class="btn ghost" data-act="export">Export CSV</button>' : '') +
     '</div>' +
     dupBar() +
-    '<div class="filters">' +
-    (T.id !== 'mortgage' && imKind()
-      ? '<button type="button" class="btn ghost xpm" data-act="import">Import</button>'
-      : '') +
-    (T.id !== 'mortgage'
-      ? '<button type="button" class="btn ghost xpm" data-act="export">Export CSV</button>'
-      : '') +
+    '<!--F--><div class="filters">' +
     (T.tenancyMode ? '' : '<select id="stageSel" aria-label="Filter by stage">' + opts + '</select> ') +
     '<select id="sortSel" aria-label="Sort clients">' +
     [
@@ -985,7 +974,9 @@ function casesHTML(embed) {
     (stageFilter || lenderFilter || revFilter
       ? ' <button type="button" class="btn ghost" data-clrf="1">Clear filters</button>'
       : '') +
-    '</div>';
+    '</div><!--/F-->';
+  /* nothing to filter or sort yet: leave those boxes out */
+  if (!cases.length) h = h.replace(/<!--F-->[\s\S]*<!--\/F-->/, '');
   h = '<div class="caseswrap">' + h;
   var mg = T.id === 'mortgage';
   if (!cases.length) return h + emptyHTML() + (mg ? '' : mtdCard()) + '</div>';

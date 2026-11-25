@@ -423,19 +423,9 @@ function openDrawer(id, draft) {
     (id
       ? T.tenancyMode
         ? '<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Receipts and expenses</button>'
-        : (T.jobDocs && !T.noExp
-            ? '<button type="button" class="btn ghost" id="expBtn">Receipts and expenses</button>'
-            : '') +
-          (T.id === 'mortgage'
+        : (T.id === 'mortgage'
             ? '<button type="button" class="btn ghost" id="docBtn" title="Read a lender document (decision in principle or mortgage offer) on this device">Read a document</button>'
-            : '') +
-          (T.id === 'mortgage' &&
-          pfGroups().some(function (g) {
-            return g.k === clientKey(c);
-          })
-            ? '<button type="button" class="btn ghost" id="pfBtn" title="Fill in the Personal Portfolio Summary from this client\'s buy to let cases">Portfolio summary</button>'
-            : '') +
-          '<button type="button" class="btn" id="bookBtn">Book appointment</button>'
+            : '') + '<button type="button" class="btn" id="bookBtn">Book appointment</button>'
       : '') +
     (id && !T.tenancyMode && N1() !== 'client'
       ? '<button type="button" class="btn" id="dupBtn" title="Same client, another ' +
@@ -444,9 +434,27 @@ function openDrawer(id, draft) {
         esc(N1()) +
         ' for this client</button>'
       : '') +
-    '<button type="button" class="btn" id="saveCloseBtn">' +
-    (T.id === 'mortgage' ? 'Save' : 'Done') +
-    '</button></div></div>' +
+    /* the less-used buttons sit under More, so the top row is only Book, New and Save */
+    (function () {
+      if (!id || T.tenancyMode) return '';
+      var m = '';
+      if (T.jobDocs && !T.noExp)
+        m += '<button type="button" class="btn ghost" id="expBtn">Receipts and expenses</button>';
+      if (
+        T.id === 'mortgage' &&
+        pfGroups().some(function (g) {
+          return g.k === clientKey(c);
+        })
+      )
+        m +=
+          '<button type="button" class="btn ghost" id="pfBtn" title="Fill in the Personal Portfolio Summary from this client\'s buy to let cases">Portfolio summary</button>';
+      return m
+        ? '<span class="mnmore"><button type="button" class="btn ghost" id="moreBtn" aria-haspopup="true" aria-expanded="false">More &#9662;</button><div class="mnmpanel" id="moreMenu" hidden>' +
+            m +
+            '</div></span>'
+        : '';
+    })() +
+    '<button type="button" class="btn" id="saveCloseBtn">Save</button></div></div>' +
     '<form id="caseForm" class="db" autocomplete="off">' +
     (T.tenancyMode
       ? llBody(c)
