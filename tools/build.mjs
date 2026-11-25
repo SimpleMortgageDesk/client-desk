@@ -30,7 +30,7 @@ try {
 }
 
 /* what the website consists of */
-const FOLDERS = ['admin', '.well-known', 'lib', 'js'];
+const FOLDERS = ['admin', '.well-known', 'lib', 'js', 'for'];
 const FILES = [
   'index.html',
   'home.html',

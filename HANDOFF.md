@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST217)
+# MySimpleDesk – handoff (build LATEST218)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -66,3 +66,6 @@ Playwright suites are in the session scratchpad `qa/` (not in the repo): run aga
 - **Birthday messages sign-off:** greeting + name + job title from My profile; a mortgage adviser's title defaults to 'Mortgage and Protection Adviser' and Islamic messages close with 'Wassalamu alaikum,' (mortgage trade only). A signature saved in Edit messages and signature still overrides.
 - **Notes (mortgage adviser):** a multi-line note is shown as one block with its line breaks (paras() in app-core.js; other trades still show a block per line); each note has Edit and Delete (Delete asks Confirm delete first).
 - **All-trades master copy:** on the admin page (Cloudflare Access) each person has an **All trades: on/off** button (`POST /api/admin/users?email=&alltrades=1|0`, column `all_trades`). The app reads it at start (`/api/verify` status returns `at`, `window.CD_allAt()`); with it on there is no limit of two and no lock, and the trade switch is one drop-down. Invite links: `https://mysimpledesk.co.uk/?trade=<id>` ticks that trade in a new person's first-time chooser (ids: landlord, gas, accountant, mortgage, solicitor, architect, plumber, electrician, builder, beauty, driving, general).
+
+## Trade landing pages (search engines)
+`for/<slug>.html` (12 pages) are generated: edit the words in `tools/trade-content.mjs`, then run `node tools/make-trade-pages.mjs` (it also rewrites `sitemap.xml`) and commit. Each page has its own title, description, canonical link, and JSON-LD (SoftwareApplication, FAQPage, BreadcrumbList); home.html has SoftwareApplication, WebSite and FAQPage. Cloudflare serves them without `.html`.
