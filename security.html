@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How your data is protected · MySimpleDesk</title>
+<meta name="description" content="Where MySimpleDesk keeps your records, what we can and cannot see, and how the app is protected.">
+<link rel="canonical" href="https://mysimpledesk.co.uk/security">
+<meta property="og:title" content="How your data is protected · MySimpleDesk">
+<meta property="og:description" content="Where MySimpleDesk keeps your records, what we can and cannot see, and how the app is protected.">
+<meta property="og:image" content="https://mysimpledesk.co.uk/icon-512.png">
+<link rel="icon" href="/icon-192.png?v=3">
+<style>
+  :root{--ink:#101C26;--muted:#58697A;--line:#D4DBDF;--accent:#0A6B50;--bg:#EDF0F1}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:760px;margin:0 auto;padding:28px 20px 60px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px 30px}
+  h1{font-size:28px;margin:0 0 4px;letter-spacing:-.01em}
+  h2{font-size:19px;margin:30px 0 8px;color:#2f4a40}
+  p,li{margin:0 0 10px}
+  ul{padding-left:22px;margin:0 0 10px}
+  .muted{color:var(--muted)}
+  .key{background:#EAF4EF;border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;margin:18px 0}
+  table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:15px}
+  th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{background:#F4F7F8;font-weight:600}
+  code{background:#F4F7F8;border-radius:4px;padding:1px 5px;font-size:14px;overflow-wrap:anywhere}
+  a{color:var(--accent)}
+  .fill{background:#FFF6DD;border-radius:4px;padding:0 4px}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-weight:700}
+  .bn-my{font-weight:400;opacity:.62}.bn-simple{font-weight:800}.bn-desk{font-weight:800;color:var(--accent)}
+  @media (max-width:560px){.card{padding:20px 18px}h1{font-size:24px}table{font-size:14px}}
+  details{border-bottom:1px solid var(--line);padding:10px 0}summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0}
+  .foot{margin-top:28px;font-size:15px;color:var(--muted)}
+</style>
+<script src="/config.js?v=202611221742"></script>
+</head>
+<body>
+<main>
+  <div class="top"><a href="/home" style="text-decoration:none;color:inherit">&#9670; <span data-brand>MySimpleDesk</span></a><a href="/">Open the app</a></div>
+  <div class="card">
+
+    <h1>How your data is protected</h1>
+    <p class="muted">Last updated: 25 November 2026</p>
+    <div class="key"><p><b>The short version.</b> Your records are saved in your own OneDrive, under your own Microsoft account. They do not pass through our computers, so we cannot read, sell or lose them. We keep only a short sign-up list with your own contact details.</p></div>
+    <h2>Where your records are</h2>
+    <ul>
+      <li>In a folder in your own OneDrive, in <b>Apps &rsaquo; Client Desk</b>. You can open that folder any time.</li>
+      <li>A working copy on your device, so the app works offline. Logging out removes it from that device.</li>
+      <li>We keep no copy and run no database of your customers, tenants or clients.</li>
+    </ul>
+    <h2>What we can and cannot see</h2>
+    <ul>
+      <li><b>We can see:</b> the account details you gave when registering (name, email, mobile, business name, kind of work) and simple usage counts, held in a sign-up list.</li>
+      <li><b>We cannot see:</b> your records, documents, notes, customers' details or your app password.</li>
+      <li>The app can only use its own folder. It cannot see the rest of your OneDrive, and it cannot read your email.</li>
+      <li>When you upload a document and the app reads a date from it, that happens inside your own browser. The document is not sent to us.</li>
+    </ul>
+    <h2>How the app is protected</h2>
+    <ul>
+      <li><b>Sign-in by Microsoft.</b> The app never sees your Microsoft password.</li>
+      <li><b>App lock.</b> You can set an app password. The app locks after a period of inactivity and signs out after a longer one.</li>
+      <li><b>Encrypted connection.</b> Everything between your device, our site and Microsoft travels over HTTPS.</li>
+      <li><b>Strict page security.</b> The site only runs its own scripts, so injected code cannot run. Links to other sites are checked before they open.</li>
+      <li><b>No adverts or trackers.</b> The only outside script is Cloudflare Web Analytics, which uses no cookies and does not identify you.</li>
+      <li><b>Password-protected backups.</b> A backup file is protected with a password you choose.</li>
+      <li><b>Shared computers.</b> Tick "This is a shared or public computer" when you log in and nothing is kept on it.</li>
+    </ul>
+    <h2>The limits, honestly</h2>
+    <ul>
+      <li>The working copy on your device is not encrypted by the app. Use a device with a screen lock and disk encryption, and turn on two-step verification for your Microsoft account.</li>
+      <li>We test the app ourselves. It has not yet had an independent security audit.</li>
+      <li>If you keep other people's details, you are responsible for them under UK data protection law. The app helps (it keeps accounts apart, warns you not to record bank details or National Insurance numbers, and lets you export and delete records) but it does not remove your duties. See section 7 of the <a href="/privacy">privacy policy</a>.</li>
+    </ul>
+    <h2>Found a security problem?</h2>
+    <p>Please email <span data-email></span> with the details and give us a reasonable time to fix it before telling others. Do not include other people's personal data.</p>
+    <p>The full detail is in the <a href="/privacy">privacy policy</a>.</p>
+    <p class="foot"><a href="/about">About</a> · <a href="/support">Support</a> · <a href="/security">Data protection</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></p>
+  </div>
+</main>
+<script>
+(function () {
+  var c = window.MD_CONFIG || {}, ph = function (v) { return !v || /PASTE/i.test(v); };
+  var app = c.appName || 'MySimpleDesk';
+  document.querySelectorAll('[data-app]').forEach(function (e) { e.textContent = app; });
+  document.querySelectorAll('[data-brand]').forEach(function (e) {
+    var m = /^(My)(.+?)(Desk)$/.exec(app); if (!m) { e.textContent = app; return; }
+    e.textContent = ''; ['my', 'simple', 'desk'].forEach(function (k, i) { var s = document.createElement('span'); s.className = 'bn-' + k; s.textContent = m[i + 1]; e.appendChild(s); });
+  });
+  document.querySelectorAll('[data-owner]').forEach(function (e) {
+    if (ph(c.ownerName)) { e.textContent = '[business name: add ownerName in config.js]'; e.className = 'fill'; } else e.textContent = c.ownerName;
+  });
+  document.querySelectorAll('[data-email]').forEach(function (e) {
+    if (ph(c.ownerEmail)) { e.textContent = '[contact email: add ownerEmail in config.js]'; e.className = 'fill'; return; }
+    var a = document.createElement('a'); a.href = 'mailto:' + c.ownerEmail; a.textContent = c.ownerEmail; e.textContent = ''; e.appendChild(a);
+  });
+})();
+</script>
+</body>
+</html>
