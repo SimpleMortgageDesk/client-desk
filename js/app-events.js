@@ -339,23 +339,6 @@ document.addEventListener('click', function (e) {
     renderNotebook();
     return;
   }
-  if (t.id === 'nbStamp') {
-    var nb1 = $('#nbBody');
-    nb1.focus();
-    var rg = document.createRange();
-    rg.selectNodeContents(nb1);
-    rg.collapse(false);
-    var sg = window.getSelection();
-    sg.removeAllRanges();
-    sg.addRange(rg);
-    document.execCommand(
-      'insertHTML',
-      false,
-      (nb1.textContent.trim() ? '<br><br>' : '') + esc(stampOf(Date.now())) + ' - '
-    );
-    nbSched();
-    return;
-  }
   if (t.id === 'nbDel') {
     if (!t.classList.contains('armed')) {
       t.classList.add('armed');
@@ -363,26 +346,6 @@ document.addEventListener('click', function (e) {
       return;
     }
     nbDelete(nbShown);
-    return;
-  }
-  var nbx = t.closest && t.closest('[data-nbdel]');
-  if (nbx) {
-    if (!nbx.classList.contains('armed')) {
-      document.querySelectorAll('.nbx.armed').forEach(function (x) {
-        x.classList.remove('armed');
-        x.textContent = 'Delete';
-      });
-      nbx.classList.add('armed');
-      nbx.textContent = 'Sure?';
-      setTimeout(function () {
-        if (nbx.isConnected && nbx.classList.contains('armed')) {
-          nbx.classList.remove('armed');
-          nbx.textContent = 'Delete';
-        }
-      }, 4000);
-      return;
-    }
-    nbDelete(nbx.getAttribute('data-nbdel'));
     return;
   }
   if (t.closest('[data-close]')) {

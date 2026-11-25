@@ -1389,7 +1389,7 @@ function nbList() {
             .replace(/\s+/g, ' ')
             .slice(0, 80);
           return (
-            '<div class="nbrow"><button type="button" class="nbi' +
+            '<button type="button" class="nbi' +
             (n.id === nbSel ? ' on' : '') +
             '" data-nbsel="' +
             n.id +
@@ -1399,11 +1399,7 @@ function nbList() {
             stampOf(n.updatedAt || n.createdAt || Date.now()) +
             '</span><span class="muted">' +
             esc(sn) +
-            '</span></button><button type="button" class="nbx" data-nbdel="' +
-            n.id +
-            '" aria-label="Delete note ' +
-            esc(nbTitleOf(n)) +
-            '" title="Delete this note">Delete</button></div>'
+            '</span></button>'
           );
         })
         .join('')
@@ -1662,7 +1658,7 @@ function nbEditor() {
     esc(JSON.stringify(n.tables || [])) +
     "'>" +
     nbTablesHtml(n) +
-    '</div><div class="add"><button type="button" class="btn ghost" id="nbStamp">Insert date and time</button><button type="button" class="btn danger" id="nbDel">Delete note</button><span class="muted" id="nbMsg" style="align-self:center;font-size:12px">Saves automatically</span></div>';
+    '</div><div class="add"><button type="button" class="btn danger" id="nbDel">Delete note</button><span class="muted" id="nbMsg" style="align-self:center;font-size:12px">Saves automatically</span></div>';
 }
 function renderNotebook() {
   if (!nbSel && notes.length) nbSel = nbSorted()[0].id;
