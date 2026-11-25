@@ -362,14 +362,27 @@ document.addEventListener('click', function (e) {
       t.textContent = 'Confirm delete';
       return;
     }
-    var nid = nbShown;
-    nbSel = null;
-    nbShown = null;
-    write('nb-' + nid, function () {
-      return nbCol.doc(nid).delete();
-    }).then(function () {
-      toast('Note deleted');
-    });
+    nbDelete(nbShown);
+    return;
+  }
+  var nbx = t.closest && t.closest('[data-nbdel]');
+  if (nbx) {
+    if (!nbx.classList.contains('armed')) {
+      document.querySelectorAll('.nbx.armed').forEach(function (x) {
+        x.classList.remove('armed');
+        x.textContent = 'Delete';
+      });
+      nbx.classList.add('armed');
+      nbx.textContent = 'Sure?';
+      setTimeout(function () {
+        if (nbx.isConnected && nbx.classList.contains('armed')) {
+          nbx.classList.remove('armed');
+          nbx.textContent = 'Delete';
+        }
+      }, 4000);
+      return;
+    }
+    nbDelete(nbx.getAttribute('data-nbdel'));
     return;
   }
   if (t.closest('[data-close]')) {

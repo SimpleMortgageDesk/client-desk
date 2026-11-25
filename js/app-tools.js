@@ -1364,6 +1364,17 @@ function nbShell() {
     '"><div id="nbList"></div></aside><section class="nbmain" id="nbMain"></section></div>'
   );
 }
+/* delete a note from the Notebook (the button asks twice, so a stray tap cannot lose a note) */
+function nbDelete(id) {
+  if (!id) return;
+  if (nbSel === id) nbSel = null;
+  if (nbShown === id) nbShown = null;
+  write('nb-' + id, function () {
+    return nbCol.doc(id).delete();
+  }).then(function () {
+    toast('Note deleted');
+  });
+}
 function nbList() {
   var box = $('#nbList');
   if (!box) return;
@@ -1378,7 +1389,7 @@ function nbList() {
             .replace(/\s+/g, ' ')
             .slice(0, 80);
           return (
-            '<button type="button" class="nbi' +
+            '<div class="nbrow"><button type="button" class="nbi' +
             (n.id === nbSel ? ' on' : '') +
             '" data-nbsel="' +
             n.id +
@@ -1388,7 +1399,11 @@ function nbList() {
             stampOf(n.updatedAt || n.createdAt || Date.now()) +
             '</span><span class="muted">' +
             esc(sn) +
-            '</span></button>'
+            '</span></button><button type="button" class="nbx" data-nbdel="' +
+            n.id +
+            '" aria-label="Delete note ' +
+            esc(nbTitleOf(n)) +
+            '" title="Delete this note">Delete</button></div>'
           );
         })
         .join('')

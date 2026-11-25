@@ -260,7 +260,7 @@ table.nt th{font-weight:600;background:var(--surface2)}
 .tpage{max-width:1200px;margin-left:auto;margin-right:auto}
 .nb{display:grid;grid-template-columns:280px 1fr;gap:14px;align-items:start}
 .nbside{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;max-height:calc(100vh - 170px);overflow-y:auto}
-.nbi{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;margin-top:6px;cursor:pointer}
+.nbi{display:flex;flex-direction:column;gap:2px;width:100%;flex:1 1 auto;min-width:0;text-align:left;background:var(--surface2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;margin-top:6px;cursor:pointer}
 .nbi.on{border-color:var(--accent);background:var(--accent-soft)}
 .nbi span{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nbmain{min-width:0}
@@ -1384,3 +1384,25 @@ body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
 .trsw.one button{flex:0 1 auto;padding:10px 26px}
 .trsw.many select{font-size:17px;min-height:46px;padding:8px 14px;border:2px solid #FFC83D}
 @media (max-width:620px){.trsw{padding:5px;gap:6px}.trsw button{min-height:50px;font-size:16px;padding:8px 8px}.trsw .trl{display:none}}
+
+/* the Notebook text is 16px, so phones do not zoom in when you tap it */
+.nbb{font-size:16px}
+
+/* on touch screens the Notebook toolbar buttons and colour dots are big enough to tap */
+@media (pointer:coarse){
+.rtbar{gap:8px;padding:8px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rtbar>*{flex:none}
+.rtbar button{min-width:44px;height:44px;font-size:15px}
+.rtbar select{height:44px}
+.rtbar .sw{min-width:34px;width:34px;height:34px}
+.rtbar input[type=color]{width:44px;height:44px}
+.rtbar .sep{height:34px;margin:0 6px}
+}
+
+/* a Delete button beside each note in the Notebook list */
+.nbrow{display:flex;gap:6px;align-items:stretch;margin-top:6px}
+.nbrow .nbi{margin-top:0}
+.nbx{flex:none;align-self:stretch;min-width:64px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--bad,#A3261F);font:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:0 10px}
+.nbx:hover{border-color:var(--bad,#A3261F)}
+.nbx.armed{background:var(--bad,#A3261F);color:#fff;border-color:var(--bad,#A3261F)}
+@media (pointer:coarse){.nbx{min-width:72px;min-height:44px}}
