@@ -5339,6 +5339,14 @@
               btn('biz', 'Edit')
             ) +
             row(
+              'Appointment reminders',
+              'A bar shows in the app when an appointment is tomorrow, so you can send the client a reminder. ' +
+                (window.CD_rmOn && window.CD_rmOn()
+                  ? '<b>Device notifications are on.</b> You are also told on this device when the app is open.'
+                  : 'Turn on notifications to be told on this device too (when the app is open).'),
+              btn('rmnote', window.CD_rmOn && window.CD_rmOn() ? 'Turn off' : 'Turn on')
+            ) +
+            row(
               'Invoices',
               esc((window.CD_invSummary && window.CD_invSummary()) || 'Bank accounts and invoice numbers.'),
               btn('inv', 'Edit invoice details')
@@ -5670,6 +5678,20 @@
       } else if (a === 'biz') {
         ov.remove();
         if (window.CD_openBiz) window.CD_openBiz();
+      } else if (a === 'rmnote') {
+        if (window.CD_rmToggle)
+          window.CD_rmToggle().then(function () {
+            var bt = ov.querySelector('[data-a="rmnote"]'),
+              on = window.CD_rmOn && window.CD_rmOn();
+            if (bt) bt.textContent = on ? 'Turn off' : 'Turn on';
+            var sp = bt && bt.closest('.cds-row') && bt.closest('.cds-row').querySelector('.cds-txt span');
+            if (sp)
+              sp.innerHTML =
+                'A bar shows in the app when an appointment is tomorrow, so you can send the client a reminder. ' +
+                (on
+                  ? '<b>Device notifications are on.</b> You are also told on this device when the app is open.'
+                  : 'Turn on notifications to be told on this device too (when the app is open).');
+          });
       } else if (a === 'imp') {
         ov.remove();
         if (window.CD_import) window.CD_import();

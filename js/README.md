@@ -23,6 +23,7 @@ modules: they share one page, so a function or variable defined in one file can 
 | `app-todo.js` | The To do list and the page that opens first |
 | `app-dates.js` | Reading dates from uploaded documents, and the expiry reminders made from them |
 | `app-import.js` | My tradesmen, import from Excel or CSV |
+| `app-remind.js` | Appointment reminders: bar, list, device notification (every trade) |
 | `app-dupes.js` | Duplicate finder: spots records entered twice, suggests merges, undo |
 | `app-start.js` | Start-up: connects to storage and shows the first page |
 

@@ -130,6 +130,7 @@ claude.use('db').then(function (d) {
       var na = $('#nextAppt');
       if (na && openId) na.innerHTML = apNextHtml(openId);
       renderNav();
+      rmRefresh();
     },
     function () {}
   );

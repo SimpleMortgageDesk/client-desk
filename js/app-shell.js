@@ -537,6 +537,7 @@ function calcUpdate() {
 function render() {
   renderNav();
   applySide();
+  if (typeof rmRefresh === 'function') rmRefresh();
   var v = $('#view');
   if (!db) {
     v.innerHTML = '<div class="banner">Saving is not available. Sign in to store your ' + NS() + '.</div>';

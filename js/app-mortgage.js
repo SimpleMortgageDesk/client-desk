@@ -360,10 +360,6 @@ function dirPropsHTML(list) {
 }
 
 /* ---------- client numbers: one per client, none shared by two clients ---------- */
-function noVal(s) {
-  var m = /(\d+)/.exec(s || '');
-  return m ? +m[1] : 1e9;
-}
 /* a case with no client number takes its client's number, or the next free one (a few seconds after the records have loaded) */
 var nosReady = false,
   fillBusy = false;

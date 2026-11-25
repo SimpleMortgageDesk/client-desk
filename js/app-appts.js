@@ -70,7 +70,9 @@ function waOpen(a, kind) {
     ppl = [];
   if (c)
     (c.applicants || []).forEach(function (p) {
-      if (bdIntl(p.phone)) ppl.push({ name: p.name || 'Client', phone: p.phone });
+      var em = String(p.email || '').trim();
+      if (bdIntl(p.phone) || em)
+        ppl.push({ name: p.name || 'Client', phone: bdIntl(p.phone) ? p.phone : '', email: em });
     });
   var ov = document.createElement('div');
   ov.id = 'waOv';
@@ -80,7 +82,7 @@ function waOpen(a, kind) {
   ov.innerHTML =
     '<div role="dialog" aria-modal="true" aria-label="WhatsApp message" style="background:var(--surface,#fff);color:var(--ink,#101C26);width:min(580px,100%);max-height:92vh;overflow:auto;border-radius:12px;padding:20px 22px;box-shadow:0 8px 30px rgba(0,0,0,.3);font:14px system-ui,sans-serif">' +
     '<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0;font-size:20px">' +
-    (kind === 'confirm' ? 'Appointment booked' : 'WhatsApp reminder') +
+    (kind === 'confirm' ? 'Appointment booked' : 'Send a reminder') +
     '</h2><button type="button" class="btn ghost" id="waX">' +
     (kind === 'confirm' ? 'Skip' : 'Close') +
     '</button></div>' +
@@ -98,7 +100,7 @@ function waOpen(a, kind) {
       ? '<label class="f">Send to<select id="waTo">' +
         ppl
           .map(function (p, i) {
-            return '<option value="' + i + '">' + esc(p.name) + ' · ' + esc(p.phone) + '</option>';
+            return '<option value="' + i + '">' + esc(p.name) + ' · ' + esc(p.phone || p.email) + '</option>';
           })
           .join('') +
         '</select></label>'
@@ -106,18 +108,18 @@ function waOpen(a, kind) {
         ? '<div class="f"><span>Send to</span><div style="padding:8px 0">' +
           esc(ppl[0].name) +
           ' · ' +
-          esc(ppl[0].phone) +
+          esc(ppl[0].phone || ppl[0].email) +
           '</div></div>'
         : '<label class="f">Client WhatsApp number<input type="tel" id="waNum" placeholder="07..."></label>') +
     '</div>' +
     '<label class="f">Message (you can edit it before sending)<textarea id="waTxt" rows="7" style="width:100%;box-sizing:border-box"></textarea></label>' +
-    '<div class="add" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="waGo">Open WhatsApp</button><button type="button" class="btn ghost" id="waCp">Copy message</button></div>' +
-    '<p class="muted" style="font-size:12px;margin:10px 0 0">WhatsApp opens with the message ready. You press Send there. Do not put NI numbers, bank details or income figures in the message.</p></div>';
+    '<div class="add" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="waGo">Open WhatsApp</button><button type="button" class="btn ghost" id="waSms">Send as a text</button><button type="button" class="btn ghost" id="waEm">Send by email</button><button type="button" class="btn ghost" id="waCp">Copy message</button></div>' +
+    '<p class="muted" style="font-size:12px;margin:10px 0 0">WhatsApp, your messages app or your email opens with the message ready. You press Send there. Do not put NI numbers, bank details or income figures in the message.</p></div>';
   document.body.appendChild(ov);
   function who() {
     var s = document.getElementById('waTo'),
       p = ppl[s ? +s.value : 0];
-    return p || { name: a.who || '', phone: (document.getElementById('waNum') || {}).value || '' };
+    return p || { name: a.who || '', phone: (document.getElementById('waNum') || {}).value || '', email: '' };
   }
   function first() {
     return bdFirst(who().name) || 'there';
@@ -160,6 +162,37 @@ function waOpen(a, kind) {
       }
       return;
     }
+    var isRem = (document.getElementById('waKind') || {}).value === 'remind';
+    if (b.id === 'waSms') {
+      var sn = bdIntl(who().phone);
+      if (!sn) {
+        toast('This client has no mobile number saved. Type one in first.');
+        return;
+      }
+      if (isRem) rmMark(a);
+      window.location.href = 'sms:+' + sn + '?&body=' + encodeURIComponent(tx);
+      toast('Text message opened for ' + first());
+      ov.remove();
+      return;
+    }
+    if (b.id === 'waEm') {
+      var em2 = who().email;
+      if (!em2) {
+        toast('This client has no email address saved.');
+        return;
+      }
+      if (isRem) rmMark(a);
+      window.location.href =
+        'mailto:' +
+        em2 +
+        '?subject=' +
+        encodeURIComponent('Appointment reminder') +
+        '&body=' +
+        encodeURIComponent(tx);
+      toast('Email opened for ' + first());
+      ov.remove();
+      return;
+    }
     if (b.id === 'waGo') {
       var n = bdIntl(who().phone);
       if (!n) {
@@ -168,6 +201,7 @@ function waOpen(a, kind) {
         if (ni) ni.focus();
         return;
       }
+      if (isRem) rmMark(a);
       waGo('https://wa.me/' + n + '?text=' + encodeURIComponent(tx));
       toast('WhatsApp opened for ' + first());
       ov.remove();
