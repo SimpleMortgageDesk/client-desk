@@ -315,7 +315,12 @@ function relabelDirs() {
   if (!f) return;
   dirMode = f.value === 'spv';
   var lg = document.getElementById('dirLegend');
-  if (lg) lg.textContent = dirMode ? 'Directors and residential address' : T.peopleTitle;
+  if (lg) {
+    var lt = dirMode ? 'Directors and residential address' : T.peopleTitle;
+    /* change only the words, so the Hide or Show button beside them stays */
+    if (lg.firstChild && lg.firstChild.nodeType === 3) lg.firstChild.nodeValue = lt;
+    else lg.textContent = lt;
+  }
   var ad = document.getElementById('addApp');
   if (ad) ad.textContent = 'Add ' + (dirMode ? 'director' : T.person[0].toLowerCase());
   document.querySelectorAll('#apps .app .top2 span').forEach(function (s, i) {
@@ -501,6 +506,7 @@ function openDrawer(id, draft) {
     if (!id) colOpen[(T.sections[0].title || '').toLowerCase()] = 1;
     colOpen['property documents'] = true;
   } else if (!id) colOpen[(T.sections[0].title || '').toLowerCase()] = true;
+  if (T.id === 'mortgage' && !id) colOpen.applicants = true;
   lkOpen = false;
   curLinks = ((c && c.links) || []).map(function (l) {
     return { id: l.id, cid: l.cid, rel: l.rel };

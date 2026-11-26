@@ -311,11 +311,14 @@ function decorateSecs() {
       .trim()
       .toLowerCase();
     if (x.hasAttribute('data-nocol')) continue;
-    if (x.id === 'peopleFs' || t.indexOf('applicants') === 0) {
+    /* mortgage advisers: the applicants section folds away like the others (it stays open on a new case) */
+    var people = x.id === 'peopleFs' || t.indexOf('applicants') === 0;
+    if (people && T.id !== 'mortgage') {
       x.setAttribute('data-col', 'applicants');
       continue;
     }
     if (x.id === 'pickClient' || x.querySelector('#pickSel,#pcSel')) continue;
+    if (people) t = 'applicants';
     x.setAttribute('data-col', t);
     var open = !!colOpen[t];
     x.classList.toggle('col-closed', !open);
