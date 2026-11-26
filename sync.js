@@ -4,6 +4,12 @@
 (function () {
   'use strict';
   var CFG = window.MD_CONFIG || {};
+  /* an invite link like /?trade=gas: remember the trade now, before any sign-in screen or redirect, so the person is offered it when they register */
+  try {
+    var tq = new URLSearchParams(location.search).get('trade');
+    if (tq && window.CD_TRADES && window.CD_TRADES.all && window.CD_TRADES.all[tq])
+      localStorage.setItem('cd.tradehint', tq);
+  } catch (e) {}
   var APPN = CFG.appName || 'MySimpleDesk',
     APPF = APPN.replace(/[^A-Za-z0-9]+/g, '-'),
     DRIVE = CFG.driveFolder || APPN;

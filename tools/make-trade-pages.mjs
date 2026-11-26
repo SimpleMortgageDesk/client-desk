@@ -131,7 +131,7 @@ ${configTag}
 ${style}
 </head>
 <body>
-${header}
+${header.replace('href="/?p=register"', `href="/?p=register&trade=${t.tid}"`)}
 ${trust}
 
 <main id="top">
@@ -142,7 +142,7 @@ ${trust}
       <h1>${t.h1}</h1>
       <p class="lead">${esc(t.lead)}</p>
       <div class="cta">
-        <a class="btn pri" href="/?p=register">Start free</a>
+        <a class="btn pri" href="/?p=register&trade=${t.tid}">Start free</a>
         <a class="btn sec" href="/home">See what else it does</a>
       </div>
     </div>
@@ -187,7 +187,7 @@ ${faqHtml(faqs)}
       <h2>Start knowing nothing is missed</h2>
       <p>Sign in with your email account and start in a minute. The first year is free and needs no card.</p>
       <div class="cta">
-        <a class="btn pri" href="/?p=register">Start free</a>
+        <a class="btn pri" href="/?p=register&trade=${t.tid}">Start free</a>
       </div>
     </div>
   </div>

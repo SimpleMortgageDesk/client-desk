@@ -2,6 +2,7 @@
 export const TRADES = [
   {
     slug: 'landlords',
+    tid: 'landlord',
     slide: 'Landlords',
     name: 'landlords',
     title: 'Landlord diary and task app',
@@ -50,6 +51,7 @@ export const TRADES = [
   },
   {
     slug: 'mortgage-advisers',
+    tid: 'mortgage',
     slide: 'Mortgage advisers',
     name: 'mortgage advisers',
     title: 'Mortgage adviser client and case management app',
@@ -113,6 +115,7 @@ export const TRADES = [
   },
   {
     slug: 'gas-engineers',
+    tid: 'gas',
     slide: 'Gas and heating engineers',
     name: 'gas and heating engineers',
     title: 'Gas and heating engineer job and service reminder app',
@@ -158,6 +161,7 @@ export const TRADES = [
   },
   {
     slug: 'accountants',
+    tid: 'accountant',
     slide: 'Accountants and bookkeepers',
     name: 'accountants and bookkeepers',
     title: 'Accountant and bookkeeper client deadline app',
@@ -200,6 +204,7 @@ export const TRADES = [
   },
   {
     slug: 'plumbers',
+    tid: 'plumber',
     slide: 'Plumbers',
     name: 'plumbers',
     title: 'Plumber job, quote and invoice app',
@@ -239,6 +244,7 @@ export const TRADES = [
   },
   {
     slug: 'electricians',
+    tid: 'electrician',
     slide: 'Electricians',
     name: 'electricians',
     title: 'Electrician job, certificate and re-test reminder app',
@@ -278,6 +284,7 @@ export const TRADES = [
   },
   {
     slug: 'builders',
+    tid: 'builder',
     slide: 'Builders and general trades',
     name: 'builders and general trades',
     title: 'Builder and general trades job and quote app',
@@ -317,6 +324,7 @@ export const TRADES = [
   },
   {
     slug: 'hairdressers-and-beauticians',
+    tid: 'beauty',
     slide: 'Barbers, hairdressers and beauticians',
     name: 'barbers, hairdressers and beauticians',
     title: 'Barber, hairdresser and beautician client and appointment app',
@@ -362,6 +370,7 @@ export const TRADES = [
   },
   {
     slug: 'driving-instructors',
+    tid: 'driving',
     slide: 'Driving instructors',
     name: 'driving instructors',
     title: 'Driving instructor lesson and learner management app',
@@ -398,6 +407,7 @@ export const TRADES = [
   },
   {
     slug: 'architects-and-designers',
+    tid: 'architect',
     slide: 'Architects and designers',
     name: 'architects and designers',
     title: 'Architect and designer project and planning date app',
@@ -440,6 +450,7 @@ export const TRADES = [
   },
   {
     slug: 'solicitors',
+    tid: 'solicitor',
     slide: 'Solicitors and legal services',
     name: 'solicitors and legal services',
     title: 'Solicitor and legal services matter and key date app',
@@ -479,6 +490,7 @@ export const TRADES = [
   },
   {
     slug: 'self-employed',
+    tid: 'general',
     slide: 'Other self-employed businesses',
     name: 'self-employed people and small businesses',
     title: 'Diary, jobs and invoicing app for the self-employed',
