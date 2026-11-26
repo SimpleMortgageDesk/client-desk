@@ -1167,6 +1167,9 @@ function bdItem(p) {
       ? '<button type="button" class="btn bdwa" data-bdsend="' + esc(p.key) + '">Send on WhatsApp</button>'
       : '<span class="muted" style="align-self:center;font-size:12px">Add a phone number to the case to send on WhatsApp.</span>') +
     (isl ? bdGenBtns(p) : '') +
+    '<button type="button" class="btn ghost" data-bdcard="' +
+    esc(p.key) +
+    '" title="A short animated picture with confetti and balloons to send with the message">Animated card</button>' +
     '<button type="button" class="btn ghost" data-bdkind="' +
     esc(p.key) +
     '">' +

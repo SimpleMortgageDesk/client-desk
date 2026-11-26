@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST244)
+# MySimpleDesk – handoff (build LATEST245)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -85,3 +85,6 @@ Test page: `/try` (try.html, made by tools/make-trust-pages.mjs, noindex, not in
 
 ## Document reader or a photo (every trade)
 `js/app-docread.js`: chooser (Take a photo = camera, Choose a PDF or picture), text reading on the device (PDF text via pdf.js, pictures and scanned PDFs via the bundled tesseract), `drExtract` finds kind, name, phone, email, address/postcode, dates (renewal-type dates ticked) and amounts/reference numbers, `drReview` lists them for the user to tick, then a new record is made (or the open one is filled where blank) with reminders from the dates (2 weeks before by default) and a note. In the menu as "Document reader" for every trade (and a button on the open record). Mortgage advisers keep their lender reader (app-lender-pdf.js) which now also takes the chooser and photos. Test files in the session scratchpad (qa/docread.js).
+
+## Animated birthday card
+`js/app-bdcard.js`: the birthday message has an "Animated card" button. A 400x400 looping GIF (confetti and balloons, or a crescent and stars for the Islamic greeting) with the person's first name is drawn on a canvas and encoded on the device (own GIF writer, 216-colour palette). On phones the Share button hands the GIF and the message to the share sheet (WhatsApp); computers save the GIF to attach. WhatsApp itself cannot animate a plain text message.

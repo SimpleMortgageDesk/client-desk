@@ -26,6 +26,7 @@ modules: they share one page, so a function or variable defined in one file can 
 | `app-remind.js` | Appointment reminders: bar, list, device notification (every trade) |
 | `app-dupes.js` | Duplicate finder: spots records entered twice, suggests merges, undo |
 | `app-docread.js` | Document reader: read a document or a photo (every trade): the camera/file chooser, on-device text reading, what was found, new record or add to the open one, reminders from dates |
+| `app-bdcard.js` | The animated birthday card (a GIF with confetti, balloons and the name) to share into WhatsApp or save |
 | `app-start.js` | Start-up: connects to storage and shows the first page |
 
 The sign-in, storage and settings code is in `../sync.js`; the trades (plumber, landlord and so on) are in `../trades.js`.

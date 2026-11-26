@@ -483,6 +483,11 @@ document.addEventListener('click', function (e) {
     if (!cur) bdFx(ok);
     return;
   }
+  var bdcd = t.closest && t.closest('[data-bdcard]');
+  if (bdcd) {
+    bdCard(bdcd.getAttribute('data-bdcard'));
+    return;
+  }
   var bds = t.closest && t.closest('[data-bdsend]');
   if (bds) {
     var sp = bdFind(bds.getAttribute('data-bdsend'));

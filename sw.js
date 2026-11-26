@@ -33,6 +33,7 @@ var FILES = [
   'js/app-mortgage.js',
   'js/app-lender-pdf.js',
   'js/app-docread.js',
+  'js/app-bdcard.js',
   'js/app-portfolio.js',
   'js/app-appts.js',
   'js/app-remind.js',
