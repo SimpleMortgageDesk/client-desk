@@ -1650,6 +1650,26 @@ function sectionsHtml(c) {
     })
     .join('');
 }
+/* mortgage advisers: the client's age is shown next to the date of birth and follows it as it is typed */
+function ageOf(d) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '')) return '';
+  var y = +d.slice(0, 4),
+    m = +d.slice(5, 7) - 1,
+    dd = +d.slice(8, 10),
+    n = TODAY.getFullYear() - y;
+  if (TODAY.getMonth() < m || (TODAY.getMonth() === m && TODAY.getDate() < dd)) n--;
+  return n >= 0 && n <= 120 ? String(n) : '';
+}
+function ageTag(d) {
+  var n = ageOf(d);
+  return ' <b class="dobage" aria-live="polite">' + (n ? 'Age ' + n : '') + '</b>';
+}
+document.addEventListener('input', function (e) {
+  var el = e.target;
+  if (!el || !el.matches || !el.matches('[data-a="dob"]') || T.id !== 'mortgage') return;
+  var tag = el.parentNode && el.parentNode.querySelector('.dobage');
+  if (tag) tag.textContent = ageOf(el.value) ? 'Age ' + ageOf(el.value) : '';
+});
 function appRow(a, i) {
   a = a || {};
   return (
@@ -1668,6 +1688,7 @@ function appRow(a, i) {
     (T.dob || a.dob
       ? '<label class="f">Date of birth' +
         (T.dob ? '' : ' (optional)') +
+        (T.id === 'mortgage' ? ageTag(a.dob) : '') +
         '<input data-a="dob" type="date" value="' +
         esc(a.dob) +
         '"></label>'

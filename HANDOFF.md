@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST245)
+# MySimpleDesk – handoff (build LATEST246)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
