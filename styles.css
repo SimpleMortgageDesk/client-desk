@@ -1373,17 +1373,9 @@ body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
 .calcopt{text-align:left;font:inherit;padding:11px 12px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface,#fff);color:var(--ink);cursor:pointer}
 .calcopt:hover,.calcopt:focus-visible{border-color:var(--acc,#0A6B50);background:var(--soft,#E8F3EE)}
 
-/* the Logged in as bar: bigger and easy to spot, with the trade you are in highlighted in amber */
-.trsw{padding:6px;gap:8px;border-radius:16px;margin-top:6px;box-shadow:0 2px 8px rgba(16,28,38,.25)}
-.trsw .trl{font-size:13px;letter-spacing:.08em;color:#D6E2EE;padding:0 14px}
-.trsw button{min-height:54px;font-size:18px;font-weight:800;letter-spacing:.01em;color:#fff;border:2px solid rgba(255,255,255,.28);border-radius:12px;padding:10px 16px;transition:background .15s,border-color .15s}
-.trsw button:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.6)}
-.trsw button[aria-pressed="true"],:root:not([data-theme="light"]) .trsw button[aria-pressed="true"],:root[data-theme="dark"] .trsw button[aria-pressed="true"]{background:#FFC83D;color:#14202D;border-color:#FFC83D;box-shadow:0 2px 6px rgba(0,0,0,.35)}
-.trsw button[aria-pressed="true"]:before{content:"\2713\00a0"}
-.trsw button:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.trsw.one button{flex:0 1 auto;padding:10px 26px}
-.trsw.many select{font-size:17px;min-height:46px;padding:8px 14px;border:2px solid #FFC83D}
-@media (max-width:620px){.trsw{padding:5px;gap:6px}.trsw button{min-height:50px;font-size:16px;padding:8px 8px}.trsw .trl{display:none}}
+/* the Logged in as bar: the same size as before, with the trade you are in highlighted in amber */
+.trsw button[aria-pressed="true"],:root:not([data-theme="light"]) .trsw button[aria-pressed="true"],:root[data-theme="dark"] .trsw button[aria-pressed="true"]{background:#FFC83D;color:#14202D;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.trsw button{color:#fff}
 
 /* the Notebook text is 16px, so phones do not zoom in when you tap it */
 .nbb{font-size:16px}
