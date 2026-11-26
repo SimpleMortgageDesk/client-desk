@@ -1399,13 +1399,12 @@ body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
 .rtbar .sep{height:34px;margin:0 6px}
 }
 
-/* the Notebook list can be rearranged by dragging the handle beside each note */
+/* the Notebook list can be rearranged with the up and down arrows beside each note */
 .nbrow{display:flex;gap:6px;align-items:stretch;margin-top:6px}
 .nbrow .nbi{margin-top:0;flex:1 1 auto;min-width:0}
-.nbgrip{flex:none;width:34px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--muted);cursor:grab;touch-action:none;font-size:16px;line-height:1;letter-spacing:-2px;padding:0}
-.nbgrip:hover,.nbgrip:focus-visible{border-color:var(--accent);color:var(--ink)}
-.nbgrip:disabled{opacity:.4;cursor:not-allowed}
-.nbrow.drag{position:relative;z-index:2;opacity:.85;box-shadow:0 8px 20px rgba(16,28,38,.25);border-radius:8px;background:var(--bg)}
-.nbrow.drag .nbgrip{cursor:grabbing}
+.nbmv{flex:none;display:flex;flex-direction:column;gap:4px;width:34px}
+.nbarr{flex:1;min-height:30px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font-size:13px;line-height:1;padding:0;cursor:pointer}
+.nbarr:hover:not(:disabled),.nbarr:focus-visible{border-color:var(--accent);background:var(--accent-soft)}
+.nbarr:disabled{opacity:.3;cursor:not-allowed}
 .nbhint{font-size:12px;margin:6px 0 0}
-@media (pointer:coarse){.nbgrip{width:46px;font-size:20px}}
+@media (pointer:coarse){.nbmv{width:46px}.nbarr{min-height:44px;font-size:16px}}

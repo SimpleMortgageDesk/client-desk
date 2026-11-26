@@ -1335,94 +1335,61 @@ var nbCol = null,
   nbShown = null,
   nbQuery = '',
   nbTimer = null;
-/* The Notebook order: notes you have not put in place yet come first (newest change first), then the notes you arranged by hand, in your order */
+/* The Notebook order: notes you have not put in place yet come first (newest change first), then the notes you arranged by hand, in your order.
+   nbPend holds a new order until the saved copy catches up, so the list never flickers through half-arranged states */
+var nbPend = {};
+function nbPosOf(n) {
+  if (n.id in nbPend) {
+    if (n.pos === nbPend[n.id]) delete nbPend[n.id];
+    else return nbPend[n.id];
+  }
+  return n.pos;
+}
 function nbSorted() {
   var fresh = [],
-    placed = [];
+    placed = [],
+    pos = {};
   notes.forEach(function (n) {
-    (typeof n.pos === 'number' ? placed : fresh).push(n);
+    pos[n.id] = nbPosOf(n);
+    (typeof pos[n.id] === 'number' ? placed : fresh).push(n);
   });
   fresh.sort(function (a, b) {
     return (b.updatedAt || 0) - (a.updatedAt || 0);
   });
   placed.sort(function (a, b) {
-    return a.pos - b.pos || (b.updatedAt || 0) - (a.updatedAt || 0);
+    return pos[a.id] - pos[b.id] || (b.updatedAt || 0) - (a.updatedAt || 0);
   });
   return fresh.concat(placed);
 }
-var nbDrag = null;
 function nbSetOrder(ids) {
+  var changed = [];
   ids.forEach(function (id, i) {
     var n = notes.filter(function (x) {
       return x.id === id;
     })[0];
-    if (!n || n.pos === i) return;
-    n.pos = i;
-    write('nb-' + id, function () {
-      return nbCol.doc(id).update({ pos: i });
+    if (!n) return;
+    nbPend[id] = i;
+    if (n.pos !== i) changed.push([id, i]);
+  });
+  changed.forEach(function (c) {
+    write('nb-' + c[0], function () {
+      return nbCol.doc(c[0]).update({ pos: c[1] });
     });
   });
 }
-function nbRowIds() {
-  return [].map.call(document.querySelectorAll('#nbList .nbrow'), function (r) {
-    return r.getAttribute('data-nbid');
-  });
-}
-document.addEventListener('pointerdown', function (e) {
-  var g = e.target && e.target.closest && e.target.closest('.nbgrip');
-  if (!g || g.disabled || (e.button != null && e.button > 0)) return;
-  var row = g.closest('.nbrow');
-  e.preventDefault();
-  nbDrag = { row: row, pid: e.pointerId, g: g };
-  row.classList.add('drag');
-  try {
-    g.setPointerCapture(e.pointerId);
-  } catch (x) {}
-});
-document.addEventListener('pointermove', function (e) {
-  if (!nbDrag || e.pointerId !== nbDrag.pid) return;
-  var list = $('#nbList');
-  if (!list) return;
-  if (e.clientY < 70) window.scrollBy(0, -12);
-  else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 12);
-  nbDrag.g.style.pointerEvents = 'none';
-  var over = document.elementFromPoint(e.clientX, e.clientY);
-  nbDrag.g.style.pointerEvents = '';
-  var r = over && over.closest && over.closest('.nbrow');
-  if (!r || r === nbDrag.row || r.parentNode !== list) return;
-  var box = r.getBoundingClientRect(),
-    after = e.clientY > box.top + box.height / 2;
-  list.insertBefore(nbDrag.row, after ? r.nextSibling : r);
-});
-function nbDragEnd(e) {
-  if (!nbDrag || e.pointerId !== nbDrag.pid) return;
-  var d = nbDrag;
-  nbDrag = null;
-  d.row.classList.remove('drag');
-  try {
-    d.g.releasePointerCapture(e.pointerId);
-  } catch (x) {}
-  nbSetOrder(nbRowIds());
-  nbList();
-}
-document.addEventListener('pointerup', nbDragEnd);
-document.addEventListener('pointercancel', nbDragEnd);
-/* the same thing from the keyboard: Up and Down arrows on the handle */
-document.addEventListener('keydown', function (e) {
-  var g = e.target && e.target.closest && e.target.closest('.nbgrip');
-  if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-  e.preventDefault();
-  var id = g.getAttribute('data-nbgrip'),
-    ids = nbRowIds(),
-    i = ids.indexOf(id),
-    j = i + (e.key === 'ArrowUp' ? -1 : 1);
+/* move one note up or down in your own order: spec is "up:<id>" or "down:<id>" */
+function nbMove(spec) {
+  var p = String(spec).split(':'),
+    ids = nbSorted().map(function (n) {
+      return n.id;
+    }),
+    i = ids.indexOf(p[1]),
+    j = i + (p[0] === 'up' ? -1 : 1);
   if (i < 0 || j < 0 || j >= ids.length) return;
   ids.splice(j, 0, ids.splice(i, 1)[0]);
   nbSetOrder(ids);
   nbList();
-  var again = document.querySelector('.nbgrip[data-nbgrip="' + id + '"]');
-  if (again) again.focus();
-});
+}
 function nbTitleOf(n) {
   var t = (n.title || '').trim();
   if (t) return t;
@@ -1453,32 +1420,45 @@ function nbDelete(id) {
 }
 function nbList() {
   var box = $('#nbList');
-  if (!box || nbDrag) return;
-  var q = nbQuery.trim().toLowerCase();
+  if (!box) return;
+  var q = nbQuery.trim().toLowerCase(),
+    held = document.activeElement && document.activeElement.getAttribute('data-nbmove');
+  var mvBtn = function (dir, n, off) {
+    return (
+      '<button type="button" class="nbarr" data-nbmove="' +
+      dir +
+      ':' +
+      n.id +
+      '"' +
+      (off ? ' disabled' : '') +
+      ' aria-label="Move note ' +
+      esc(nbTitleOf(n)) +
+      ' ' +
+      dir +
+      '" title="' +
+      (q ? 'Clear the search to rearrange' : 'Move ' + dir) +
+      '">' +
+      (dir === 'up' ? '&#9650;' : '&#9660;') +
+      '</button>'
+    );
+  };
   var l = nbSorted().filter(function (n) {
     return !q || ((n.title || '') + ' ' + (n.body || '')).toLowerCase().indexOf(q) > -1;
   });
   box.innerHTML = l.length
     ? (notes.length > 1 && !q
-        ? '<p class="muted nbhint">Drag the &#8942;&#8942; handle to put your most important notes on top.</p>'
+        ? '<p class="muted nbhint">Use the &#9650; &#9660; arrows to put your most important notes on top.</p>'
         : '') +
       l
-        .map(function (n) {
+        .map(function (n, k) {
           var sn = String(n.body || '')
             .replace(/\s+/g, ' ')
             .slice(0, 80);
           return (
-            '<div class="nbrow" data-nbid="' +
-            n.id +
-            '"><button type="button" class="nbgrip" data-nbgrip="' +
-            n.id +
-            '"' +
-            (q ? ' disabled' : '') +
-            ' aria-label="Move note ' +
-            esc(nbTitleOf(n)) +
-            '. Drag it, or press the up and down arrow keys" title="' +
-            (q ? 'Clear the search to rearrange' : 'Drag to rearrange') +
-            '">&#8942;&#8942;</button><button type="button" class="nbi' +
+            '<div class="nbrow"><span class="nbmv">' +
+            mvBtn('up', n, k === 0 || q) +
+            mvBtn('down', n, k === l.length - 1 || q) +
+            '</span><button type="button" class="nbi' +
             (n.id === nbSel ? ' on' : '') +
             '" data-nbsel="' +
             n.id +
@@ -1495,6 +1475,16 @@ function nbList() {
     : '<div class="muted" style="padding:10px">' +
       (notes.length ? 'No notes match.' : 'No notes yet. Click New note.') +
       '</div>';
+  /* the list is drawn again after every change, so keep the keyboard on the arrow that was just used (or on its twin at the top or bottom) */
+  if (held) {
+    var twin = held.replace(/^(up|down)/, function (d) {
+        return d === 'up' ? 'down' : 'up';
+      }),
+      f =
+        box.querySelector('[data-nbmove="' + held + '"]:not(:disabled)') ||
+        box.querySelector('[data-nbmove="' + twin + '"]:not(:disabled)');
+    if (f) f.focus();
+  }
 }
 var NB_FONTS = {
   'Arial': 'Arial, Helvetica, sans-serif',

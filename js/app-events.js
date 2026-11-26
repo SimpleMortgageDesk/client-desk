@@ -326,6 +326,11 @@ document.addEventListener('click', function (e) {
     nbNew();
     return;
   }
+  var nbm = t.closest('[data-nbmove]');
+  if (nbm) {
+    if (!nbm.disabled) nbMove(nbm.getAttribute('data-nbmove'));
+    return;
+  }
   var ns1 = t.closest('[data-nbsel]');
   if (ns1) {
     nbFlush();
