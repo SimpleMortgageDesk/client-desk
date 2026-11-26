@@ -1400,3 +1400,13 @@ body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
 .nbarr:disabled{opacity:.3;cursor:not-allowed}
 .nbhint{font-size:12px;margin:6px 0 0}
 @media (pointer:coarse){.nbmv{width:46px}.nbarr{min-height:44px;font-size:16px}}
+
+/* Notebook tiles: each note has its own mild colour; the open note gets a green edge */
+.nbi{background:hsl(var(--h,150) 55% 93%)}
+.nbi.on{background:hsl(var(--h,150) 60% 88%);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .nbi{background:hsl(var(--h,150) 24% 20%)}:root:not([data-theme="light"]) .nbi.on{background:hsl(var(--h,150) 30% 26%)}}
+:root[data-theme="dark"] .nbi{background:hsl(var(--h,150) 24% 20%)}
+:root[data-theme="dark"] .nbi.on{background:hsl(var(--h,150) 30% 26%)}
+.nbi .muted{color:#3d4d5c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .nbi .muted{color:#C3D0D7}}
+:root[data-theme="dark"] .nbi .muted{color:#C3D0D7}

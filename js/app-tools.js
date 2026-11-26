@@ -1421,6 +1421,18 @@ function nbDelete(id) {
     toast('Note deleted');
   });
 }
+/* each Notebook tile has its own mild colour (a hue number): the one saved when the note was made, or one worked out from its id for older notes */
+var NB_HUES = [200, 145, 40, 330, 262, 18, 98, 178];
+function nbHue(n) {
+  if (typeof n.hue === 'number') return n.hue;
+  var h = 0;
+  String(n.id || '')
+    .split('')
+    .forEach(function (ch) {
+      h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    });
+  return NB_HUES[h % NB_HUES.length];
+}
 function nbList() {
   var box = $('#nbList');
   if (!box) return;
@@ -1463,6 +1475,8 @@ function nbList() {
             mvBtn('down', n, k === l.length - 1 || q) +
             '</span><button type="button" class="nbi' +
             (n.id === nbSel ? ' on' : '') +
+            '" style="--h:' +
+            nbHue(n) +
             '" data-nbsel="' +
             n.id +
             '"><b>' +
@@ -1807,7 +1821,13 @@ function nbNew() {
   nbSel = ref.id;
   nbQuery = '';
   write('nb-' + ref.id, function () {
-    return ref.set({ title: '', body: '', createdAt: now, updatedAt: now });
+    return ref.set({
+      title: '',
+      body: '',
+      hue: NB_HUES[notes.length % NB_HUES.length],
+      createdAt: now,
+      updatedAt: now
+    });
   }).then(function () {
     setTimeout(function () {
       var b = $('#nbBody');
