@@ -1442,3 +1442,14 @@ body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
 
 .dobage{margin-left:8px;font-weight:700;color:var(--accent);font-size:13px}
 .dobage:empty{display:none}
+
+/* mortgage advisers, on a computer: a client opens in a window in the middle of the page, and joint applicants sit side by side */
+@media (min-width:900px){
+body[data-theme-trade="mortgage"] #drawer{justify-content:center;align-items:center;padding:20px}
+body[data-theme-trade="mortgage"] #drawer .panel{width:min(1240px,100%);height:min(100%,980px);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+body[data-theme-trade="mortgage"] .appsplit{grid-template-columns:minmax(0,1fr)}
+body[data-theme-trade="mortgage"] .lkpane{border-left:0;padding-left:0;border-top:1px dashed color-mix(in srgb,#a68a4b 50%,var(--line));padding-top:12px}
+body[data-theme-trade="mortgage"] #apps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+body[data-theme-trade="mortgage"] #apps .app{margin-bottom:0}
+body[data-theme-trade="mortgage"] #apps .app:only-child{grid-column:1/-1}
+}
