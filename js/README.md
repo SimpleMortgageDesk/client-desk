@@ -25,6 +25,7 @@ modules: they share one page, so a function or variable defined in one file can 
 | `app-import.js` | My tradesmen, import from Excel or CSV |
 | `app-remind.js` | Appointment reminders: bar, list, device notification (every trade) |
 | `app-dupes.js` | Duplicate finder: spots records entered twice, suggests merges, undo |
+| `app-docread.js` | Read a document or a photo (every trade): the camera/file chooser, on-device text reading, what was found, new record or add to the open one, reminders from dates |
 | `app-start.js` | Start-up: connects to storage and shows the first page |
 
 The sign-in, storage and settings code is in `../sync.js`; the trades (plumber, landlord and so on) are in `../trades.js`.

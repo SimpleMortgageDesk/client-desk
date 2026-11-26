@@ -691,11 +691,26 @@ function docTexts(files) {
       .reduce(function (ch, f) {
         return ch
           .then(function () {
-            return pdfText(f);
+            return drIsPdf(f) ? pdfText(f) : drShrink(f).then(dxOcr);
           })
           .then(function (tx) {
-            if (tx.replace(/\s/g, '').length < 60)
-              throw new Error(f.name + ' has no readable text. Scanned documents cannot be read.');
+            if (tx.replace(/\s/g, '').length >= 60) return tx;
+            /* a scanned PDF has no text: its first page is read like a photo */
+            if (!drIsPdf(f))
+              throw new Error(
+                'Could not read ' + f.name + '. Try a clearer photo, with the page flat and well lit.'
+              );
+            return dxPdf(f)
+              .then(function (r) {
+                return dxPdfPic(r.doc);
+              })
+              .then(dxOcr)
+              .then(function (t2) {
+                if (t2.replace(/\s/g, '').length < 60) throw new Error(f.name + ' has no readable text.');
+                return t2;
+              });
+          })
+          .then(function (tx) {
             texts.push(tx);
           });
       }, Promise.resolve())
@@ -705,18 +720,7 @@ function docTexts(files) {
   });
 }
 function docChoose(then) {
-  var inp = document.createElement('input');
-  inp.type = 'file';
-  inp.accept = 'application/pdf,.pdf';
-  inp.multiple = true;
-  inp.style.display = 'none';
-  document.body.appendChild(inp);
-  inp.addEventListener('change', function () {
-    var fs = [].slice.call(inp.files || []);
-    inp.remove();
-    if (fs.length) then(fs);
-  });
-  inp.click();
+  drChoose(then);
 }
 /* an open case: read the document, then list what was found for the adviser to tick */
 function docPick() {

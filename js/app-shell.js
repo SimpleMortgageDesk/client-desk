@@ -47,6 +47,7 @@ function renderNav() {
       ['calculator', 'Mortgage Calculator'],
       ['appointments', 'Calendar'],
       ['notebook', 'Notebook'],
+      ['readdoc', 'Read a document'],
       ['birthdays', 'Birthdays'],
       ['marketing', 'Marketing']
     ];
@@ -142,13 +143,14 @@ function renderNav() {
   if (T.tenancyMode)
     items = items
       .filter(function (i) {
-        return i[0] !== 'invoices' && i[0] !== 'marketing' && i[0] !== 'notebook';
+        return i[0] !== 'invoices' && i[0] !== 'marketing' && i[0] !== 'notebook' && i[0] !== 'readdoc';
       })
       .concat(
         [
           ['tradesmen', 'My tradesmen'],
           ['gendocs', 'Reports and agreements'],
           ['notebook', 'Notebook'],
+          ['readdoc', 'Read a document'],
           ['bookappt', 'Book appointment']
         ]
           .concat([['acctset', 'Settings']])
@@ -340,6 +342,15 @@ if (NAV_MQ) {
 }
 
 function toolItems(l) {
+  var out = toolItems0(l),
+    ni = out.findIndex(function (i) {
+      return i[0] === 'notebook';
+    });
+  /* every trade can read a document or a photo: it sits next to the Notebook */
+  if (ni > -1) out.splice(ni + 1, 0, ['readdoc', 'Read a document']);
+  return out;
+}
+function toolItems0(l) {
   return l.filter(function (i) {
     return (
       !(i[0] === 'appointments' && !T.apptTab && T.id !== 'mortgage') &&

@@ -190,9 +190,17 @@ document.addEventListener('click', function (e) {
     if (sb) sb.click();
     return;
   }
+  if (t.id === 'readDocBtn') {
+    drStart();
+    return;
+  }
   var nv = t.closest('#nav button,#nav2 button,#sideTools button[data-v],#mnuPanel button[data-v]');
   if (nv && nv.dataset.v === 'bookappt') {
     apOpen(null, iso(TODAY));
+    return;
+  }
+  if (nv && nv.dataset.v === 'readdoc') {
+    drStart();
     return;
   }
   if (nv && nv.dataset.v === 'gendocs') {

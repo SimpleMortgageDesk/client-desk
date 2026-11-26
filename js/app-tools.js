@@ -962,7 +962,7 @@ function renderSide() {
       (view === 'tradesmen' ? ' aria-current="page"' : '') +
       '>My tradesmen</button><button type="button" class="sbtn" data-gnopen="1">Reports and agreements</button><button type="button" class="sbtn" data-v="notebook"' +
       (view === 'notebook' ? ' aria-current="page"' : '') +
-      '>Notebook</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>' +
+      '>Notebook</button><button type="button" class="sbtn" data-v="readdoc">Read a document</button><button type="button" class="sbtn" data-bookappt="1">Book appointment</button>' +
       '<button type="button" class="sbtn acct" data-sideacct="1" style="margin:auto 0 6px">Settings</button><button type="button" class="sbtn logout" id="logoutBtn">Log out</button></div>';
     return;
   }
