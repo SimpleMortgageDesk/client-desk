@@ -479,3 +479,14 @@ document.addEventListener('keydown', function (e) {
     if (cell) cell.focus();
   }
 });
+
+/* spelling check in every place you write sentences (notes, messages, descriptions), in British English.
+   Names, emails and numbers are left alone so they do not get red underlines. */
+document.addEventListener('focusin', function (e) {
+  var el = e.target;
+  if (!el || !el.matches || el.hasAttribute('spellcheck')) return;
+  if (el.matches('textarea, [contenteditable="true"], [contenteditable=""]')) {
+    el.setAttribute('spellcheck', 'true');
+    if (!el.hasAttribute('lang')) el.setAttribute('lang', 'en-GB');
+  }
+});

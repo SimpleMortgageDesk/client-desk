@@ -421,7 +421,7 @@ function renderLive() {
       '</button></div>' +
       (notesHidden
         ? '<span class="muted">Notes hidden.</span>'
-        : '<label class="f">New note<textarea id="ntText" rows="3" placeholder="File note, call summary, next step. You can also paste a table from Excel">' +
+        : '<label class="f">New note<textarea id="ntText" rows="3" spellcheck="true" lang="en-GB" placeholder="File note, call summary, next step. You can also paste a table from Excel">' +
           esc(ntDraft) +
           '</textarea></label><div class="muted" style="font-size:12px;margin:-4px 0 8px">' +
           esc(T.dontRecord) +
@@ -1730,11 +1730,11 @@ function nbEditor() {
   }
   nbShown = n.id;
   m.innerHTML =
-    '<input id="nbTitle" class="nbt" type="text" placeholder="Title (optional)" value="' +
+    '<input id="nbTitle" class="nbt" type="text" spellcheck="true" lang="en-GB" placeholder="Title (optional)" value="' +
     esc(n.title || '') +
     '" aria-label="Note title">' +
     nbToolbar() +
-    '<div id="nbBody" class="nbb nbrt" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note" data-ph="Type anything here. Use the toolbar for colour and font. You can also paste a table from Excel.">' +
+    '<div id="nbBody" class="nbb nbrt" contenteditable="true" spellcheck="true" lang="en-GB" autocorrect="on" autocapitalize="sentences" role="textbox" aria-multiline="true" aria-label="Note" data-ph="Type anything here. Use the toolbar for colour and font. You can also paste a table from Excel.">' +
     nbBodyHtml(n) +
     '</div><div id="nbTables" data-sig=\'' +
     esc(JSON.stringify(n.tables || [])) +

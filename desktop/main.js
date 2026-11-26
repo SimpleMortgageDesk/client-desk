@@ -86,6 +86,10 @@ function createWindow() {
     e.preventDefault();
     external(url);
   });
+  wc.on('context-menu', (e, params) => {
+    const items = contextMenu(params, wc);
+    if (items.length) Menu.buildFromTemplate(items).popup({ window: win });
+  });
   wc.on('did-create-window', (child) => {
     child.setMenuBarVisibility(false);
   });
@@ -131,8 +135,46 @@ app.on('second-instance', () => {
     win.focus();
   }
 });
+/* right-click menu: spelling suggestions, add to dictionary, cut, copy, paste, and links */
+function contextMenu(params, wc) {
+  const items = [];
+  if (params.misspelledWord) {
+    (params.dictionarySuggestions || []).slice(0, 5).forEach((s) =>
+      items.push({ label: s, click: () => wc.replaceMisspelling(s) })
+    );
+    if (!items.length) items.push({ label: 'No suggestions', enabled: false });
+    items.push({
+      label: 'Add "' + params.misspelledWord + '" to dictionary',
+      click: () => wc.session.addWordToSpellCheckerDictionary(params.misspelledWord)
+    });
+    items.push({ type: 'separator' });
+  }
+  if (params.linkURL) {
+    items.push({ label: 'Open link in browser', click: () => external(params.linkURL) });
+    items.push({ type: 'separator' });
+  }
+  if (params.isEditable) {
+    items.push(
+      { role: 'undo', enabled: params.editFlags.canUndo },
+      { role: 'redo', enabled: params.editFlags.canRedo },
+      { type: 'separator' },
+      { role: 'cut', enabled: params.editFlags.canCut },
+      { role: 'copy', enabled: params.editFlags.canCopy },
+      { role: 'paste', enabled: params.editFlags.canPaste },
+      { role: 'selectAll' }
+    );
+  } else if (params.selectionText) {
+    items.push({ role: 'copy' });
+  }
+  return items;
+}
+
 app.whenReady().then(() => {
   const ses = session.defaultSession;
+  /* British English spelling (Windows and Linux fetch the dictionary on first use; Macs use their own) */
+  try {
+    ses.setSpellCheckerLanguages(['en-GB']);
+  } catch (e) {}
   /* a normal browser name, so sign-in pages do not treat it as an unknown program */
   ses.setUserAgent(ses.getUserAgent().replace(/\s(Electron|mysimpledesk-desktop)\/\S+/g, ''));
   ses.setPermissionRequestHandler((wcs, permission, cb) => {
