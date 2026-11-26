@@ -31,12 +31,12 @@ function drShell(html, label) {
 /* the two buttons: Take a photo, Choose a file. then(files) is called with what was picked. */
 function drChoose(then) {
   var ov = drShell(
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:20px">Read a document</h2><button type="button" class="btn ghost sm" id="drX">Close</button></div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:20px">Document reader</h2><button type="button" class="btn ghost sm" id="drX">Close</button></div>' +
       '<p class="muted" style="margin:0 0 14px">Take a photo of a document, or choose a PDF or picture. It is read on this device and is not sent anywhere.</p>' +
       '<div style="display:grid;gap:10px"><button type="button" class="btn" id="drCam" style="min-height:52px;font-size:16px">Take a photo</button>' +
       '<button type="button" class="btn ghost" id="drFile" style="min-height:52px;font-size:16px">Choose a PDF or picture</button></div>' +
       '<p class="muted" style="font-size:12px;margin:14px 0 0">Tip: lay the page flat in good light and fill the screen with it. Printed text reads best.</p>',
-    'Read a document'
+    'Document reader'
   );
   var pick = function (cam) {
     var inp = document.createElement('input');

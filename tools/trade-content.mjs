@@ -186,7 +186,7 @@ export const TRADES = [
         'Papers kept with the client',
         [
           'File client papers with each client record',
-          'Read a document and fill in details on your own device'
+          'Use the document reader to fill in details, on your own device'
         ]
       ],
       ['A diary and to-do list', ['Book client meetings', 'A prompt the day before to send a reminder']]

@@ -1717,6 +1717,7 @@
       }
     } catch (e) {
       if (e && e.cal) {
+        diag('calendar reminders switched off', 'Microsoft refused calendar access');
         lset('cd.cal', null);
         toast('Calendar reminders stopped: permission was not given. Turn them on again in Settings.');
       }
@@ -1913,6 +1914,7 @@
       }
     } catch (e) {
       if (e && e.cal && calOn()) {
+        diag('calendar reminders switched off', 'Microsoft refused calendar access');
         lset('cd.cal', null);
         toast('Calendar reminders stopped: permission was not given. Turn them on again in Settings.');
       }
@@ -5936,6 +5938,7 @@
         });
       } catch (e) {}
     }
+    /* cd.cal and cd.mail (the Outlook calendar and email choices) are kept on purpose too: they only say the person turned those on for this account, and losing them made the "not going to your Outlook calendar" prompt come back after every log out. A different account signing in still clears them (see ownerCheck). */
     /* cd.owner is kept on purpose: it records whose settings are still on this device, so that if a different account signs in next, ownerCheck removes them */
     [
       'cd.pkce',
@@ -5945,8 +5948,6 @@
       'cd.gcols',
       'cd.prov',
       'cd.gstate',
-      'cd.cal',
-      'cd.mail',
       'cd.caldel',
       'cd.oidc',
       'cd.vok'
@@ -8328,6 +8329,7 @@
     }
     if (ls('cd.calwant') === '1') {
       lset('cd.calwant', null);
+      diag('calendar permission', (tj.scope || '').slice(0, 120));
       if (/calendars\.readwrite/i.test(tj.scope || '')) {
         lset('cd.cal', '1');
         lset('cd.calnote', 'Calendar reminders are on.');

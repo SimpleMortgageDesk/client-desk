@@ -429,8 +429,8 @@ function openDrawer(id, draft) {
       ? T.tenancyMode
         ? '<button type="button" class="btn ghost" id="repBtn">Repairs</button><button type="button" class="btn" id="expBtn">Receipts and expenses</button>'
         : (T.id === 'mortgage'
-            ? '<button type="button" class="btn ghost" id="docBtn" title="Read a lender document (decision in principle or mortgage offer) on this device">Read a document</button>'
-            : '<button type="button" class="btn ghost" id="readDocBtn" title="Read a document or a photo of one, on this device">Read a document</button>') +
+            ? '<button type="button" class="btn ghost" id="docBtn" title="Read a lender document (decision in principle or mortgage offer) on this device">Document reader</button>'
+            : '<button type="button" class="btn ghost" id="readDocBtn" title="Read a document or a photo of one, on this device">Document reader</button>') +
           '<button type="button" class="btn" id="bookBtn">Book appointment</button>'
       : '') +
     (id && !T.tenancyMode && N1() !== 'client'

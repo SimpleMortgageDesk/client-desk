@@ -47,7 +47,7 @@ function renderNav() {
       ['calculator', 'Mortgage Calculator'],
       ['appointments', 'Calendar'],
       ['notebook', 'Notebook'],
-      ['readdoc', 'Read a document'],
+      ['readdoc', 'Document reader'],
       ['birthdays', 'Birthdays'],
       ['marketing', 'Marketing']
     ];
@@ -150,7 +150,7 @@ function renderNav() {
           ['tradesmen', 'My tradesmen'],
           ['gendocs', 'Reports and agreements'],
           ['notebook', 'Notebook'],
-          ['readdoc', 'Read a document'],
+          ['readdoc', 'Document reader'],
           ['bookappt', 'Book appointment']
         ]
           .concat([['acctset', 'Settings']])
@@ -347,7 +347,7 @@ function toolItems(l) {
       return i[0] === 'notebook';
     });
   /* every trade can read a document or a photo: it sits next to the Notebook */
-  if (ni > -1) out.splice(ni + 1, 0, ['readdoc', 'Read a document']);
+  if (ni > -1) out.splice(ni + 1, 0, ['readdoc', 'Document reader']);
   return out;
 }
 function toolItems0(l) {
