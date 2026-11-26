@@ -113,14 +113,14 @@ document.addEventListener('click', function (e) {
   if (tpb && (tpb.disabled || (window.CD_tradeOpen && !window.CD_tradeOpen(tpb.getAttribute('data-trade')))))
     return;
   if (tpb) {
-    var tid = tpb.getAttribute('data-trade'),
-      ix = tpSel.indexOf(tid),
+    var tid2 = tpb.getAttribute('data-trade'),
+      ix = tpSel.indexOf(tid2),
       tm = $('#tpMsg');
     if (ix > -1) tpSel.splice(ix, 1);
     else if (tpSel.length >= (allTradesOn() ? 99 : 2)) {
       if (tm) tm.textContent = 'You can choose up to two. Take one off first.';
       return;
-    } else tpSel.push(tid);
+    } else tpSel.push(tid2);
     if (tm) tm.textContent = '';
     document.querySelectorAll('#tpOv [data-trade]').forEach(function (b) {
       var on = tpSel.indexOf(b.getAttribute('data-trade')) > -1;
@@ -186,8 +186,8 @@ document.addEventListener('click', function (e) {
     return;
   }
   if (t.closest && t.closest('[data-sideacct]')) {
-    var sb = document.getElementById('settingsBtn');
-    if (sb) sb.click();
+    var sb2 = document.getElementById('settingsBtn');
+    if (sb2) sb2.click();
     return;
   }
   if (t.id === 'readDocBtn') {
@@ -213,8 +213,8 @@ document.addEventListener('click', function (e) {
     return;
   }
   if (nv && nv.dataset.v === 'acctset') {
-    var sb = $('#settingsBtn');
-    if (sb) sb.click();
+    var sb3 = $('#settingsBtn');
+    if (sb3) sb3.click();
     return;
   }
   if (nv) {
@@ -394,9 +394,9 @@ document.addEventListener('click', function (e) {
     sg.textContent = isC ? 'Show lender details' : 'Hide lender details';
     return;
   }
-  var rm = t.closest('[data-rmapp]');
-  if (rm) {
-    var row = rm.closest('.app');
+  var rm2 = t.closest('[data-rmapp]');
+  if (rm2) {
+    var row = rm2.closest('.app');
     if (document.querySelectorAll('#apps .app').length > 1) row.remove();
     return;
   }
@@ -507,10 +507,10 @@ document.addEventListener('click', function (e) {
   }
   var bdc = t.closest && t.closest('[data-bdcopy]');
   if (bdc) {
-    var cp = bdFind(bdc.getAttribute('data-bdcopy'));
-    if (!cp) return;
-    var ctx = bdText(cp);
-    bdDraft[cp.key] = ctx;
+    var cp2 = bdFind(bdc.getAttribute('data-bdcopy'));
+    if (!cp2) return;
+    var ctx = bdText(cp2);
+    bdDraft[cp2.key] = ctx;
     var done = function () {
       toast('Message copied');
     };
@@ -555,18 +555,18 @@ document.addEventListener('click', function (e) {
   }
   var bdh = t.closest && t.closest('[data-bdshuf]');
   if (bdh) {
-    var hp = bdFind(bdh.getAttribute('data-bdshuf'));
-    if (hp) {
-      var n0 = bdList(hp).length,
-        cur0 = bdPick(hp),
+    var hp2 = bdFind(bdh.getAttribute('data-bdshuf'));
+    if (hp2) {
+      var n0 = bdList(hp2).length,
+        cur0 = bdPick(hp2),
         tries = 0;
       do {
-        bdShuf[hp.key] = (bdShuf[hp.key] || 0) + 1;
+        bdShuf[hp2.key] = (bdShuf[hp2.key] || 0) + 1;
         tries++;
-      } while (n0 > 1 && bdPick(hp) === cur0 && tries < 30);
-      delete bdDraft[hp.key];
+      } while (n0 > 1 && bdPick(hp2) === cur0 && tries < 30);
+      delete bdDraft[hp2.key];
       bdRender();
-      bdFx(hp.key);
+      bdFx(hp2.key);
     }
     return;
   }
@@ -582,7 +582,7 @@ document.addEventListener('click', function (e) {
           return x.trim();
         })
         .filter(Boolean),
-      sg = $('#bdSigText').value.trim();
+      sg2 = $('#bdSigText').value.trim();
     if (!ms.length) {
       toast('Write at least one message');
       return;
@@ -602,10 +602,10 @@ document.addEventListener('click', function (e) {
       .filter(Boolean);
     if (!im.length) im = BD_ISL.slice();
     var islSame = JSON.stringify(im) === JSON.stringify(BD_ISL),
-      same = JSON.stringify(ms) === JSON.stringify(BD_MSGS) && sg === bdDefSig().trim() && islSame;
+      same = JSON.stringify(ms) === JSON.stringify(BD_MSGS) && sg2 === bdDefSig().trim() && islSame;
     bdCfg = same
       ? { messages: null, signature: null, islamic: null }
-      : { messages: ms, signature: sg, islamic: islSame ? null : im };
+      : { messages: ms, signature: sg2, islamic: islSame ? null : im };
     bdDraft = {};
     bdShuf = {};
     write('nb-bday-template', function () {
@@ -613,7 +613,7 @@ document.addEventListener('click', function (e) {
         ? nbCol.doc('bday-template').delete()
         : nbCol
             .doc('bday-template')
-            .set({ messages: ms, signature: sg, islamic: islSame ? [] : im, updatedAt: Date.now() });
+            .set({ messages: ms, signature: sg2, islamic: islSame ? [] : im, updatedAt: Date.now() });
     });
     bdTplOpen = false;
     bdTplRender();
@@ -727,11 +727,11 @@ document.addEventListener('click', function (e) {
       t.textContent = 'Confirm delete';
       return;
     }
-    var did = apEditId;
+    var did2 = apEditId;
     apClose();
-    if (did) {
-      write('ap-' + did, function () {
-        return apCol.doc(did).delete();
+    if (did2) {
+      write('ap-' + did2, function () {
+        return apCol.doc(did2).delete();
       });
       toast('Appointment deleted');
       setTimeout(function () {
@@ -744,8 +744,8 @@ document.addEventListener('click', function (e) {
   var rtb = t.closest && t.closest('[data-rt]');
   if (rtb) {
     var rv = rtb.getAttribute('data-rt'),
-      ix = rv.indexOf(':');
-    if (ix > 0) nbExec(rv.slice(0, ix), rv.slice(ix + 1));
+      ix2 = rv.indexOf(':');
+    if (ix2 > 0) nbExec(rv.slice(0, ix2), rv.slice(ix2 + 1));
     else nbExec(rv);
     return;
   }
@@ -866,16 +866,16 @@ document.addEventListener('click', function (e) {
     var en = editNote,
       val = ex.value.trim(),
       arr0 = cc[en.list] || [],
-      cur = arr0.filter(function (x) {
+      cur2 = arr0.filter(function (x) {
         return x.ts === en.ts;
       })[0];
-    if (!cur) return;
-    if (!val && !cur.table) {
+    if (!cur2) return;
+    if (!val && !cur2.table) {
       toast('A note cannot be empty');
       return;
     }
     editNote = null;
-    if (val === String(cur.text || '').trim()) {
+    if (val === String(cur2.text || '').trim()) {
       renderLive();
       return;
     }
@@ -1046,11 +1046,11 @@ document.addEventListener('click', function (e) {
     return;
   }
   if (t.id === 'ntStamp') {
-    var tx = $('#ntText'),
+    var tx2 = $('#ntText'),
       st = stampOf(Date.now()) + ' - ';
-    tx.value = tx.value.trim() ? tx.value.replace(/\s*$/, '') + '\n' + st : st;
-    tx.focus();
-    tx.setSelectionRange(tx.value.length, tx.value.length);
+    tx2.value = tx2.value.trim() ? tx2.value.replace(/\s*$/, '') + '\n' + st : st;
+    tx2.focus();
+    tx2.setSelectionRange(tx2.value.length, tx2.value.length);
     return;
   }
   if (t.id === 'ntAdd') {

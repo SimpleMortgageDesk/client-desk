@@ -330,7 +330,7 @@ function docExtract(text) {
         dre =
           /(\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s+\d{4}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})/gi,
         dm,
-        best = null,
+        best2 = null,
         dts = [];
       while ((dm = dre.exec(win))) {
         var dd = docDate(dm[0]);
@@ -348,23 +348,25 @@ function docExtract(text) {
             before
           )
         )
-          if (!best || dd > best.d) best = { d: dd, s: ctx };
+          if (!best2 || dd > best2.d) best2 = { d: dd, s: ctx };
       }
-      if (!best && dts.length === 1 && /charge|erc|repay|applies|apply|period/i.test(dts[0].s)) best = dts[0];
-      if (best) add('fixedUntil', best.d, 'Early repayment charge section: ' + best.s.replace(/\s+/g, ' '));
+      if (!best2 && dts.length === 1 && /charge|erc|repay|applies|apply|period/i.test(dts[0].s))
+        best2 = dts[0];
+      if (best2)
+        add('fixedUntil', best2.d, 'Early repayment charge section: ' + best2.s.replace(/\s+/g, ' '));
       else {
         // "for the first 5 years" with a known completion date
-        var yrs = win.match(
+        var yrs2 = win.match(
           /(?:for|during|over) the (?:first |initial )?(\d{1,2}) years?|(\d{1,2})[- ]year (?:early repayment|ERC|fixed|term|period)/i
         );
         var comp = out.filter(function (o) {
           return o.k === 'completionDate';
         })[0];
-        if (yrs && comp && /^\d{4}-\d{2}-\d{2}$/.test(comp.v))
+        if (yrs2 && comp && /^\d{4}-\d{2}-\d{2}$/.test(comp.v))
           add(
             'fixedUntil',
-            addMonths(comp.v, 12 * +(yrs[1] || yrs[2])),
-            'Worked out: ' + (yrs[1] || yrs[2]) + ' years from the completion date (' + yrs[0] + ')'
+            addMonths(comp.v, 12 * +(yrs2[1] || yrs2[2])),
+            'Worked out: ' + (yrs2[1] || yrs2[2]) + ' years from the completion date (' + yrs2[0] + ')'
           );
       }
     }

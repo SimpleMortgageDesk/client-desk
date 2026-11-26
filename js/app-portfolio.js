@@ -71,16 +71,6 @@ function pesc(s) {
   }
   return o;
 }
-var PDF_TINT = {
-  'st-enquiry': [0.89, 0.93, 0.97],
-  'st-factfind': [0.93, 0.89, 0.97],
-  'st-dip': [1, 0.95, 0.74],
-  'st-application': [1, 0.88, 0.76],
-  'st-offer': [0.83, 0.94, 0.88],
-  'st-completed': [0.89, 0.9, 0.91],
-  'st-lost': [0.96, 0.86, 0.86]
-};
-
 function pdfBuildReport(tabs, filters, opts) {
   opts = opts || {};
   var W = 842,

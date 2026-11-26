@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST248)
+# MySimpleDesk – handoff (build LATEST249)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -6,21 +6,17 @@ Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old 
 Static HTML/JS/CSS records-and-reminders app for home owners, landlords and trades. Customers' data lives in their own OneDrive (Google Drive path is built but hidden until `googleLive:true` in config).
 
 ## Code layout
-- `index.html` (app shell, loads scripts in order), `home.html`, `privacy.html`, `explainer.html`, `admin/index.html`
-- `js/app-*.js` – 24 classic scripts sharing global scope (core, shell, clients, marketing, tools, events, trade, legal, home, agreements, property, rent, receipts, leases, assets, todo, dates, import, mortgage, lender-pdf, portfolio, appts, dupes, start). See `js/README.md`.
-- `sync.js` (storage, login, Graph/Drive, PIN, lock, diagnostics), `trades.js`, `config.js`, `styles.css`, `sw.js` (offline cache, currently `client-desk-v7`), `manifest.webmanifest`, `lib/` (pdf.js, tesseract)
-- `functions/api/{signup,verify,admin/users}.js`, `functions/admin/_middleware.js`; admin is behind Cloudflare Access plus a 2-hour idle logout
-- `android/` (TWA project, `uk.co.mysimpledesk.app`), `.github/workflows/{android,checks}.yml`
+- Pages: `index.html` (the app shell, loads the scripts in order), `home.html` (landing), `privacy.html`, `404.html`, `admin/index.html`. Generated pages (do not edit by hand): `for/<trade>.html` (12 trade pages, `node tools/make-trade-pages.mjs`), and `about.html`, `support.html`, `security.html`, `terms.html`, `download.html`, `try.html` (`node tools/make-trust-pages.mjs`).
+- `js/app-*.js` – 28 classic scripts sharing one global scope; `js/README.md` lists each file and the rules (load order, shared names).
+- `sync.js` (storage, login, Graph/Drive, PIN, lock, diagnostics, test mode), `trades.js` (every trade's fields and stages), `config.js`, `styles.css`, `sw.js` (offline cache; its name is stamped by the build), `manifest.webmanifest`, `lib/` (pdf.js, tesseract), `media/` (demo video), `screenshots/` (manifest and Store pictures).
+- `functions/api/{signup,verify,admin/users}.js`, `functions/admin/_middleware.js`; admin is behind Cloudflare Access plus a 2-hour idle logout.
+- `android/` (TWA project), `desktop/` (Electron window around the website for Windows and Mac), `windows/` (Store notes), `.github/workflows/{android,desktop,checks}.yml`.
 - Checks: `tools/check-code.mjs` (start-up order), `eslint.config.mjs`, `.prettierrc.json`. CI runs all three.
 
 ## Deploy routine
-**Today (site served straight from the repo):** bump `LATESTnnn` in `index.html` AND `version.json` (the number is what the "new version" check compares), bump the `?v=` labels, bump `CACHE` in `sw.js` if cached files changed, push to `main`, wait ~90s, compare md5 of live vs local.
+Bump `LATESTnnn` in `index.html` AND `version.json` (they must match; the "new version" bar compares it), commit, `git push origin HEAD:main`, wait about 90 seconds, then check `https://mysimpledesk.co.uk/version.json`. `tools/build.mjs` (run by Cloudflare: build command `npm install && npm run build`, output `dist`) minifies JS and CSS, stamps the `?v=` labels, `MD_BUILD`, the `sw.js` cache name, and adds a hash of every inline script to the Content-Security-Policy, so none of that is done by hand. `functions/` stays at the repo root.
 
-**After switching Cloudflare to the build (see below):** just push. `tools/build.mjs` minifies JS/CSS into `dist/`, stamps `?v=`, `MD_BUILD`, `version.json` and the `sw.js` cache name from a hash of the content, so nothing needs bumping by hand. Only bump the `LATESTnnn` number in `version.json` + `index.html` for a human-readable release number (build fails if they disagree).
-
-Local build: `npm install` then `npm run build` (output `dist/`, git-ignored). Measured with Lighthouse (mobile, same server): app page score 83-85 -> 91-93, largest paint ~4.3s -> ~3.3s, 275 KB -> 230 KB over the wire. Tests that append hooks to internal names inside `sync.js` cannot run against `dist/`; every other suite passed against it.
-
-**Cloudflare switch (owner set these on 2026-11-23; confirm it built):** Pages project > Settings > Builds: Build command `npm install && npm run build`, Build output directory `dist`. `functions/` stays at the repo root and still works. Keep the old settings noted so you can revert in one minute.
+Local build: `npm install` then `npm run build` (output `dist/`, git-ignored). Tests that append hooks to internal names must run against the source files, not `dist/`.
 
 ## This stretch (all deployed)
 Welcome email; sign-in-first registration with automatic email proof; To do, Reminders and Calendar; My Properties and Cars with documents and Delete everywhere; automatic 60-day expiry reminders read from uploaded documents; PIN and 30-day stay-logged-in; admin "Registered, not finished" list and logout tab; Android app build; code split into 19 files and Prettier formatted; LATEST159 moved the sign-in and settings-dialog CSS into `styles.css`.

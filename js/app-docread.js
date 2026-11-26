@@ -52,6 +52,9 @@ function drChoose(then) {
     else inp.multiple = true;
     inp.style.display = 'none';
     document.body.appendChild(inp);
+    inp.addEventListener('cancel', function () {
+      inp.remove();
+    });
     inp.addEventListener('change', function () {
       var fs = [].slice.call(inp.files || []);
       inp.remove();
@@ -126,12 +129,14 @@ function drZipFile(buf, want) {
     if (v.getUint32(p, true) !== 0x02014b50) break;
     var method = v.getUint16(p + 10, true),
       csize = v.getUint32(p + 20, true),
+      usize = v.getUint32(p + 24, true),
       nl = v.getUint16(p + 28, true),
       xl = v.getUint16(p + 30, true),
       cl = v.getUint16(p + 32, true),
       off = v.getUint32(p + 42, true),
       name = dec.decode(u.subarray(p + 46, p + 46 + nl));
     if (name === want) {
+      if (usize > 30e6) return Promise.reject(new Error('That Word document is too big to read here.'));
       var start = off + 30 + v.getUint16(off + 26, true) + v.getUint16(off + 28, true),
         data = u.subarray(start, start + csize);
       if (method === 0) return Promise.resolve(data);
@@ -216,6 +221,7 @@ function drTable(tbl) {
   return out.join('\n');
 }
 function drDocx(file) {
+  if (file.size > 40e6) return Promise.reject(new Error('That file is too big to read here.'));
   return file
     .arrayBuffer()
     .then(function (buf) {

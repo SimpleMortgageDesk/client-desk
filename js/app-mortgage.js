@@ -1,6 +1,6 @@
 'use strict';
 /* MySimpleDesk app: Mortgage adviser extras: where each applicant lives (the Main residence table), companies' directors' own properties,
-   tidying client numbers, and numbering cases that have no client number.
+   and numbering cases that have no client number.
    All the app-*.js files share one page: they are loaded in this order by index.html and use each other's functions. */
 
 /* ---------- people and addresses ---------- */

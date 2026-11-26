@@ -27,6 +27,10 @@ modules: they share one page, so a function or variable defined in one file can 
 | `app-dupes.js` | Duplicate finder: spots records entered twice, suggests merges, undo |
 | `app-docread.js` | Document reader: read a document or a photo (every trade): the camera/file chooser, on-device text reading, what was found, new record or add to the open one, reminders from dates |
 | `app-bdcard.js` | The animated birthday card (a GIF with confetti, balloons and the name) to share into WhatsApp or save |
+| `app-appts.js` | Appointment extras: the reminder and confirmation messages (WhatsApp, text, email), missed and rebook, notes turned into suggested tasks |
+| `app-mortgage.js` | Mortgage adviser extras: where each applicant lives, directors' own properties, numbering cases that have no client number |
+| `app-lender-pdf.js` | Mortgage adviser: reading a lender document (decision in principle or offer) and the review list |
+| `app-portfolio.js` | Mortgage adviser: Portfolio summary as a PDF or a table to paste |
 | `app-start.js` | Start-up: connects to storage and shows the first page |
 
 The sign-in, storage and settings code is in `../sync.js`; the trades (plumber, landlord and so on) are in `../trades.js`.
@@ -35,9 +39,9 @@ The sign-in, storage and settings code is in `../sync.js`; the trades (plumber, 
 - **Order matters only while the page starts.** Code that runs as a file loads (not inside a function that is called later)
   may only use things from the same file or an earlier one. `node tools/check-code.mjs` checks this and runs on every push.
 - **Every name is shared.** Do not give a new function or variable the name of an existing one (the browser would silently use the later one).
-- **Adding a file:** add its `<script>` line to `index.html` in the right place, add it to `FILES` in `sw.js` (and raise `CACHE`),
-  and add it to the list in `tools/check-code.mjs` is automatic (it reads `index.html`).
-- **Deploying:** raise the `?v=` label on the script lines in `index.html` so browsers fetch the new files.
+- **Adding a file:** add its `<script>` line to `index.html` in the right place and add it to `FILES` in `sw.js`.
+  `tools/check-code.mjs` reads `index.html` by itself, and `tools/build.mjs` stamps the `?v=` labels and the cache name on every build.
+- **Deploying:** raise the `LATEST` number in `index.html` and `version.json` (they must match), then push to `main`.
 
 ## Layout of the code
 The code is laid out by Prettier (settings in `../.prettierrc.json`), so lines stay short and every file looks the same.

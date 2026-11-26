@@ -2972,8 +2972,6 @@
     mirQ = {},
     mirTimer = null,
     mirBusy = false,
-    mirLoaded = false,
-    mirReady = false,
     mirErr = '';
   function mirMail() {
     var t = tok();
@@ -3131,7 +3129,6 @@
       return false;
     }
     if (r.docs) {
-      mirLoaded = true;
       COLS.forEach(notify);
       toast(
         'Loaded ' +
@@ -4259,7 +4256,6 @@
       try {
         var mr = await mirRead(mh);
         if (mr.docs) {
-          mirLoaded = true;
           COLS.forEach(notify);
         }
       } catch (e) {

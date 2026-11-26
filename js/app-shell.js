@@ -176,7 +176,7 @@ function renderNav() {
               ' today</span>'
             : '') +
           (i[0] === 'appointments' && apTodayN()
-            ? '<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--accent)">' +
+            ? '<span class="badge" style="background:var(--accent-soft,#dbe9f8);color:var(--side-ink,var(--accent))">' +
               apTodayN() +
               ' today</span>'
             : '') +
