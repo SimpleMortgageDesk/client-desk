@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST247)
+# MySimpleDesk – handoff (build LATEST248)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -88,3 +88,5 @@ Test page: `/try` (try.html, made by tools/make-trust-pages.mjs, noindex, not in
 
 ## Animated birthday card
 `js/app-bdcard.js`: the birthday message has an "Animated card" button. A 400x400 looping GIF (confetti and balloons, or a crescent and stars for the Islamic greeting) with the person's first name is drawn on a canvas and encoded on the device (own GIF writer, 216-colour palette). On phones the Share button hands the GIF and the message to the share sheet (WhatsApp); computers save the GIF to attach. WhatsApp itself cannot animate a plain text message.
+
+Document reader also reads Word (.docx) and .txt client sheets (app-docread.js: own zip reader + DecompressionStream, paragraphs, label/value tables, heading-row tables), finds date of birth (any year, day first), and offers the rest of the document as a note. For mortgage advisers a .docx/.txt goes to this general reader (lender PDFs and photos still go to the lender reader). Old .doc files get a message to save as .docx. One client per document.

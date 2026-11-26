@@ -6,6 +6,12 @@
    All the app-*.js files share one page: they are loaded in this order by index.html and use each other's functions. */
 
 /* ---------- choose a photo or a file ---------- */
+function drIsDocx(f) {
+  return /\.docx$/i.test(f.name || '') || /wordprocessingml/i.test(f.type || '');
+}
+function drIsTxt(f) {
+  return /\.txt$/i.test(f.name || '') || /^text\/plain/i.test(f.type || '');
+}
 function drIsPdf(f) {
   return /pdf/i.test(f.type || '') || /\.pdf$/i.test(f.name || '');
 }
@@ -32,16 +38,16 @@ function drShell(html, label) {
 function drChoose(then) {
   var ov = drShell(
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0;font-size:20px">Document reader</h2><button type="button" class="btn ghost sm" id="drX">Close</button></div>' +
-      '<p class="muted" style="margin:0 0 14px">Take a photo of a document, or choose a PDF or picture. It is read on this device and is not sent anywhere.</p>' +
+      '<p class="muted" style="margin:0 0 14px">Take a photo of a document, or choose a PDF, a Word document or a picture. It is read on this device and is not sent anywhere.</p>' +
       '<div style="display:grid;gap:10px"><button type="button" class="btn" id="drCam" style="min-height:52px;font-size:16px">Take a photo</button>' +
-      '<button type="button" class="btn ghost" id="drFile" style="min-height:52px;font-size:16px">Choose a PDF or picture</button></div>' +
+      '<button type="button" class="btn ghost" id="drFile" style="min-height:52px;font-size:16px">Choose a file (PDF, Word or picture)</button></div>' +
       '<p class="muted" style="font-size:12px;margin:14px 0 0">Tip: lay the page flat in good light and fill the screen with it. Printed text reads best.</p>',
     'Document reader'
   );
   var pick = function (cam) {
     var inp = document.createElement('input');
     inp.type = 'file';
-    inp.accept = cam ? 'image/*' : 'application/pdf,.pdf,image/*';
+    inp.accept = cam ? 'image/*' : 'application/pdf,.pdf,image/*,.docx,.txt';
     if (cam) inp.setAttribute('capture', 'environment');
     else inp.multiple = true;
     inp.style.display = 'none';
@@ -101,8 +107,139 @@ function drBusy(on, msg) {
   }
   document.getElementById('drMsg').textContent = msg;
 }
+/* ---------- Word documents (.docx): a zip file with the words in word/document.xml ---------- */
+function drZipFile(buf, want) {
+  var v = new DataView(buf),
+    u = new Uint8Array(buf),
+    e = -1,
+    i;
+  for (i = u.length - 22; i >= Math.max(0, u.length - 65600); i--)
+    if (v.getUint32(i, true) === 0x06054b50) {
+      e = i;
+      break;
+    }
+  if (e < 0) return Promise.reject(new Error('That file is not a Word document.'));
+  var n = v.getUint16(e + 10, true),
+    p = v.getUint32(e + 16, true),
+    dec = new TextDecoder();
+  for (i = 0; i < n; i++) {
+    if (v.getUint32(p, true) !== 0x02014b50) break;
+    var method = v.getUint16(p + 10, true),
+      csize = v.getUint32(p + 20, true),
+      nl = v.getUint16(p + 28, true),
+      xl = v.getUint16(p + 30, true),
+      cl = v.getUint16(p + 32, true),
+      off = v.getUint32(p + 42, true),
+      name = dec.decode(u.subarray(p + 46, p + 46 + nl));
+    if (name === want) {
+      var start = off + 30 + v.getUint16(off + 26, true) + v.getUint16(off + 28, true),
+        data = u.subarray(start, start + csize);
+      if (method === 0) return Promise.resolve(data);
+      if (method !== 8 || typeof DecompressionStream === 'undefined')
+        return Promise.reject(
+          new Error('This browser cannot open Word documents. Save it as a PDF instead.')
+        );
+      return new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw')))
+        .arrayBuffer()
+        .then(function (ab) {
+          return new Uint8Array(ab);
+        });
+    }
+    p += 46 + nl + xl + cl;
+  }
+  return Promise.reject(new Error('That Word document has no text in it.'));
+}
+/* the text of one paragraph element */
+function drPara(el) {
+  var out = '';
+  (function walk(n) {
+    for (var c = n.firstChild; c; c = c.nextSibling) {
+      var t = c.nodeName;
+      if (t === 'w:t') out += c.textContent;
+      else if (t === 'w:tab') out += '\t';
+      else if (t === 'w:br' || t === 'w:cr') out += '\n';
+      else if (t === 'w:del') continue;
+      else if (c.firstChild) walk(c);
+    }
+  })(el);
+  return out;
+}
+/* a table becomes lines: a two-column row is "Label: value", and a header row with one row under it pairs each heading with its value */
+function drTable(tbl) {
+  var rows = [].slice
+    .call(tbl.childNodes)
+    .filter(function (r) {
+      return r.nodeName === 'w:tr';
+    })
+    .map(function (r) {
+      return [].slice
+        .call(r.childNodes)
+        .filter(function (c) {
+          return c.nodeName === 'w:tc';
+        })
+        .map(function (c) {
+          return [].slice
+            .call(c.getElementsByTagName('w:p'))
+            .map(drPara)
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        });
+    });
+  var out = [],
+    short =
+      rows.length > 1 &&
+      rows[0].length > 2 &&
+      rows[0].every(function (c) {
+        return c && c.length <= 28;
+      });
+  if (
+    short &&
+    rows.slice(1).every(function (r) {
+      return r.length === rows[0].length;
+    })
+  ) {
+    rows.slice(1).forEach(function (r) {
+      r.forEach(function (c, i) {
+        if (c) out.push(rows[0][i].replace(/:\s*$/, '') + ': ' + c);
+      });
+      out.push('');
+    });
+    return out.join('\n');
+  }
+  rows.forEach(function (r) {
+    var cells = r.filter(Boolean);
+    if (cells.length === 2 && cells[0].length <= 40)
+      out.push(cells[0].replace(/:\s*$/, '') + ': ' + cells[1]);
+    else if (cells.length) out.push(cells.join('  '));
+  });
+  return out.join('\n');
+}
+function drDocx(file) {
+  return file
+    .arrayBuffer()
+    .then(function (buf) {
+      return drZipFile(buf, 'word/document.xml');
+    })
+    .then(function (xml) {
+      var doc = new DOMParser().parseFromString(new TextDecoder().decode(xml), 'text/xml'),
+        body = doc.getElementsByTagName('w:body')[0],
+        out = [];
+      if (!body) throw new Error('That Word document has no text in it.');
+      [].slice.call(body.childNodes).forEach(function (n) {
+        if (n.nodeName === 'w:p') out.push(drPara(n));
+        else if (n.nodeName === 'w:tbl') out.push(drTable(n));
+      });
+      return out.join('\n');
+    });
+}
 /* the text of one file */
 function drText(file) {
+  if (drIsDocx(file)) {
+    drBusy(true, 'Reading ' + file.name + '…');
+    return drDocx(file);
+  }
+  if (drIsTxt(file)) return file.text();
   var prog = function (st, p) {
     drBusy(true, 'Reading the ' + (drIsPdf(file) ? 'page' : 'photo') + '… ' + Math.round(p * 100) + '%');
   };
@@ -143,6 +280,43 @@ function drTitle(s) {
     return c.toUpperCase();
   });
 }
+/* a date of birth written as 12/03/1984, 12 March 1984, March 12 1984 or 1984-03-12 (day first, as in the UK) */
+function drDobParse(t) {
+  var MON = {
+      jan: 1,
+      feb: 2,
+      mar: 3,
+      apr: 4,
+      may: 5,
+      jun: 6,
+      jul: 7,
+      aug: 8,
+      sep: 9,
+      oct: 10,
+      nov: 11,
+      dec: 12
+    },
+    mk = function (y, mo, d, txt) {
+      y = +y;
+      if (y < 100) y += y > 30 ? 1900 : 2000;
+      var dt = new Date(y, mo - 1, +d);
+      return y >= 1900 && dt.getMonth() === mo - 1 && dt.getDate() === +d ? { iso: iso(dt), txt: txt } : null;
+    },
+    m;
+  if ((m = t.match(/\b(\d{4})-(\d{2})-(\d{2})\b/))) return mk(m[1], +m[2], m[3], m[0]);
+  if ((m = t.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})\b/))) return mk(m[3], +m[2], m[1], m[0]);
+  if (
+    (m = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?[ \-]+([A-Za-z]{3,9})[ ,\-]+(\d{4})\b/)) &&
+    MON[m[2].slice(0, 3).toLowerCase()]
+  )
+    return mk(m[3], MON[m[2].slice(0, 3).toLowerCase()], m[1], m[0]);
+  if (
+    (m = t.match(/\b([A-Za-z]{3,9})[ ]+(\d{1,2})(?:st|nd|rd|th)?,?[ ]+(\d{4})\b/)) &&
+    MON[m[1].slice(0, 3).toLowerCase()]
+  )
+    return mk(m[3], MON[m[1].slice(0, 3).toLowerCase()], m[2], m[0]);
+  return null;
+}
 function drExtract(text) {
   var src = String(text || '').replace(/\r/g, ''),
     flat = src.replace(/\s+/g, ' '),
@@ -159,6 +333,8 @@ function drExtract(text) {
       email: '',
       address: '',
       postcode: '',
+      dob: '',
+      rest: '',
       dates: [],
       amounts: [],
       refs: [],
@@ -201,10 +377,20 @@ function drExtract(text) {
     r.address = line.slice(0, 140);
     break;
   }
+  /* date of birth: it is not a reminder date (and it can be before 1990, which the reminder-date reader ignores) */
+  m = flat.match(/(?:date of birth|d\.?o\.?b\.?|born(?: on)?)\s*[:\-]?\s*([0-9A-Za-z ,\/.\-]{6,24})/i);
+  var dobTxt = '';
+  if (m) {
+    var bd = drDobParse(m[1]);
+    if (bd && bd.iso < iso(TODAY)) {
+      r.dob = bd.iso;
+      dobTxt = bd.txt;
+    }
+  }
   /* dates, with the words in front of them */
   var seen = {};
   dxDates(flat).forEach(function (d) {
-    if (seen[d.iso] || r.dates.length >= 8) return;
+    if (seen[d.iso] || d.iso === r.dob || r.dates.length >= 8) return;
     seen[d.iso] = 1;
     var tail = d.before.slice(-45),
       lm = tail.match(DR_DATE_LABEL);
@@ -235,6 +421,25 @@ function drExtract(text) {
     if (!/\d/.test(rm[2])) continue;
     r.refs.push({ v: rm[2], label: drTitle(rm[1]) });
   }
+  /* everything else on the page, for the notes: the lines that only repeat the contact details are left out */
+  var used = [r.name, r.email, r.phone, r.postcode, r.dob]
+
+    .concat(dobTxt ? [dobTxt] : [])
+    .filter(function (x) {
+      return x && x.length > 3;
+    })
+    .map(function (x) {
+      return x.toLowerCase();
+    });
+  r.rest = lines
+    .filter(function (l) {
+      var lo = l.toLowerCase();
+      return !used.some(function (u) {
+        return lo.indexOf(u) > -1;
+      });
+    })
+    .join('\n')
+    .slice(0, 6000);
   return r;
 }
 
@@ -291,7 +496,8 @@ function drReview(res, file) {
       ? ''
       : drFieldHtml('drName', 'Name', res.name) +
         drFieldHtml('drPhone', 'Phone', res.phone, 'tel') +
-        drFieldHtml('drEmail', 'Email', res.email, 'email')) +
+        drFieldHtml('drEmail', 'Email', res.email, 'email') +
+        (T.dob ? drFieldHtml('drDob', 'Date of birth', res.dob, 'date') : '')) +
     '<div style="grid-column:1/-1">' +
     drFieldHtml('drAddr', ll ? 'Property address' : 'Address', res.address) +
     '</div>' +
@@ -322,6 +528,13 @@ function drReview(res, file) {
             .join(' · ')
         ) +
         '</span></span></label>'
+      : '') +
+    (res.rest
+      ? '<label style="display:flex;gap:10px;align-items:flex-start;margin-top:14px;cursor:pointer"><input type="checkbox" id="drRestOn"' +
+        (drIsDocx(file || {}) || drIsTxt(file || {}) ? ' checked' : '') +
+        ' style="margin-top:3px;width:18px;height:18px"><span style="flex:1;min-width:0">Add the rest of the document to the notes<br><span class="muted" style="font-size:12px">You can edit it first.</span></span></label><textarea id="drRest" rows="6" aria-label="Notes to add" style="width:100%;margin-top:6px;font:inherit">' +
+        esc(res.rest) +
+        '</textarea>'
       : '') +
     '<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-top:18px">' +
     (open
@@ -376,15 +589,21 @@ function drReview(res, file) {
             })
           )
           .join(', ');
+    var rest = ov.querySelector('#drRestOn'),
+      notes = [];
+    if (note) notes.push(note);
+    if (rest && rest.checked && val('drRest')) notes.push(ov.querySelector('#drRest').value.trim());
     return {
       tasks: tasks,
       note: note,
+      notes: notes,
       p: {
         name: val('drName'),
         phone: val('drPhone'),
         email: val('drEmail'),
         address: val('drAddr'),
-        postcode: val('drPc')
+        postcode: val('drPc'),
+        dob: val('drDob')
       }
     };
   };
@@ -419,7 +638,13 @@ function drAttach(id, c) {
       }
       var up = {};
       if (c.tasks.length) up.tasks = (rec.tasks || []).concat(c.tasks);
-      if (c.note) up.notes = (rec.notes || []).concat([{ ts: Date.now(), text: c.note }]);
+      var nn = c.notes || (c.note ? [c.note] : []);
+      if (nn.length)
+        up.notes = (rec.notes || []).concat(
+          nn.map(function (x, k) {
+            return { ts: Date.now() + k, text: x };
+          })
+        );
       if (up.tasks || up.notes) patch(id, up);
     };
   go();
@@ -430,7 +655,9 @@ function drCreate(c) {
     if (c.p.address) d.propertyAddress = c.p.address;
     if (c.p.postcode) d.postcode = c.p.postcode;
   } else {
-    d.applicants = [{ name: c.p.name, phone: c.p.phone, email: c.p.email, address: c.p.address }];
+    d.applicants = [
+      { name: c.p.name, phone: c.p.phone, email: c.p.email, address: c.p.address, dob: c.p.dob }
+    ];
   }
   closeDrawer();
   openDrawer(null, d);
@@ -462,7 +689,8 @@ function drAddTo(c) {
         ['name', c.p.name],
         ['phone', c.p.phone],
         ['email', c.p.email],
-        ['address', c.p.address]
+        ['address', c.p.address],
+        ['dob', c.p.dob]
       ].forEach(function (k) {
         var el = row.querySelector('[data-a="' + k[0] + '"]');
         if (el && k[1] && !String(el.value || '').trim()) docSet(el, k[1]);
@@ -478,7 +706,22 @@ function drAddTo(c) {
 }
 
 /* ---------- start ---------- */
+/* an old .doc file cannot be opened here: say how to get a .docx */
+function drOldDoc(files) {
+  if (
+    files.some(function (f) {
+      return /\.doc$/i.test(f.name || '') || /^application\/msword/i.test(f.type || '');
+    })
+  ) {
+    toast(
+      'That is an old Word file (.doc). In Word choose File, Save As, then Word Document (.docx), and read that one.'
+    );
+    return true;
+  }
+  return false;
+}
 function drRun(files) {
+  if (drOldDoc(files)) return;
   drText(files[0])
     .then(function (text) {
       drBusy(false);
@@ -497,7 +740,10 @@ function drStart() {
   /* mortgage advisers keep their lender reader; the chooser is shared so it can take a photo too */
   if (T.id === 'mortgage') {
     drChoose(function (files) {
-      if (openId) docRead(files);
+      if (drOldDoc(files)) return;
+      /* a Word document or text file is a client sheet, read by the general reader; lender PDFs and photos go to the lender reader */
+      if (drIsDocx(files[0]) || drIsTxt(files[0])) drRun(files);
+      else if (openId) docRead(files);
       else importPdfs(files);
     });
     return;
