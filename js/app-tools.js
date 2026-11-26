@@ -1335,11 +1335,94 @@ var nbCol = null,
   nbShown = null,
   nbQuery = '',
   nbTimer = null;
+/* The Notebook order: notes you have not put in place yet come first (newest change first), then the notes you arranged by hand, in your order */
 function nbSorted() {
-  return notes.slice().sort(function (a, b) {
+  var fresh = [],
+    placed = [];
+  notes.forEach(function (n) {
+    (typeof n.pos === 'number' ? placed : fresh).push(n);
+  });
+  fresh.sort(function (a, b) {
     return (b.updatedAt || 0) - (a.updatedAt || 0);
   });
+  placed.sort(function (a, b) {
+    return a.pos - b.pos || (b.updatedAt || 0) - (a.updatedAt || 0);
+  });
+  return fresh.concat(placed);
 }
+var nbDrag = null;
+function nbSetOrder(ids) {
+  ids.forEach(function (id, i) {
+    var n = notes.filter(function (x) {
+      return x.id === id;
+    })[0];
+    if (!n || n.pos === i) return;
+    n.pos = i;
+    write('nb-' + id, function () {
+      return nbCol.doc(id).update({ pos: i });
+    });
+  });
+}
+function nbRowIds() {
+  return [].map.call(document.querySelectorAll('#nbList .nbrow'), function (r) {
+    return r.getAttribute('data-nbid');
+  });
+}
+document.addEventListener('pointerdown', function (e) {
+  var g = e.target && e.target.closest && e.target.closest('.nbgrip');
+  if (!g || g.disabled || (e.button != null && e.button > 0)) return;
+  var row = g.closest('.nbrow');
+  e.preventDefault();
+  nbDrag = { row: row, pid: e.pointerId, g: g };
+  row.classList.add('drag');
+  try {
+    g.setPointerCapture(e.pointerId);
+  } catch (x) {}
+});
+document.addEventListener('pointermove', function (e) {
+  if (!nbDrag || e.pointerId !== nbDrag.pid) return;
+  var list = $('#nbList');
+  if (!list) return;
+  if (e.clientY < 70) window.scrollBy(0, -12);
+  else if (e.clientY > window.innerHeight - 70) window.scrollBy(0, 12);
+  nbDrag.g.style.pointerEvents = 'none';
+  var over = document.elementFromPoint(e.clientX, e.clientY);
+  nbDrag.g.style.pointerEvents = '';
+  var r = over && over.closest && over.closest('.nbrow');
+  if (!r || r === nbDrag.row || r.parentNode !== list) return;
+  var box = r.getBoundingClientRect(),
+    after = e.clientY > box.top + box.height / 2;
+  list.insertBefore(nbDrag.row, after ? r.nextSibling : r);
+});
+function nbDragEnd(e) {
+  if (!nbDrag || e.pointerId !== nbDrag.pid) return;
+  var d = nbDrag;
+  nbDrag = null;
+  d.row.classList.remove('drag');
+  try {
+    d.g.releasePointerCapture(e.pointerId);
+  } catch (x) {}
+  nbSetOrder(nbRowIds());
+  nbList();
+}
+document.addEventListener('pointerup', nbDragEnd);
+document.addEventListener('pointercancel', nbDragEnd);
+/* the same thing from the keyboard: Up and Down arrows on the handle */
+document.addEventListener('keydown', function (e) {
+  var g = e.target && e.target.closest && e.target.closest('.nbgrip');
+  if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  e.preventDefault();
+  var id = g.getAttribute('data-nbgrip'),
+    ids = nbRowIds(),
+    i = ids.indexOf(id),
+    j = i + (e.key === 'ArrowUp' ? -1 : 1);
+  if (i < 0 || j < 0 || j >= ids.length) return;
+  ids.splice(j, 0, ids.splice(i, 1)[0]);
+  nbSetOrder(ids);
+  nbList();
+  var again = document.querySelector('.nbgrip[data-nbgrip="' + id + '"]');
+  if (again) again.focus();
+});
 function nbTitleOf(n) {
   var t = (n.title || '').trim();
   if (t) return t;
@@ -1370,19 +1453,32 @@ function nbDelete(id) {
 }
 function nbList() {
   var box = $('#nbList');
-  if (!box) return;
+  if (!box || nbDrag) return;
   var q = nbQuery.trim().toLowerCase();
   var l = nbSorted().filter(function (n) {
     return !q || ((n.title || '') + ' ' + (n.body || '')).toLowerCase().indexOf(q) > -1;
   });
   box.innerHTML = l.length
-    ? l
+    ? (notes.length > 1 && !q
+        ? '<p class="muted nbhint">Drag the &#8942;&#8942; handle to put your most important notes on top.</p>'
+        : '') +
+      l
         .map(function (n) {
           var sn = String(n.body || '')
             .replace(/\s+/g, ' ')
             .slice(0, 80);
           return (
-            '<button type="button" class="nbi' +
+            '<div class="nbrow" data-nbid="' +
+            n.id +
+            '"><button type="button" class="nbgrip" data-nbgrip="' +
+            n.id +
+            '"' +
+            (q ? ' disabled' : '') +
+            ' aria-label="Move note ' +
+            esc(nbTitleOf(n)) +
+            '. Drag it, or press the up and down arrow keys" title="' +
+            (q ? 'Clear the search to rearrange' : 'Drag to rearrange') +
+            '">&#8942;&#8942;</button><button type="button" class="nbi' +
             (n.id === nbSel ? ' on' : '') +
             '" data-nbsel="' +
             n.id +
@@ -1392,7 +1488,7 @@ function nbList() {
             stampOf(n.updatedAt || n.createdAt || Date.now()) +
             '</span><span class="muted">' +
             esc(sn) +
-            '</span></button>'
+            '</span></button></div>'
           );
         })
         .join('')
