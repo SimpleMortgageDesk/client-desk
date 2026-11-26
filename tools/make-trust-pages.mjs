@@ -149,6 +149,32 @@ const PAGES = [
       <li><b>Links to other sites</b> open in your normal web browser.</li>
     </ul>
     <p>Prefer not to install anything? Open <a href="/">mysimpledesk.co.uk</a> in your browser. You can also <a href="/support">ask for help</a>.</p>`
+  },
+  {
+    file: 'try',
+    noindex: true,
+    title: 'Try every trade',
+    desc: 'Open any trade with sample data. No sign-in, nothing is saved.',
+    body: `
+    <h1>Try every trade</h1>
+    <p class="muted">Each button opens the real app for that trade, filled with <b>invented sample data</b>. You do not need to sign in. <b>Nothing is saved or sent</b>, and everything resets when you close the tab.</p>
+    <div class="trydesk">
+      <a class="dlb" href="/?test=mortgage"><b>Mortgage adviser</b><span>Cases, applicants, advice fee and invoices</span></a>
+      <a class="dlb" href="/?test=landlord"><b>Home owner and landlord</b><span>Properties, tenants, rent, certificates</span></a>
+      <a class="dlb" href="/?test=gas"><b>Gas engineer</b><span>Jobs, certificates and service reminders</span></a>
+      <a class="dlb" href="/?test=accountant"><b>Accountant</b><span>Clients, year ends and deadlines</span></a>
+      <a class="dlb" href="/?test=plumber"><b>Plumber</b><span>Jobs, quotes and invoices</span></a>
+      <a class="dlb" href="/?test=electrician"><b>Electrician</b><span>Jobs and test certificates</span></a>
+      <a class="dlb" href="/?test=builder"><b>Builder and general trades</b><span>Jobs, quotes and stage payments</span></a>
+      <a class="dlb" href="/?test=beauty"><b>Barber, hairdresser or beautician</b><span>Clients and appointments</span></a>
+      <a class="dlb" href="/?test=driving"><b>Driving instructor</b><span>Learners, lessons and test dates</span></a>
+      <a class="dlb" href="/?test=architect"><b>Architect or designer</b><span>Projects by work stage</span></a>
+      <a class="dlb" href="/?test=solicitor"><b>Solicitor or legal services</b><span>Matters and key dates</span></a>
+      <a class="dlb" href="/?test=general"><b>Other self-employed</b><span>Jobs, quotes and invoices</span></a>
+    </div>
+    <h2>Two trades in one account</h2>
+    <p><a href="/?test=both">Open an account that has both Landlord and Gas engineer</a>, to see the &ldquo;Logged in as&rdquo; switch between two trades.</p>
+    <p class="muted">To leave a test, click <b>Exit</b> in the black bar at the bottom of the screen. Real accounts start at <a href="/home">the home page</a>.</p>`
   }
 ];
 const nav =
@@ -166,11 +192,12 @@ for (const p of PAGES) {
 <title>${p.title} · MySimpleDesk</title>
 <meta name="description" content="${p.desc}">
 <link rel="canonical" href="${SITE}/${p.file}">
+${p.noindex ? '<meta name="robots" content="noindex">' : ''}
 <meta property="og:title" content="${p.title} · MySimpleDesk">
 <meta property="og:description" content="${p.desc}">
 <meta property="og:image" content="${SITE}/icon-512.png">
 <link rel="icon" href="/icon-192.png?v=3">
-${style.replace('</style>', '  details{border-bottom:1px solid var(--line);padding:10px 0}\n  .dl{display:grid;gap:12px;margin:20px 0}.dlb{display:block;padding:16px 20px;border-radius:12px;background:var(--accent);color:#fff;text-decoration:none}.dlb b{display:block;font-size:19px}.dlb span{font-size:14px;opacity:.92}.dlb:hover{filter:brightness(1.1)}.dlb:focus-visible{outline:3px solid #101C26;outline-offset:2px}summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0}\n  .foot{margin-top:28px;font-size:15px;color:var(--muted)}\n</style>')}
+${style.replace('</style>', '  details{border-bottom:1px solid var(--line);padding:10px 0}\n  .trydesk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}@media (max-width:560px){.trydesk{grid-template-columns:1fr}}\n  .dl{display:grid;gap:12px;margin:20px 0}.dlb{display:block;padding:16px 20px;border-radius:12px;background:var(--accent);color:#fff;text-decoration:none}.dlb b{display:block;font-size:19px}.dlb span{font-size:14px;opacity:.92}.dlb:hover{filter:brightness(1.1)}.dlb:focus-visible{outline:3px solid #101C26;outline-offset:2px}summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0}\n  .foot{margin-top:28px;font-size:15px;color:var(--muted)}\n</style>')}
 ${cfg.replace('src="config.js', 'src="/config.js')}
 </head>
 <body>

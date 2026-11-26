@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST241)
+# MySimpleDesk – handoff (build LATEST242)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -80,3 +80,5 @@ See `windows/README.md` (install from Edge now; Microsoft Store through PWABuild
 
 ## Desktop programs (Windows and Mac)
 `desktop/` is a small Electron program (main.js) that opens https://mysimpledesk.co.uk in its own window, so website updates reach it automatically. `.github/workflows/desktop.yml` builds `MySimpleDesk-Setup.exe`, `MySimpleDesk-arm64.dmg` and `MySimpleDesk-x64.dmg` on GitHub and publishes them on the rolling release tagged `desktop` (runs when `desktop/` changes, or Actions > Desktop apps > Run workflow). The website page `/download` (download.html, made by tools/make-trust-pages.mjs) links to them. They are NOT code signed: Windows shows SmartScreen and Macs need right-click > Open. Removing those warnings needs a Windows code-signing certificate and an Apple Developer ID (US$99 a year) with notarisation. Only the website start URL (`/?p=login&source=desktop`) and the Microsoft sign-in hosts are allowed inside the window; every other link opens the person's browser.
+
+Test page: `/try` (try.html, made by tools/make-trust-pages.mjs, noindex, not in the sitemap or footers) lists a sample-data link for every trade (`/?test=<trade>`), no sign-in.

@@ -40,6 +40,7 @@ const FILES = [
   'security.html',
   'terms.html',
   'download.html',
+  'try.html',
   '404.html',
   'config.js',
   'trades.js',
