@@ -427,16 +427,22 @@ function taxCalcUpdate() {
 }
 function calcShell() {
   if (T.calcKind === 'tax') return taxCalcShell();
+  calcWho = '';
   return (
-    '<div class="pagehead"><h1>Mortgage calculator</h1><span class="muted">Monthly payment, repayment and interest only</span></div><div id="calcMain" class="calc">' +
-    '<div class="calcin"><div class="f">Fill from a case (optional)<input id="calcQ" type="search" autocomplete="off" placeholder="Search by name, client number or address" aria-label="Search for a case to fill in the figures"><div id="calcRes" class="calcpick" aria-live="polite"></div></div>' +
-    '<div class="grid" style="margin-top:10px"><label class="f">Mortgage amount<span class="ig"><i>£</i><input id="calcAmt" type="number" step="any" inputmode="decimal" placeholder="e.g. 250000"></span></label>' +
+    '<div class="calcwrap"><div class="calchead"><h1>Mortgage calculator</h1>' +
+    '<p class="muted">Work out the monthly payment for repayment and interest only. Pick a case to fill the figures in, or just type them.</p></div>' +
+    '<div id="calcMain" class="calc"><div class="calcin">' +
+    '<label class="f">Fill from a case <span class="muted">(optional)</span><input id="calcQ" type="search" autocomplete="off" placeholder="Search by name, client number or address" aria-label="Search for a case to fill in the figures"></label>' +
+    '<div id="calcRes" class="calcpick" aria-live="polite"></div>' +
+    '<div class="calcgrid">' +
+    '<label class="f">Mortgage amount<span class="ig"><i>£</i><input id="calcAmt" type="number" step="any" inputmode="decimal" placeholder="e.g. 250000"></span></label>' +
+    '<label class="f">Interest rate (% a year)<input id="calcRate" type="number" step="any" inputmode="decimal" placeholder="e.g. 4.5"></label>' +
     '<label class="f">Term (years)<input id="calcYrs" type="number" step="1" inputmode="numeric" placeholder="e.g. 25"></label>' +
-    '<label class="f">Extra months (optional)<input id="calcMon" type="number" step="1" min="0" max="11" inputmode="numeric" placeholder="0"></label>' +
-    '<label class="f">Interest rate (% a year)<input id="calcRate" type="number" step="any" inputmode="decimal" placeholder="e.g. 4.5"></label></div></div>' +
-    '<div id="calcOut"></div></div>'
+    '<label class="f">Extra months <span class="muted">(optional)</span><input id="calcMon" type="number" step="1" min="0" max="11" inputmode="numeric" placeholder="0"></label>' +
+    '</div></div><div id="calcOut"></div></div></div>'
   );
 }
+var calcWho = '';
 /* mortgage calculator: search for a case instead of scrolling a long list */
 function calcHay(c) {
   var p = [names(c), c.clientNo, c.propertyAddress, c.postcode];
@@ -500,12 +506,16 @@ function calcPick(id) {
   $('#calcYrs').value = cc.termLeft || cc.termYears || '';
   $('#calcMon').value = '';
   $('#calcRate').value = cc.rate || '';
-  $('#calcQ').value = names(cc) + (cc.clientNo ? ' (' + cc.clientNo + ')' : '');
+  calcWho = names(cc) + (cc.clientNo ? ' (' + cc.clientNo + ')' : '');
+  $('#calcQ').value = calcWho;
   $('#calcRes').innerHTML = '';
   calcUpdate();
 }
 document.addEventListener('input', function (e) {
-  if (e.target && e.target.id === 'calcQ') calcFind(e.target.value);
+  if (e.target && e.target.id === 'calcQ') {
+    if (e.target.value !== calcWho) calcWho = '';
+    calcFind(e.target.value);
+  }
 });
 document.addEventListener('keydown', function (e) {
   if (!e.target || e.target.id !== 'calcQ') return;
@@ -524,6 +534,148 @@ document.addEventListener('click', function (e) {
   var b = e.target && e.target.closest && e.target.closest('[data-calcpick]');
   if (b) calcPick(b.getAttribute('data-calcpick'));
 });
+/* the buttons under the answer: save it as a PDF, share it (phones), or start again */
+function calcActions() {
+  var share = false;
+  try {
+    share = !!(
+      navigator.canShare &&
+      navigator.canShare({ files: [new File(['x'], 'a.pdf', { type: 'application/pdf' })] })
+    );
+  } catch (e) {}
+  return (
+    '<div class="calcact"><button type="button" class="btn" id="calcPdf">Save as PDF</button>' +
+    (share ? '<button type="button" class="btn ghost" id="calcShare">Share</button>' : '') +
+    '<button type="button" class="btn ghost" id="calcClear">Start again</button></div>'
+  );
+}
+/* the figures on the page, or nothing if they are not complete */
+function calcRead() {
+  var P = parseFloat($('#calcAmt').value),
+    y = parseFloat($('#calcYrs').value) || 0,
+    m = parseFloat($('#calcMon').value) || 0,
+    R = parseFloat($('#calcRate').value),
+    n = Math.round(y * 12 + m);
+  return !(P > 0) || !(n > 0) || isNaN(R) || R < 0 ? null : { P: P, R: R, n: n };
+}
+function calcPdfBytes(v) {
+  var P = new Pdf(),
+    G = [0.35, 0.41, 0.47],
+    A = [0.18, 0.29, 0.25],
+    rp = calcPay(v.P, v.R, v.n),
+    io = (v.P * v.R) / 1200,
+    term = Math.floor(v.n / 12) + ' years' + (v.n % 12 ? ' ' + (v.n % 12) + ' months' : ''),
+    rate = String(+v.R.toFixed(3)) + '%',
+    lh = 0;
+  if (okLogo(BIZ.logo) && BIZ.logoW) {
+    var sc = Math.min(170 / BIZ.logoW, 70 / BIZ.logoH);
+    P.image(BIZ.logo, BIZ.logoW, BIZ.logoH, 40, 40, BIZ.logoW * sc, BIZ.logoH * sc);
+    lh = BIZ.logoH * sc;
+  }
+  P.t(555, 40, 'MORTGAGE ILLUSTRATION', 20, true, 'r', A);
+  P.t(555, 68, 'Prepared ' + fd(iso(TODAY)), 9, false, 'r', G);
+  var y = Math.max(40 + lh, 90) + 16;
+  if (calcWho) {
+    P.t(40, y, 'Prepared for', 9, false, 'l', G);
+    P.t(120, y, calcWho, 11, true);
+    y += 22;
+  }
+  P.line(40, y, 555);
+  y += 14;
+  [
+    ['Mortgage amount', gbp2(v.P)],
+    ['Interest rate', rate + ' a year'],
+    ['Term', term]
+  ].forEach(function (r) {
+    P.t(40, y, r[0], 10, false, 'l', G);
+    P.t(200, y, r[1], 11, true);
+    y += 18;
+  });
+  y += 8;
+  var box = function (x, title, big, rows, tint) {
+    P.rect(x, y, 250, 150, tint);
+    P.t(x + 14, y + 14, title, 9, true, 'l', G);
+    P.t(x + 14, y + 32, big + ' a month', 20, true, 'l', A);
+    rows.forEach(function (r, i) {
+      P.t(x + 14, y + 72 + i * 22, r[0], 9, false, 'l', G);
+      P.t(x + 236, y + 72 + i * 22, r[1], 10, true, 'r');
+    });
+  };
+  box(
+    40,
+    'REPAYMENT',
+    gbp2(rp),
+    [
+      ['Total interest over ' + term, gbp2(rp * v.n - v.P)],
+      ['Total repaid', gbp2(rp * v.n)],
+      ['Mortgage left at the end', gbp2(0)]
+    ],
+    [0.93, 0.96, 0.94]
+  );
+  box(
+    305,
+    'INTEREST ONLY',
+    gbp2(io),
+    [
+      ['Total interest over ' + term, gbp2(io * v.n)],
+      ['Total paid by you', gbp2(io * v.n)],
+      ['Mortgage left at the end', gbp2(v.P)]
+    ],
+    [0.94, 0.93, 0.97]
+  );
+  y += 168;
+  P.t(40, y, 'If the rate rises', 11, true);
+  y += 20;
+  ['Rate', 'Repayment', 'Change', 'Interest only'].forEach(function (h, i) {
+    P.t([40, 200, 320, 440][i], y, h, 9, true, 'l', G);
+  });
+  y += 8;
+  P.line(40, y + 6, 555);
+  y += 14;
+  [1, 2, 3].forEach(function (d) {
+    var p2 = calcPay(v.P, v.R + d, v.n);
+    P.t(40, y, String(+(v.R + d).toFixed(3)) + '% (+' + d + '%)', 10);
+    P.t(200, y, gbp2(p2), 10);
+    P.t(320, y, gbp2(p2 - rp) + ' more', 10);
+    P.t(440, y, gbp2(((v.R + d) * v.P) / 1200), 10);
+    y += 18;
+  });
+  y += 12;
+  wrapT(
+    'Monthly payments are worked out with the rate compounded monthly. The figures are an illustration, not a quote or a mortgage offer. A lender may calculate slightly differently, and the rate you are offered will depend on your circumstances.',
+    515,
+    8
+  ).forEach(function (l) {
+    P.t(40, y, l, 8, false, 'l', G);
+    y += 11;
+  });
+  return P.bytes(bizFooter());
+}
+function calcSave(how) {
+  var v = calcRead();
+  if (!v) {
+    toast('Enter the amount, rate and term first');
+    return;
+  }
+  var nm =
+    'Mortgage-illustration' +
+    (calcWho ? '-' + calcWho.replace(/\s*\(.*$/, '').replace(/[^A-Za-z0-9]+/g, '-') : '') +
+    '.pdf';
+  fileOut(calcPdfBytes(v), nm.replace(/-+/g, '-').replace(/-\.pdf$/, '.pdf'), how);
+}
+document.addEventListener('click', function (e) {
+  var b = e.target && e.target.closest && e.target.closest('#calcPdf, #calcShare, #calcClear');
+  if (!b) return;
+  if (b.id === 'calcClear') {
+    ['calcQ', 'calcAmt', 'calcYrs', 'calcMon', 'calcRate'].forEach(function (id) {
+      $('#' + id).value = '';
+    });
+    calcWho = '';
+    calcFind('');
+    calcUpdate();
+    $('#calcQ').focus();
+  } else calcSave(b.id === 'calcShare' ? 'share' : '');
+});
 function calcUpdate() {
   if (T.calcKind === 'tax') {
     taxCalcUpdate();
@@ -538,7 +690,7 @@ function calcUpdate() {
     n = Math.round(y * 12 + m);
   if (!(P > 0) || !(n > 0) || isNaN(R) || R < 0) {
     out.innerHTML =
-      '<p class="muted" style="margin:14px 0">Enter the mortgage amount, term and interest rate to see the monthly payments.</p>';
+      '<div class="calcempty">Enter the mortgage amount, interest rate and term and the monthly payments appear here.</div>';
     return;
   }
   var rp = calcPay(P, R, n),
@@ -595,7 +747,8 @@ function calcUpdate() {
     '<div class="calcrise"><b>If the rate rises</b><table><thead><tr><th></th><th>Repayment</th><th>Change</th><th>Interest only</th></tr></thead><tbody>' +
     rises +
     '</tbody></table></div>' +
-    '<p class="muted" style="font-size:12px">Monthly payments are worked out with the rate compounded monthly. Figures are an illustration, not a quote. A lender may calculate slightly differently.</p>';
+    '<p class="muted" style="font-size:12px">Monthly payments are worked out with the rate compounded monthly. Figures are an illustration, not a quote. A lender may calculate slightly differently.</p>' +
+    calcActions();
 }
 function render() {
   renderNav();

@@ -1090,7 +1090,7 @@ function fileOut(bytes, name, how) {
     URL.revokeObjectURL(a.href);
     a.remove();
   }, 4000);
-  toast('PDF saved as ' + name + '. (In the Claude demo, downloads are blocked. Use Preview.)');
+  toast('PDF saved as ' + name + (window.CD_DEMO ? '. (In the demo, downloads are blocked.)' : ''));
 }
 function printHtml(html) {
   var p = $('#printArea');

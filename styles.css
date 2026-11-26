@@ -1410,3 +1410,23 @@ body.side-on #app>#calBar,body.side-on #app>#rmBar{grid-column:2;min-width:0}
 .nbi .muted{color:#3d4d5c}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .nbi .muted{color:#C3D0D7}}
 :root[data-theme="dark"] .nbi .muted{color:#C3D0D7}
+
+/* Mortgage calculator: centred, with big clear boxes */
+.calcwrap{max-width:780px;margin:0 auto}
+.calchead{text-align:center;margin:6px 0 18px}
+.calchead h1{margin:0 0 6px}
+.calchead p{margin:0 auto;max-width:560px}
+.calcwrap .calc{max-width:none}
+.calcwrap .calcin{padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(16,28,38,.06)}
+.calcgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.calcwrap label.f input,.calcwrap label.f .ig input{font-size:17px}
+.calcwrap label.f input{min-height:46px}
+.calcempty{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted)}
+.calcact{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px 0 6px}
+.calcact .btn{min-height:46px;padding:10px 22px}
+.calcwrap .cbig{font-size:30px}
+@media (max-width:520px){.calcgrid{grid-template-columns:1fr}.calcwrap .cbig{font-size:26px}}
+.calcwrap .calcrise{overflow-x:auto}
+.calcwrap .calcrise table{width:100%;min-width:0;font-size:13px}
+.calcwrap .calcrise th,.calcwrap .calcrise td{padding:6px 5px}
+@media (max-width:520px){.calcwrap .calcrise{padding:10px 8px}.calcwrap .calcrise table{font-size:12px;table-layout:fixed}.calcwrap .calcrise th,.calcwrap .calcrise td{padding:6px 2px;overflow-wrap:anywhere}.calcwrap .calcrise th:first-child,.calcwrap .calcrise td:first-child{width:22%}}
