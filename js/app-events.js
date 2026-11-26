@@ -472,6 +472,7 @@ document.addEventListener('click', function (e) {
       cur = bdOpen[ok] !== undefined ? bdOpen[ok] : (bdFind(ok) || { days: 99 }).days <= 7;
     bdOpen[ok] = !cur;
     bdRender();
+    if (!cur) bdFx(ok);
     return;
   }
   var bds = t.closest && t.closest('[data-bdsend]');
@@ -488,6 +489,7 @@ document.addEventListener('click', function (e) {
     waGo('https://wa.me/' + si + '?text=' + encodeURIComponent(stx));
     bdSetSent(sp, true);
     toast('WhatsApp opened for ' + bdFirst(sp.name));
+    bdFx(sp.key);
     return;
   }
   var bdc = t.closest && t.closest('[data-bdcopy]');
@@ -551,6 +553,7 @@ document.addEventListener('click', function (e) {
       } while (n0 > 1 && bdPick(hp) === cur0 && tries < 30);
       delete bdDraft[hp.key];
       bdRender();
+      bdFx(hp.key);
     }
     return;
   }

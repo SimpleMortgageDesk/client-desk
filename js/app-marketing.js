@@ -1186,6 +1186,63 @@ function bdItem(p) {
     '</div></div>'
   );
 }
+/* a little birthday celebration: confetti and balloons for a couple of seconds over one person's card */
+var bdFxDone = {},
+  bdFxLive = {};
+function bdFx(key, resume) {
+  var card = document.querySelector('.bdc[data-bdkey="' + String(key).replace(/"/g, '') + '"]');
+  if (!card || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  var old = card.querySelector(':scope>.bdfx');
+  if (old) old.remove();
+  var live = resume ? bdFxLive[key] : null,
+    h = live ? live.h : '';
+  if (!live) {
+    var cols = ['#ff6b6b', '#ffd166', '#06d6a0', '#4cc9f0', '#b388ff', '#ff9ecd'],
+      r = Math.random;
+    for (var i = 0; i < 34; i++)
+      h +=
+        '<i style="left:' +
+        Math.round(r() * 100) +
+        '%;background:' +
+        cols[i % cols.length] +
+        ';--d:' +
+        (r() * 0.6).toFixed(2) +
+        's;animation-duration:' +
+        (1.6 + r() * 1.2).toFixed(2) +
+        's;width:' +
+        (6 + Math.round(r() * 5)) +
+        'px"></i>';
+    ['🎈', '🎉', '🎈', '🥳', '🎈'].forEach(function (e, k) {
+      h +=
+        '<b style="left:' +
+        (8 + k * 20 + Math.round(r() * 8)) +
+        '%;--d:' +
+        (r() * 0.5).toFixed(2) +
+        's">' +
+        e +
+        '</b>';
+    });
+    live = bdFxLive[key] = { t: Date.now(), h: h };
+  }
+  var el = (Date.now() - live.t) / 1000;
+  if (el > 3.4) {
+    delete bdFxLive[key];
+    return;
+  }
+  card.style.setProperty('--bdh', card.offsetHeight + 24 + 'px');
+  var fx = document.createElement('div');
+  fx.className = 'bdfx';
+  fx.setAttribute('aria-hidden', 'true');
+  fx.style.setProperty('--el', el.toFixed(2) + 's');
+  fx.innerHTML = h;
+  card.appendChild(fx);
+  setTimeout(
+    function () {
+      fx.remove();
+    },
+    Math.max(200, (3.5 - el) * 1000)
+  );
+}
 function bdRender() {
   var box = $('#bdList');
   if (!box) return;
@@ -1265,6 +1322,19 @@ function bdRender() {
       (r.missing === 1 ? ' has' : 's have') +
       ' no date of birth saved, so they cannot appear here.</p>';
   box.innerHTML = h;
+  /* a celebration that is still going carries on after the list is drawn again */
+  Object.keys(bdFxLive).forEach(function (k) {
+    bdFx(k, true);
+  });
+  /* a birthday today gets its celebration the first time you see it */
+  r.list.forEach(function (p) {
+    if (p.days === 0 && !bdFxDone[p.key]) {
+      bdFxDone[p.key] = 1;
+      setTimeout(function () {
+        bdFx(p.key);
+      }, 300);
+    }
+  });
 }
 function bdFind(key) {
   return bdPeople().list.filter(function (p) {
