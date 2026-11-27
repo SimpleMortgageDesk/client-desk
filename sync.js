@@ -4175,6 +4175,10 @@
       else sessionStorage.setItem(k, JSON.stringify(v));
     } catch (e) {}
   }
+  /* the Windows and Mac program opens the site with ?source=desktop; Google does not allow its sign-in inside such windows, so Gmail is hidden there */
+  try {
+    if (/[?&]source=desktop\b/.test(location.search)) localStorage.setItem('cd.desktop', '1');
+  } catch (e) {}
   /* Gmail sign-in shows when the client ID is set and either googleLive is true or this device was switched on for testing with ?gtest=1 */
   try {
     if (/[?&]gtest=1\b/.test(location.search)) localStorage.setItem('cd.gtest', '1');
@@ -4186,6 +4190,7 @@
       g:
         !!CFG.googleClientId &&
         !/PASTE/i.test(CFG.googleClientId) &&
+        ls('cd.desktop') !== '1' &&
         (CFG.googleLive === true || ls('cd.gtest') === '1')
     };
   }

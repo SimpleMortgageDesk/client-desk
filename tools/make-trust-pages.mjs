@@ -18,7 +18,7 @@ const PAGES = [
     <p>MySimpleDesk is provided by <span data-owner></span>, in the United Kingdom. You can reach us at <span data-email></span>.</p>
     <h2>What we believe</h2>
     <ul>
-      <li><b>Your records are yours.</b> They are saved as files in your own OneDrive. We run no database of your customers, tenants or clients, and we cannot read them. <a href="/security">How your data is protected</a>.</li>
+      <li><b>Your records are yours.</b> They are saved as files in your own OneDrive or Google Drive. We run no database of your customers, tenants or clients, and we cannot read them. <a href="/security">How your data is protected</a>.</li>
       <li><b>Simple beats clever.</b> You only see the screens for your own kind of work, and the app reminds you instead of expecting you to remember.</li>
       <li><b>No adverts, no selling your details.</b> We make money from the service, not from your information.</li>
       <li><b>Honest about the limits.</b> The examples on our pages are invented, the document templates are not legal advice, and we say so.</li>
@@ -36,12 +36,13 @@ const PAGES = [
     <h1>Support</h1>
     <p class="muted">We are happy to help. Email <span data-email></span> and say what you were trying to do. We usually reply within a couple of working days.</p>
     <h2>Before you write: quick answers</h2>
-    <details><summary>I cannot log in</summary><p>Sign in with the same Microsoft account you registered with. If you set an app password, that is separate from your Microsoft password. Forgotten it? On the login page choose "Forgot your password or user ID?" and follow the steps. If you changed your Microsoft password, just sign in again with the new one.</p></details>
-    <details><summary>I lost or replaced my phone</summary><p>Your records are safe in your own OneDrive. Log in on the new device and they come back. The app on the old phone locks itself and signs out after a period of inactivity. You can also remove the app's access in your Microsoft account under app permissions.</p></details>
+    <details><summary>Can I use Gmail, Yahoo or another email address?</summary><p>You can register with a Microsoft account (Outlook, Hotmail, Live or work) or a Google account (Gmail). Yahoo and other providers do not offer sign-in for apps like this. If that is your address, make a free Outlook address at outlook.com and register with that, or create a Microsoft account using your existing address.</p></details>
+    <details><summary>I cannot log in</summary><p>Sign in with the same Microsoft or Google account you registered with. If you set an app password, that is separate from your Microsoft password. Forgotten it? On the login page choose "Forgot your password or user ID?" and follow the steps. If you changed your Microsoft password, just sign in again with the new one.</p></details>
+    <details><summary>I lost or replaced my phone</summary><p>Your records are safe in your own OneDrive or Google Drive. Log in on the new device and they come back. The app on the old phone locks itself and signs out after a period of inactivity. You can also remove the app's access in your Microsoft or Google account under app permissions.</p></details>
     <details><summary>How do I put the app on my phone?</summary><p>Open the site in your phone's browser and choose "Add to home screen" (Android Chrome: menu, then Install app). It then opens like any other app.</p></details>
     <details><summary>How do I bring in clients or records from another system?</summary><p>Open Settings, then Backup and restore. You can import a CSV file or an earlier backup. The app matches people already in the app and offers to merge them.</p></details>
-    <details><summary>How do I delete my account and records?</summary><p>Open Settings and choose Delete my account. Your records stay in your own OneDrive until you delete the folder yourself. See the <a href="/privacy">privacy policy</a> for what we keep and for how long.</p></details>
-    <details><summary>Appointments are not appearing in my Outlook calendar</summary><p>This is switched off until you turn it on. Open Settings, then Email and calendar, and turn on calendar reminders. You will be asked to sign in to Microsoft once more to allow it.</p></details>
+    <details><summary>How do I delete my account and records?</summary><p>Open Settings and choose Delete my account. Your records stay in your own OneDrive or Google Drive until you delete the folder yourself. See the <a href="/privacy">privacy policy</a> for what we keep and for how long.</p></details>
+    <details><summary>Appointments are not appearing in my Outlook calendar</summary><p>This is switched off until you turn it on. Open Settings, then Email and calendar, and turn on calendar reminders. You will be asked to sign in to Microsoft once more to allow it. This is only for Microsoft accounts. It isn't available for Google accounts yet.</p></details>
     <h2>Reporting a problem</h2>
     <p>It helps if you tell us: what you did, what you expected, what happened instead, the device and browser you use, and a screenshot. In the app, Settings has a Support details section that shows the app version and your device type. <b>Please do not send client, tenant or customer details by email.</b></p>
     <h2>Contact</h2>
@@ -54,10 +55,10 @@ const PAGES = [
     body: `
     <h1>How your data is protected</h1>
     <p class="muted">Last updated: 25 November 2026</p>
-    <div class="key"><p><b>The short version.</b> Your records are saved in your own OneDrive, under your own Microsoft account. They do not pass through our computers, so we cannot read, sell or lose them. We keep only a short sign-up list with your own contact details.</p></div>
+    <div class="key"><p><b>The short version.</b> Your records are saved in your own OneDrive or Google Drive, under your own Microsoft or Google account. They do not pass through our computers, so we cannot read, sell or lose them. We keep only a short sign-up list with your own contact details.</p></div>
     <h2>Where your records are</h2>
     <ul>
-      <li>In a folder in your own OneDrive, in <b>Apps &rsaquo; Client Desk</b>. You can open that folder any time.</li>
+      <li>In a folder in your own OneDrive (<b>Apps &rsaquo; Client Desk</b>) or your own Google Drive (<b>My Drive &rsaquo; Client Desk – your business name</b>). You can open that folder any time.</li>
       <li>A working copy on your device, so the app works offline. Logging out removes it from that device.</li>
       <li>We keep no copy and run no database of your customers, tenants or clients.</li>
     </ul>
@@ -65,14 +66,14 @@ const PAGES = [
     <ul>
       <li><b>We can see:</b> the account details you gave when registering (name, email, mobile, business name, kind of work) and simple usage counts, held in a sign-up list.</li>
       <li><b>We cannot see:</b> your records, documents, notes, customers' details or your app password.</li>
-      <li>The app can only use its own folder. It cannot see the rest of your OneDrive, and it cannot read your email.</li>
+      <li>The app can only use its own folder. It cannot see the rest of your OneDrive or Google Drive, and it cannot read your email.</li>
       <li>When you upload a document and the app reads a date from it, that happens inside your own browser. The document is not sent to us.</li>
     </ul>
     <h2>How the app is protected</h2>
     <ul>
-      <li><b>Sign-in by Microsoft.</b> The app never sees your Microsoft password.</li>
+      <li><b>Sign-in by Microsoft or Google.</b> The app never sees your account password.</li>
       <li><b>App lock.</b> You can set an app password. The app locks after a period of inactivity and signs out after a longer one.</li>
-      <li><b>Encrypted connection.</b> Everything between your device, our site and Microsoft travels over HTTPS.</li>
+      <li><b>Encrypted connection.</b> Everything between your device, our site and Microsoft or Google travels over HTTPS.</li>
       <li><b>Strict page security.</b> The site only runs its own scripts, so injected code cannot run. Links to other sites are checked before they open.</li>
       <li><b>No adverts or trackers.</b> The only outside script is Cloudflare Web Analytics, which uses no cookies and does not identify you.</li>
       <li><b>Password-protected backups.</b> A backup file is protected with a password you choose.</li>
@@ -80,7 +81,7 @@ const PAGES = [
     </ul>
     <h2>The limits, honestly</h2>
     <ul>
-      <li>The working copy on your device is not encrypted by the app. Use a device with a screen lock and disk encryption, and turn on two-step verification for your Microsoft account.</li>
+      <li>The working copy on your device is not encrypted by the app. Use a device with a screen lock and disk encryption, and turn on two-step verification for your Microsoft or Google account.</li>
       <li>We test the app ourselves. It has not yet had an independent security audit.</li>
       <li>If you keep other people's details, you are responsible for them under UK data protection law. The app helps (it keeps accounts apart, warns you not to record bank details or National Insurance numbers, and lets you export and delete records) but it does not remove your duties. See section 7 of the <a href="/privacy">privacy policy</a>.</li>
     </ul>
@@ -99,9 +100,9 @@ const PAGES = [
     <h2>1. Who we are</h2>
     <p>MySimpleDesk is provided by <span data-owner></span> ("we", "us"). Email <span data-email></span>.</p>
     <h2>2. Who can use it</h2>
-    <p>You must be 18 or over and use the app for yourself, your home, your property letting or your business. You need your own Microsoft account. You are responsible for keeping your account, app password and devices secure.</p>
+    <p>You must be 18 or over and use the app for yourself, your home, your property letting or your business. You need your own Microsoft or Google account (Outlook, Hotmail, Live, work or Gmail). You are responsible for keeping your account, app password and devices secure.</p>
     <h2>3. Your records</h2>
-    <p>The records, documents and notes you add are yours. They are saved in your own OneDrive and on your device. We do not own them, hold them or read them. You are responsible for their accuracy, for keeping your own backups, and for how you use other people's details (see section 7 of the privacy policy).</p>
+    <p>The records, documents and notes you add are yours. They are saved in your own OneDrive or Google Drive and on your device. We do not own them, hold them or read them. You are responsible for their accuracy, for keeping your own backups, and for how you use other people's details (see section 7 of the privacy policy).</p>
     <h2>4. Using the app properly</h2>
     <ul>
       <li>Do not use the app for anything unlawful, or to harm others or the service.</li>
@@ -113,11 +114,11 @@ const PAGES = [
     <h2>6. Price</h2>
     <p>Home owners can use the app free. Landlords and professionals get the first year free with no card needed. After that, the price is shown before you pay anything, and you can leave at any time. We will tell you before any price you have agreed to changes.</p>
     <h2>7. Availability and changes</h2>
-    <p>We work to keep the app running, but we cannot promise it will always be available or error free, and it may depend on services we do not control (such as Microsoft, your internet connection and your device). We may improve, change or remove features, and we will try to give notice of changes that matter to you.</p>
+    <p>We work to keep the app running, but we cannot promise it will always be available or error free, and it may depend on services we do not control (such as Microsoft, Google, your internet connection and your device). We may improve, change or remove features, and we will try to give notice of changes that matter to you.</p>
     <h2>8. Our responsibility</h2>
     <p>We are responsible for loss or damage that is a foreseeable result of us failing to use reasonable care and skill. We do not exclude or limit our liability for death or personal injury caused by our negligence, for fraud, or for anything else the law does not allow us to limit. Subject to that, we are not liable for business losses such as lost profit, or for missed deadlines or renewals, so please keep your own checks for anything critical. Our total liability to you in any 12 months is limited to the amount you paid us in that period, or £100 if you paid nothing.</p>
     <h2>9. Ending your use</h2>
-    <p>You can stop at any time, and delete your account in Settings. Your records stay in your own OneDrive unless you delete them. We may suspend or close an account that breaks these terms, and we will tell you why where we can.</p>
+    <p>You can stop at any time, and delete your account in Settings. Your records stay in your own OneDrive or Google Drive unless you delete them. We may suspend or close an account that breaks these terms, and we will tell you why where we can.</p>
     <h2>10. Changes to these terms</h2>
     <p>If these terms change, the new version will be published here with a new date. If you carry on using the app after that, you accept the new terms.</p>
     <h2>11. Law</h2>
@@ -143,10 +144,11 @@ const PAGES = [
     <details open><summary>Mac</summary><p>Open the downloaded file and drag MySimpleDesk into the Applications folder. The first time, do not double-click it: <b>right-click (or Control-click) it and choose Open</b>, then click <b>Open</b> again. If your Mac still refuses, open System Settings, then Privacy &amp; Security, scroll down and click <b>Open Anyway</b>. You only do this once.</p></details>
     <h2>Good to know</h2>
     <ul>
-      <li><b>You need an internet connection</b> to open it, as with the website. Your records are saved in your own OneDrive, and the app keeps a working copy on your computer.</li>
+      <li><b>You need an internet connection</b> to open it, as with the website. Your records are saved in your own OneDrive or Google Drive, and the app keeps a working copy on your computer.</li>
       <li><b>Updates are automatic.</b> The app opens the live website, so you always have the latest version. You do not need to download it again.</li>
-      <li><b>Log in with the same Microsoft account</b> you use on the website or your phone, and everything is there.</li>
+      <li><b>Log in with the same Microsoft or Google account</b> you use on the website or your phone, and everything is there.</li>
       <li><b>Links to other sites</b> open in your normal web browser.</li>
+      <li><b>Gmail sign-in is not available in this program.</b> Google does not allow it inside programs like this. If you use a Google account, use the website in your browser, or the Android app.</li>
     </ul>
     <p>Prefer not to install anything? Open <a href="/">mysimpledesk.co.uk</a> in your browser. You can also <a href="/support">ask for help</a>.</p>`
   },

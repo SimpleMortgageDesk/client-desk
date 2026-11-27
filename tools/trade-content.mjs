@@ -8,7 +8,7 @@ export const TRADES = [
     title: 'Landlord diary and task app',
     h1: 'Never miss a rent date, a gas safety certificate or a <em>tenancy renewal</em>.',
     lead: 'A simple diary and to-do list for landlords. Tenants, rent, safety certificates and renewals for each property sit in one place, and you are reminded before anything runs out.',
-    desc: 'A simple app for landlords: tenants, rent paid and overdue, gas safety, EICR and EPC dates, tenancy agreements and reminders. Saved in your own Outlook account. First year free.',
+    desc: 'A simple app for landlords: tenants, rent paid and overdue, gas safety, EICR and EPC dates, tenancy agreements and reminders. Saved in your own OneDrive or Google Drive. First year free.',
     cards: [
       [
         'Rent, tenants and deposits',
@@ -56,7 +56,7 @@ export const TRADES = [
     name: 'mortgage advisers',
     title: 'Mortgage adviser client and case management app',
     h1: 'Never miss a product end date, an offer expiry or a <em>client review</em>.',
-    lead: 'A simple client and case diary for mortgage and protection advisers. Review reminders come from each deal end date, and your client records stay in your own OneDrive, not on our computers.',
+    lead: 'A simple client and case diary for mortgage and protection advisers. Review reminders come from each deal end date, and your client records stay in your own OneDrive or Google Drive, not on our computers.',
     desc: 'A simple app for mortgage advisers: cases, applicants and security addresses, review reminders from deal end dates, reading lender documents, advice fee invoices. Records stay in your own Outlook account.',
     cards: [
       [
@@ -105,7 +105,7 @@ export const TRADES = [
     faqs: [
       [
         "Where are my clients' details kept?",
-        'In a folder in your own OneDrive. We do not run a database of your clients and cannot read your records. That makes it easier to meet your own data protection duties, but you remain responsible for them.'
+        'In a folder in your own OneDrive or Google Drive. We do not run a database of your clients and cannot read your records. That makes it easier to meet your own data protection duties, but you remain responsible for them.'
       ],
       [
         'Can I bring in clients from another system?',
@@ -121,7 +121,7 @@ export const TRADES = [
     title: 'Gas and heating engineer job and service reminder app',
     h1: 'Never miss an annual service or a <em>gas safety record</em> renewal.',
     lead: 'A simple diary, job list and reminder app for gas and heating engineers. Customers, jobs, certificates and service dates in one place, with reminders before each one is due.',
-    desc: 'A simple app for gas and heating engineers: customers, jobs, quotes, invoices, certificates and annual service reminders. Saved in your own Outlook account. First year free.',
+    desc: 'A simple app for gas and heating engineers: customers, jobs, quotes, invoices, certificates and annual service reminders. Saved in your own OneDrive or Google Drive. First year free.',
     cards: [
       [
         'Customers and jobs',
@@ -167,7 +167,7 @@ export const TRADES = [
     title: 'Accountant and bookkeeper client deadline app',
     h1: 'Never miss a <em>filing deadline</em> or a client year end.',
     lead: "A simple client list and deadline diary for accountants and bookkeepers. Year ends, VAT quarters and filing dates are worked out from each client's details and shown before they are due.",
-    desc: 'A simple app for accountants and bookkeepers: clients, year ends, VAT quarters, filing deadlines, engagement letters and AML checks. Saved in your own Outlook account. First year free.',
+    desc: 'A simple app for accountants and bookkeepers: clients, year ends, VAT quarters, filing deadlines, engagement letters and AML checks. Saved in your own OneDrive or Google Drive. First year free.',
     cards: [
       [
         'Year ends and deadlines',
@@ -198,7 +198,7 @@ export const TRADES = [
       ],
       [
         "Are my clients' details safe?",
-        'Records are saved in a folder in your own OneDrive and are not on our computers. The app locks itself after a period of inactivity.'
+        'Records are saved in a folder in your own OneDrive or Google Drive and are not on our computers. The app locks itself after a period of inactivity.'
       ]
     ]
   },
@@ -210,7 +210,7 @@ export const TRADES = [
     title: 'Plumber job, quote and invoice app',
     h1: 'Never miss a <em>quote follow up</em> or an unpaid invoice.',
     lead: 'A simple diary, job list and reminder app for plumbers. Customers, jobs, quotes and invoices in one place, with reminders for guarantees and servicing.',
-    desc: 'A simple app for plumbers: customers, jobs, appointments, quotes, invoices, photos, receipts and guarantee reminders. Saved in your own Outlook account. First year free.',
+    desc: 'A simple app for plumbers: customers, jobs, appointments, quotes, invoices, photos, receipts and guarantee reminders. Saved in your own OneDrive or Google Drive. First year free.',
     cards: [
       [
         'Customers and jobs',
@@ -250,7 +250,7 @@ export const TRADES = [
     title: 'Electrician job, certificate and re-test reminder app',
     h1: 'Never miss an <em>EICR re-test</em> or a certificate that needs sending.',
     lead: 'A simple diary, job list and reminder app for electricians. Customers, jobs, test certificates and re-test dates in one place, with reminders before each one is due.',
-    desc: 'A simple app for electricians: customers, jobs, test certificates, EICR and PAT re-test reminders, quotes, invoices and receipts. Saved in your own Outlook account. First year free.',
+    desc: 'A simple app for electricians: customers, jobs, test certificates, EICR and PAT re-test reminders, quotes, invoices and receipts. Saved in your own OneDrive or Google Drive. First year free.',
     cards: [
       [
         'Customers and jobs',
@@ -290,7 +290,7 @@ export const TRADES = [
     title: 'Builder and general trades job and quote app',
     h1: 'Never miss a <em>stage payment</em>, an inspection or a guarantee end date.',
     lead: 'A simple diary, job list and reminder app for builders and general trades. Quotes, jobs on site, payments and inspection dates in one place.',
-    desc: 'A simple app for builders and general trades: customers, jobs, quotes, stage payments, plans, permits, site photos, guarantee dates and receipts. Saved in your own Outlook account. First year free.',
+    desc: 'A simple app for builders and general trades: customers, jobs, quotes, stage payments, plans, permits, site photos, guarantee dates and receipts. Saved in your own OneDrive or Google Drive. First year free.',
     cards: [
       [
         'Jobs on site',
@@ -314,7 +314,7 @@ export const TRADES = [
     faqs: [
       [
         'Can I keep photos of the work?',
-        'Yes. Add photos and documents to each job. They are saved in your own OneDrive.'
+        'Yes. Add photos and documents to each job. They are saved in your own OneDrive or Google Drive.'
       ],
       [
         'Is it suitable for one-man bands?',
@@ -330,7 +330,7 @@ export const TRADES = [
     title: 'Barber, hairdresser and beautician client and appointment app',
     h1: "Never miss a <em>rebooking</em>, a patch test or a regular's birthday.",
     lead: 'A simple client book and diary for barbers, hairdressers and beauticians. Client cards, appointments and reminders to rebook, with a prompt to send each client a reminder the day before.',
-    desc: 'A simple app for barbers, hairdressers and beauticians: client cards, treatment notes, appointments, rebooking and patch test reminders, birthdays and consent forms. Saved in your own Outlook account.',
+    desc: 'A simple app for barbers, hairdressers and beauticians: client cards, treatment notes, appointments, rebooking and patch test reminders, birthdays and consent forms. Saved in your own OneDrive or Google Drive.',
     cards: [
       [
         'Client cards',
@@ -376,7 +376,7 @@ export const TRADES = [
     title: 'Driving instructor lesson and learner management app',
     h1: 'Never miss a <em>driving test</em>, a lesson or your ADI badge renewal.',
     lead: 'A simple diary and learner list for driving instructors. Lessons, test dates and what each learner owes in one place, with reminders for your badge, MOT and insurance.',
-    desc: 'A simple app for driving instructors: learners, lessons, test dates, rebooking reminders, ADI badge, MOT and insurance renewals, lesson sheets and receipts. Saved in your own Outlook account.',
+    desc: 'A simple app for driving instructors: learners, lessons, test dates, rebooking reminders, ADI badge, MOT and insurance renewals, lesson sheets and receipts. Saved in your own OneDrive or Google Drive.',
     cards: [
       [
         'Learners and lessons',
@@ -413,7 +413,7 @@ export const TRADES = [
     title: 'Architect and designer project and planning date app',
     h1: 'Never miss a <em>planning decision date</em> or a fee invoice.',
     lead: 'A simple project diary for architects and designers. Projects move through the work stages, with planning and building control dates and fees kept in one place.',
-    desc: 'A simple app for architects and designers: projects by work stage, planning and building regulations dates, fees and invoices, drawings and site notes. Saved in your own Outlook account. First year free.',
+    desc: 'A simple app for architects and designers: projects by work stage, planning and building regulations dates, fees and invoices, drawings and site notes. Saved in your own OneDrive or Google Drive. First year free.',
     cards: [
       [
         'Projects by stage',
@@ -484,7 +484,7 @@ export const TRADES = [
       ],
       [
         'Where is client information kept?',
-        'In a folder in your own OneDrive. We do not run a database of your matters and cannot read your records.'
+        'In a folder in your own OneDrive or Google Drive. We do not run a database of your matters and cannot read your records.'
       ]
     ]
   },
@@ -496,7 +496,7 @@ export const TRADES = [
     title: 'Diary, jobs and invoicing app for the self-employed',
     h1: 'Never miss a <em>quote</em>, an unpaid invoice or an insurance renewal.',
     lead: 'A simple diary, job list and reminder app for self-employed people and small businesses. Customers, jobs, quotes and invoices in one place, with reminders for every renewal.',
-    desc: 'A simple app for the self-employed: customers, jobs, appointments, quotes, invoices, receipts and renewal reminders. Saved in your own Outlook account. First year free, no card needed.',
+    desc: 'A simple app for the self-employed: customers, jobs, appointments, quotes, invoices, receipts and renewal reminders. Saved in your own OneDrive or Google Drive. First year free, no card needed.',
     cards: [
       [
         'Customers and jobs',
@@ -540,6 +540,6 @@ export const COMMON_FAQS = [
   ],
   [
     'Where are my records kept?',
-    "In a folder in your own Outlook account's OneDrive. We do not collect, sell or read your records, and none of your customers' details are on our computers."
+    "In a folder in your own OneDrive or Google Drive. We do not collect, sell or read your records, and none of your customers' details are on our computers."
   ]
 ];

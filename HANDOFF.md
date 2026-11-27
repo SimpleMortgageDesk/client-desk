@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST249)
+# MySimpleDesk – handoff (build LATEST250)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -86,3 +86,6 @@ Test page: `/try` (try.html, made by tools/make-trust-pages.mjs, noindex, not in
 `js/app-bdcard.js`: the birthday message has an "Animated card" button. A 400x400 looping GIF (confetti and balloons, or a crescent and stars for the Islamic greeting) with the person's first name is drawn on a canvas and encoded on the device (own GIF writer, 216-colour palette). On phones the Share button hands the GIF and the message to the share sheet (WhatsApp); computers save the GIF to attach. WhatsApp itself cannot animate a plain text message.
 
 Document reader also reads Word (.docx) and .txt client sheets (app-docread.js: own zip reader + DecompressionStream, paragraphs, label/value tables, heading-row tables), finds date of birth (any year, day first), and offers the rest of the document as a note. For mortgage advisers a .docx/.txt goes to this general reader (lender PDFs and photos still go to the lender reader). Old .doc files get a message to save as .docx. One client per document.
+
+## Google (Gmail) sign-in is live
+`googleLive: true` in config.js (set 2026-11-27 after the Google app was published: In production, only non-sensitive scopes openid/email/profile/drive.file, no logo so no verification; Drive API enabled; web client has the apex and www origins and redirect URIs; Cloudflare has GOOGLE_CLIENT_ID; old client secret deleted). Gmail is hidden in the Windows/Mac program (`?source=desktop` sets `cd.desktop`) because Google refuses sign-in in embedded windows. The Outlook calendar and "send from Outlook" are Microsoft-only. Static pages now say "OneDrive or Google Drive". Do not add a logo to the Google consent screen (it would force verification).

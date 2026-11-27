@@ -19,7 +19,7 @@ window.MD_CONFIG = {
   googleClientId: '1048467907620-domiae94b6hulg7katdrshsg3g64n9m9.apps.googleusercontent.com',
   /* false = Gmail sign-in is hidden from visitors. To try it yourself, open the site once with ?gtest=1 on the end of the address.
      Change to true once the Google app is published. */
-  googleLive: false,
+  googleLive: true,
   tenant: 'consumers',
   ownerName: 'MySimpleDesk',
   ownerEmail: 'support@mysimpledesk.co.uk',
