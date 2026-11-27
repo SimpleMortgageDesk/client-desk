@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST250)
+# MySimpleDesk – handoff (build LATEST251)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -89,3 +89,5 @@ Document reader also reads Word (.docx) and .txt client sheets (app-docread.js: 
 
 ## Google (Gmail) sign-in is live
 `googleLive: true` in config.js (set 2026-11-27 after the Google app was published: In production, only non-sensitive scopes openid/email/profile/drive.file, no logo so no verification; Drive API enabled; web client has the apex and www origins and redirect URIs; Cloudflare has GOOGLE_CLIENT_ID; old client secret deleted). Gmail is hidden in the Windows/Mac program (`?source=desktop` sets `cd.desktop`) because Google refuses sign-in in embedded windows. The Outlook calendar and "send from Outlook" are Microsoft-only. Static pages now say "OneDrive or Google Drive". Do not add a logo to the Google consent screen (it would force verification).
+
+Register screen (sync.js, `mailKind`): the person types their email address and presses Register. Gmail/googlemail goes straight to Google sign-in; outlook/hotmail/live/msn goes straight to Microsoft; any other address gets the warning "You can only use this service with a Microsoft or Gmail account" with links to create one. This only affects registering: the Log in screen is unchanged, so existing accounts (including work addresses) can still log in.

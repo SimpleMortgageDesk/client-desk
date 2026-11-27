@@ -4194,6 +4194,16 @@
         (CFG.googleLive === true || ls('cd.gtest') === '1')
     };
   }
+  /* which sign-in an email address needs: 'google' (Gmail), 'ms' (Outlook, Hotmail, Live, MSN), or '' for anything else, which cannot register here */
+  function mailKind(em) {
+    var d = String(em || '')
+      .toLowerCase()
+      .split('@')
+      .pop();
+    if (/^(gmail|googlemail)\.[a-z.]+$/.test(d)) return 'google';
+    if (/^(outlook|hotmail|live|msn|passport|windowslive)\.[a-z.]+$/.test(d)) return 'ms';
+    return '';
+  }
   function signAside() {
     var gg = provOk().g;
     return (
@@ -4465,24 +4475,16 @@
         hdr('login') +
         '<h1>Free to start. No card needed.</h1>' +
         '<p class="lead"><b>Free for home owners.</b> Landlords: first year free.</p>' +
-        '<p style="margin:0 0 14px;color:#2b3b47;font-size:15px">Sign in with the email account you use. It takes a few seconds, and there is no new password to make.</p>' +
-        '<button type="button" id="rgMs" style="' +
+        '<form id="rgEmailForm" novalidate>' +
+        '<p style="margin:0 0 6px;color:#2b3b47;font-size:15px">Type your email address. We will take you to the right place to sign in, with no new password to make.</p>' +
+        '<label style="font-size:14px">Your email address<input id="rgEm" type="email" name="username" autocomplete="email" inputmode="email" autocapitalize="off" spellcheck="false" maxlength="120" style="width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #CFCBC2;border-radius:9px;background:#F3F2EE;font:15px system-ui;margin:5px 0 8px;font-weight:400"></label>' +
+        '<p id="rgEmMsg" role="alert" style="margin:0;color:#A3261F;font-size:13.5px;font-weight:600;min-height:0"></p>' +
+        '<div id="rgBadMail" style="display:none"></div>' +
+        '<button type="submit" id="rgNext" style="' +
         pri +
-        '">Continue with Microsoft' +
-        sub(
-          (CFG.tenant || 'consumers') === 'consumers'
-            ? 'Outlook, Hotmail or any Microsoft account'
-            : 'Outlook, Hotmail or Microsoft 365',
-          1
-        ) +
-        '</button>' +
-        (ok.g
-          ? '<button type="button" id="rgGo" style="' +
-            sec +
-            '">Continue with Google' +
-            sub('Gmail or any Google account') +
-            '</button>'
-          : '') +
+        '">Register' +
+        sub('Next: sign in with your email account', 1) +
+        '</button></form>' +
         '<p style="margin:12px 0 0;color:#58697A;font-size:13.5px">After signing in we ask for your mobile number and what you do. Your records stay in your own ' +
         (ok.g ? 'OneDrive or Google Drive' : 'OneDrive') +
         (suOn() ? '. We keep only your name, email and mobile to run your account.' : '.') +
@@ -4730,23 +4732,68 @@
         }
       });
     }
-    var rgm = o.querySelector('#rgMs');
-    if (rgm)
-      rgm.onclick = function () {
-        rgm.disabled = true;
+    /* register: type the email address, and the right sign-in (Microsoft or Google) is chosen from it */
+    var ref = o.querySelector('#rgEmailForm');
+    if (ref) {
+      var rem = o.querySelector('#rgEm'),
+        rmsg = o.querySelector('#rgEmMsg'),
+        rpick = o.querySelector('#rgBadMail');
+      var go = function (which, em) {
+        o.querySelectorAll('button').forEach(function (x) {
+          x.disabled = true;
+        });
         sset('cd.reg', null);
         sset('cd.intent', 'register');
-        lset('cd.prov', 'ms');
-        startLogin();
+        lset('cd.lastMail', em);
+        if (which === 'google') gStart(em);
+        else {
+          lset('cd.prov', 'ms');
+          startLogin(false, em);
+        }
       };
-    var rgg = o.querySelector('#rgGo');
-    if (rgg)
-      rgg.onclick = function () {
-        rgg.disabled = true;
-        sset('cd.reg', null);
-        sset('cd.intent', 'register');
-        gStart();
-      };
+      ref.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var em = (rem.value || '').trim(),
+          kind = mailKind(em);
+        rpick.style.display = 'none';
+        rpick.innerHTML = '';
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) {
+          rmsg.textContent = em
+            ? 'That email address does not look right.'
+            : 'Type your email address first.';
+          try {
+            rem.focus();
+          } catch (x) {}
+          return;
+        }
+        rmsg.textContent = '';
+        if (kind === 'google' && ok.g) return go('google', em);
+        if (kind === 'ms' && ok.ms) return go('ms', em);
+        if (kind === 'google') {
+          rmsg.textContent =
+            ls('cd.desktop') === '1'
+              ? 'Gmail sign-in is not available in this program. Use the website in your browser, or register with an Outlook address.'
+              : 'Gmail sign-in is not switched on yet. Register with an Outlook or Hotmail address.';
+          return;
+        }
+        /* any other address: say what can be used, with a way to make one */
+        rpick.innerHTML =
+          '<div role="alert" style="margin:4px 0 10px;padding:12px 14px;border-radius:10px;background:#FFF4D6;border:1px solid #E5C76B;color:#4a3a00;font-size:14px;line-height:1.5"><b>You can only use this service with a Microsoft or Gmail account.</b> This address is not one of them. Do not have one? Make a free account in a minute, then come back and register with it:<br>' +
+          '<a href="https://signup.live.com/signup" target="_blank" rel="noopener" style="color:#0A6B50;font-weight:600">Create a free Outlook account</a> &middot; ' +
+          '<a href="https://accounts.google.com/signup" target="_blank" rel="noopener" style="color:#0A6B50;font-weight:600">Create a free Gmail account</a></div>';
+        rpick.style.display = '';
+      });
+      rem.addEventListener('input', function () {
+        rmsg.textContent = '';
+        rpick.innerHTML = '';
+        rpick.style.display = 'none';
+      });
+      setTimeout(function () {
+        try {
+          rem.focus();
+        } catch (x) {}
+      }, 50);
+    }
     var f = o.querySelector('#rgForm');
     if (!f) return;
     var val = function (id) {
