@@ -77,7 +77,8 @@ async function adminEmail(request, env) {
     .map((s) => s.trim())
     .filter(Boolean);
   const who = String(body.email || '').toLowerCase();
-  if (allow.length && allow.indexOf(who) < 0) return null;
+  /* no list means no admin: the page stays closed until ADMIN_EMAILS names who may use it */
+  if (!allow.length || allow.indexOf(who) < 0) return null;
   return who || 'admin';
 }
 
@@ -117,7 +118,7 @@ export async function onRequest({ request, env }) {
     const dl = await env.DB.prepare(
       'SELECT user_no, name, email, account_email, mobile, business, trade, pay, signed_up, first_seen, deleted_at FROM users WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'
     ).all();
-    /* false means anyone Cloudflare Access lets in could use this page: ADMIN_EMAILS (your own address) should be set */
+    /* always true now (the page refuses everyone when ADMIN_EMAILS is empty); kept so the admin page can still read it */
     const hardened = String(env.ADMIN_EMAILS || '')
       .split(',')
       .some((x) => x.trim());

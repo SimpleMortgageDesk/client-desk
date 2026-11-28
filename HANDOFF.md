@@ -1,9 +1,9 @@
-# MySimpleDesk – handoff (build LATEST252)
+# MySimpleDesk – handoff (build LATEST253)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
 ## What it is
-Static HTML/JS/CSS records-and-reminders app for home owners, landlords and trades. Customers' data lives in their own OneDrive (Google Drive path is built but hidden until `googleLive:true` in config).
+Static HTML/JS/CSS records-and-reminders app for home owners, landlords and trades. Customers' data lives in their own OneDrive or Google Drive (Google sign-in has been live since 2026-11-27).
 
 ## Code layout
 - Pages: `index.html` (the app shell, loads the scripts in order), `home.html` (landing), `privacy.html`, `404.html`, `admin/index.html`. Generated pages (do not edit by hand): `for/<trade>.html` (12 trade pages, `node tools/make-trade-pages.mjs`), and `about.html`, `support.html`, `security.html`, `terms.html`, `download.html`, `try.html` (`node tools/make-trust-pages.mjs`).
@@ -25,7 +25,7 @@ Welcome email; sign-in-first registration with automatic email proof; To do, Rem
 - **iPhone home-screen login loss:** retest (delete icon, re-add from Safari, log in, leave and return). If the Log in screen appears, tap "Show details" and send a screenshot. If sign-in finishes in a different window, build a server hand-off fix.
 - **Android:** add four GitHub secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`=upload, `ANDROID_KEY_PASSWORD`). Then Play Console registration ($25). Still unanswered: personal or organisation account (a limited company needs a D-U-N-S number).
 - **Cloudflare Access:** "Revoke existing tokens", then a private-window test that admin asks for the 6-digit code.
-- **Google:** reset the exposed client secret, publish the Google app, then set `googleLive:true`.
+- **Pricing:** state the price after the free year on the site (terms say "the price is shown before you pay"); fill `payDetails` in config.js.
 - Bank details for `CFG.payDetails`; real-phone testing.
 
 ## Not done / optional
@@ -33,7 +33,7 @@ Welcome email; sign-in-first registration with automatic email proof; To do, Rem
 - Admin table full width; one-button login; native iPhone app (needs $99/yr Apple account).
 
 ## Testing notes
-Playwright suites are in the session scratchpad `qa/` (not in the repo): run against `python3 -m http.server 8766`; test mode `?test=<trade|both>`; tests set `window.CD_DEMO=false` to exercise the login gate. Server tests are in `srv/`. All passed at LATEST159. The scratchpad may be cleared, so re-create tests if needed.
+Playwright suites are in the session scratchpad `qa/` (not in the repo): run against `python3 -m http.server 8766`; test mode `?test=<trade|both>`; tests set `window.CD_DEMO=false` to exercise the login gate. Server tests are in `srv/`. About 60 Playwright suites passed at LATEST253 (see the list in the session notes); a few older suites are slow or time-dependent (widths, gasdeep, carpage was timing-sensitive until LATEST253).
 
 ## Speed notes (added 2026-11-23)
 - `sw.js` now serves script and style files that carry a `?v=` code straight from its saved copy (no server check), and saves them at install, so repeat opens skip the network for code. This relies on the `?v=` code changing whenever a file changes: the Cloudflare build stamps it from a hash of the content. On a manual (unbuilt) deploy, bump the `?v=` labels or users will keep old files.
