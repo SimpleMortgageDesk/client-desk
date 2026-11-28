@@ -5421,6 +5421,30 @@
             ),
             btn('profile', P.name ? 'Edit' : 'Set up', !P.name)
           ) +
+            (TR().tenancyMode
+              ? row(
+                  'Your accountant',
+                  esc(
+                    (ACCN() || 'Name, phone, email and address') + '. Used for the rent and expenses report.'
+                  ),
+                  btn('acc', 'Edit')
+                )
+              : '') +
+            ((window.CD_TRADES || {}).only
+              ? ''
+              : window.CD_tradesLocked && window.CD_tradesLocked()
+                ? row(
+                    'Change your trades',
+                    esc(tradeLabels()) +
+                      '. Locked, because two trades are chosen. To change them, email support@mysimpledesk.co.uk.',
+                    '<a class="cds-btn" href="mailto:support@mysimpledesk.co.uk?subject=Change%20my%20trades">Email support</a>'
+                  )
+                : row(
+                    tradeIds().length > 1 ? 'Change your trades' : 'Change your trade',
+                    esc(tradeLabels()) +
+                      '. Sets the fields, stages and reminders. You can work in up to two trades at no extra charge. Once two are chosen they are locked.',
+                    btn('trade', 'Change or add')
+                  )) +
             row(
               'Business details and logo',
               'Name, address, logo, VAT and payment details shown on your documents.',
@@ -5438,31 +5462,7 @@
               'Invoices',
               esc((window.CD_invSummary && window.CD_invSummary()) || 'Bank accounts and invoice numbers.'),
               btn('inv', 'Edit invoice details')
-            ) +
-            (TR().tenancyMode
-              ? row(
-                  'Your accountant',
-                  esc(
-                    (ACCN() || 'Name, phone, email and address') + '. Used for the rent and expenses report.'
-                  ),
-                  btn('acc', 'Edit')
-                )
-              : '') +
-            ((window.CD_TRADES || {}).only
-              ? ''
-              : window.CD_tradesLocked && window.CD_tradesLocked()
-                ? row(
-                    'Your trades',
-                    esc(tradeLabels()) +
-                      '. Locked, because two trades are chosen. To change them, email support@mysimpledesk.co.uk.',
-                    '<a class="cds-btn" href="mailto:support@mysimpledesk.co.uk?subject=Change%20my%20trades">Email support</a>'
-                  )
-                : row(
-                    tradeIds().length > 1 ? 'Your trades' : 'Your trade',
-                    esc(tradeLabels()) +
-                      '. Sets the fields, stages and reminders. You can work in up to two trades at no extra charge. Once two are chosen they are locked.',
-                    btn('trade', 'Change or add')
-                  ))
+            )
         ) +
         grp('Security', sec + qrow) +
         grp(

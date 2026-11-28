@@ -1,4 +1,4 @@
-# MySimpleDesk – handoff (build LATEST253)
+# MySimpleDesk – handoff (build LATEST254)
 
 Live: https://mysimpledesk.co.uk · Repo: `SimpleMortgageDesk/client-desk` (old name `simplemortgagedesk/client-desk` still redirects; update the git remote when convenient) · Push to `main` auto-deploys (Cloudflare Pages + Functions + D1).
 
@@ -33,7 +33,7 @@ Welcome email; sign-in-first registration with automatic email proof; To do, Rem
 - Admin table full width; one-button login; native iPhone app (needs $99/yr Apple account).
 
 ## Testing notes
-Playwright suites are in the session scratchpad `qa/` (not in the repo): run against `python3 -m http.server 8766`; test mode `?test=<trade|both>`; tests set `window.CD_DEMO=false` to exercise the login gate. Server tests are in `srv/`. About 60 Playwright suites passed at LATEST253 (see the list in the session notes); a few older suites are slow or time-dependent (widths, gasdeep, carpage was timing-sensitive until LATEST253).
+Playwright suites are in the session scratchpad `qa/` (not in the repo): run against `python3 -m http.server 8766`; test mode `?test=<trade|both>`; tests set `window.CD_DEMO=false` to exercise the login gate. Server tests are in `srv/`. About 60 Playwright suites passed at LATEST254 (see the list in the session notes); a few older suites are slow or time-dependent (widths, gasdeep, carpage was timing-sensitive until LATEST254).
 
 ## Speed notes (added 2026-11-23)
 - `sw.js` now serves script and style files that carry a `?v=` code straight from its saved copy (no server check), and saves them at install, so repeat opens skip the network for code. This relies on the `?v=` code changing whenever a file changes: the Cloudflare build stamps it from a hash of the content. On a manual (unbuilt) deploy, bump the `?v=` labels or users will keep old files.
