@@ -1,0 +1,10 @@
+Copyright (c) 2026 MySimpleDesk. All rights reserved.
+
+This source code, the design, text, images, videos, and the MySimpleDesk name
+and logo are proprietary. No licence is granted to copy, modify, distribute,
+sublicense, sell, or create derivative works from them without the owner's
+prior written permission.
+
+Third-party open-source components in the lib/ folder (PDF.js and
+Tesseract.js) are licensed to you under their own licences; see
+lib/LICENSES.txt and the licence files next to them.
