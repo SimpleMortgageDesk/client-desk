@@ -1269,58 +1269,11 @@ document.addEventListener('input', function (e) {
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && !$('#drawer').hidden) closeDrawer();
   else if (e.key === 'Escape' && trayOpen) closeTray();
-  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('card')) {
-    e.preventDefault();
-    openDrawer(e.target.dataset.open);
-  }
   if (e.key === 'Enter' && e.target.id === 'tkText') {
     e.preventDefault();
     $('#tkAdd').click();
   }
 });
-/* drag between pipeline stages */
-var dragId = null;
-document.addEventListener('dragstart', function (e) {
-  var c = e.target.closest && e.target.closest('.card');
-  if (c) {
-    dragId = c.dataset.open;
-    e.dataTransfer.effectAllowed = 'move';
-    try {
-      e.dataTransfer.setData('text/plain', dragId);
-    } catch (_) {}
-  }
-});
-document.addEventListener('dragover', function (e) {
-  var c = e.target.closest && e.target.closest('.col');
-  if (c && dragId) {
-    e.preventDefault();
-    document.querySelectorAll('.col.over').forEach(function (x) {
-      x.classList.remove('over');
-    });
-    c.classList.add('over');
-  }
-});
-document.addEventListener('drop', function (e) {
-  var c = e.target.closest && e.target.closest('.col');
-  document.querySelectorAll('.col.over').forEach(function (x) {
-    x.classList.remove('over');
-  });
-  if (c && dragId) {
-    e.preventDefault();
-    var cs = cases.filter(function (x) {
-      return x.id === dragId;
-    })[0];
-    if (cs && cs.stage !== c.dataset.stage) patch(dragId, { stage: c.dataset.stage });
-  }
-  dragId = null;
-});
-document.addEventListener('dragend', function () {
-  dragId = null;
-  document.querySelectorAll('.col.over').forEach(function (x) {
-    x.classList.remove('over');
-  });
-});
-
 function autoChain(k, depth) {
   if (depth > 5) return;
   var srcEl = $('#f-' + k);

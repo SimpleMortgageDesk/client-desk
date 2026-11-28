@@ -1104,21 +1104,6 @@ function kdNext(r) {
   var n = diff(r.date);
   return n >= 0 ? r.date : addDays(r.date, Math.ceil(-n / 30) * 30);
 }
-function nextEvent(c) {
-  var e = caseEvents(c).sort(function (a, b) {
-    return a.date < b.date ? -1 : 1;
-  });
-  var over = e.filter(function (x) {
-    return diff(x.date) < 0;
-  })[0];
-  return (
-    over ||
-    e.filter(function (x) {
-      return diff(x.date) >= 0;
-    })[0] ||
-    null
-  );
-}
 function tone(date) {
   var n = diff(date);
   return n < 0 ? 'bad' : n <= 7 ? 'warn' : '';

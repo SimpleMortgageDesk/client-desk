@@ -1,5 +1,5 @@
 'use strict';
-/* MySimpleDesk app: Main screen: menus, the list pages (pipeline, cases, reminders) and the record drawer.
+/* MySimpleDesk app: Main screen: menus, the list pages (cases, reminders) and the record drawer.
    All the app-*.js files share one page: they are loaded in this order by index.html and use each other's functions. */
 /* ---------- render shell ---------- */
 /* landlords: Notebook and Book appointment sit under More, in the top menu (phone) and the side menu (computer) */
@@ -23,7 +23,6 @@ function renderNav() {
       : [
           ['clients', CL()],
           ['cases', T.tenancyMode ? 'Buy to let properties' : 'All ' + NS()],
-          ['pipeline', 'Pipeline'],
           ['appointments', 'Appointments'],
           ['tasks', T.tenancyMode ? 'Calendar' : 'Tasks'],
           ['reminders', 'Reminders'],
@@ -117,7 +116,6 @@ function renderNav() {
         'tasks',
         'reminders',
         'clients',
-        'pipeline',
         'invoices',
         'calculator',
         'notebook',
@@ -776,7 +774,7 @@ function render() {
   }
   if ((view === 'calculator' && !T.calculator) || (view === 'birthdays' && !T.dob)) view = 'tasks';
   if (T.hideTabs && T.hideTabs.indexOf(view) > -1) view = T.landing || 'tasks';
-  if (T.id === 'mortgage' && view === 'pipeline') view = 'cases';
+  if (view === 'pipeline') view = T.id === 'mortgage' ? 'cases' : T.landing || 'tasks';
   if (T.tenancyMode && (view === 'invoices' || view === 'marketing')) view = 'cases';
   if (!T.tenancyMode && view === 'tradesmen') view = T.landing || 'tasks';
   if (T.tenancyMode && view === 'cases') view = 'assets';
@@ -824,7 +822,6 @@ function render() {
     if (!$('#clList') || !v.contains($('#clList'))) v.innerHTML = clShell();
     clRender();
   } else if (view === 'invoices') v.innerHTML = invoicesHTML();
-  else if (view === 'pipeline') v.innerHTML = pipelineHTML();
   else if (view === 'cases') v.innerHTML = casesHTML();
   else if (view === 'assets') v.innerHTML = assetsHTML();
   else if (view === 'mycar') v.innerHTML = carPageHTML();
@@ -865,97 +862,6 @@ function emptyHTML() {
       : '') +
     '</div>'
   );
-}
-
-/* ---------- pipeline ---------- */
-function pipelineHTML() {
-  if (!cases.length) return emptyHTML();
-  var list = sortList(
-    visible().filter(function (c) {
-      return c.stage !== 'lost';
-    })
-  );
-  var vk = T.value.k,
-    vv = function (c) {
-      return +fv(c, vk) || 0;
-    };
-  var active = list.filter(function (c) {
-    return stageOf(c) !== T.doneStage;
-  });
-  var vol = active.reduce(function (a, c) {
-    return a + vv(c);
-  }, 0);
-  var h =
-    '<div class="pagehead"><h1>Pipeline</h1><div class="stats">' +
-    '<div class="stat"><b>' +
-    active.length +
-    '</b><span>Live ' +
-    NS() +
-    '</span></div>' +
-    '<div class="stat"><b>' +
-    money(vol) +
-    '</b><span>' +
-    esc(T.value.l) +
-    '</span></div></div></div><div class="board">';
-  STAGES.forEach(function (s, i) {
-    var cs = list.filter(function (c) {
-      return stageOf(c) === s.id;
-    });
-    var sum = cs.reduce(function (a, c) {
-      return a + vv(c);
-    }, 0);
-    h +=
-      '<section class="col" data-stage="' +
-      s.id +
-      '"><h3>' +
-      s.label +
-      '<span>' +
-      cs.length +
-      '</span></h3><div class="sum">' +
-      (sum ? money(sum) : '&nbsp;') +
-      '</div><div class="cards">';
-    cs.forEach(function (c) {
-      var ne = nextEvent(c),
-        next = STAGES[i + 1];
-      h +=
-        '<div class="card" draggable="true" tabindex="0" role="button" data-open="' +
-        c.id +
-        '">' +
-        '<div class="nm">' +
-        esc(names(c)) +
-        cno(c) +
-        '</div>' +
-        '<div class="ad">' +
-        esc(short(fv(c, T.addr)) || c.type || '') +
-        '</div>' +
-        '<div class="row"><span class="num">' +
-        (fv(c, vk) !== '' ? money(fv(c, vk)) : '') +
-        '</span><span class="muted">' +
-        esc(fmtField(c, T.sub)) +
-        '</span></div>' +
-        (ne
-          ? '<div><span class="chip ' +
-            tone(ne.date) +
-            '">' +
-            esc(ne.label.split('.')[0]) +
-            ' · ' +
-            rel(ne.date) +
-            '</span></div>'
-          : '') +
-        (next
-          ? '<button class="btn ghost sm go" data-adv="' +
-            c.id +
-            '" data-to="' +
-            next.id +
-            '">Move to ' +
-            next.label +
-            ' →</button>'
-          : '') +
-        '</div>';
-    });
-    h += '</div></section>';
-  });
-  return h + '</div>';
 }
 
 /* ---------- cases table ---------- */

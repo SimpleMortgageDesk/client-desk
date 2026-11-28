@@ -288,7 +288,6 @@
       { id: 'active', label: 'Active client' }
     ],
     landing: 'cases',
-    hideTabs: ['pipeline'],
     noTasks: true,
     apptTab: true,
     remTab: true,
@@ -882,9 +881,9 @@
     noun: ['Job', 'Jobs'],
     person: ['Customer', 'Customers'],
     peopleTitle: 'Customer',
-    /* no Tasks or Pipeline tabs: an Appointments tab and a Reminders tab instead (to-dos with a date show as reminders) */
+    /* no Tasks tab: an Appointments tab and a Reminders tab instead (to-dos with a date show as reminders) */
     landing: 'appointments',
-    hideTabs: ['pipeline', 'tasks'],
+    hideTabs: ['tasks'],
     noTasks: true,
     apptTab: true,
     remTab: true,
@@ -1348,9 +1347,9 @@
     noun: ['Learner', 'Learners'],
     person: ['Learner', 'Learners'],
     peopleTitle: 'Learner',
-    /* lessons are appointments: an Appointments tab and a Reminders tab, no Tasks or Pipeline */
+    /* lessons are appointments: an Appointments tab and a Reminders tab, no Tasks */
     landing: 'appointments',
-    hideTabs: ['pipeline', 'tasks'],
+    hideTabs: ['tasks'],
     noTasks: true,
     apptTab: true,
     remTab: true,
@@ -1578,7 +1577,7 @@
     doneStage: 'let',
     tenancyMode: true,
     landing: 'cases',
-    hideTabs: ['pipeline', 'clients'],
+    hideTabs: ['clients'],
     types: ['House', 'Flat', 'HMO', 'Room', 'Holiday let', 'Commercial', 'Other'],
     sections: [
       {

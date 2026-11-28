@@ -527,6 +527,9 @@ function carOpen(id) {
     };
   document.addEventListener('keydown', kd);
   setTimeout(function () {
+    /* focus the first box, unless the person has already started in another one */
+    var ae = document.activeElement;
+    if (ae && ae !== document.body && ov.contains(ae)) return;
     try {
       $('#car-reg').focus();
     } catch (e) {}
